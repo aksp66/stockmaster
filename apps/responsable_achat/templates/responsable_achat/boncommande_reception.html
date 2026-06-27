@@ -1,0 +1,105 @@
+{% extends 'responsable_achat/base_achat.html' %}
+{% block title %}Réception · {{ bc.reference }}{% endblock %}
+{% block page_title %}Réceptionner la livraison{% endblock %}
+{% block page_sub %}{{ bc.reference }} · {{ bc.fournisseur.nom }}{% endblock %}
+{% block n_bc %}active{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--text-m);" class="au a1">
+  <a href="{% url 'responsable_achat:boncommande_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>Bons de commande</a>
+  <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+  <a href="{% url 'responsable_achat:boncommande_detail' bc.pk %}" style="color:var(--or);text-decoration:none;font-weight:600;" class="mono">{{ bc.reference }}</a>
+  <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+  <span>Réception</span>
+</div>
+
+{# Alerte info #}
+<div style="padding:14px 18px;background:var(--or-dim);border:1.5px solid var(--or-border);border-radius:11px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px;" class="au a1">
+  <i class="fas fa-circle-info" style="color:var(--or);font-size:18px;margin-top:2px;flex-shrink:0;"></i>
+  <div style="font-size:13px;color:var(--or-d);">
+    <strong>Réception du bon {{ bc.reference }}</strong> — Fournisseur : <strong>{{ bc.fournisseur.nom }}</strong><br>
+    Saisissez les quantités reçues pour chaque ligne. Une réception partielle est autorisée. Les entrées de stock seront générées automatiquement.
+  </div>
+</div>
+
+<form method="post">
+{% csrf_token %}
+
+<div style="display:grid;grid-template-columns:1fr 280px;gap:18px;" class="au a2">
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h">
+        <div class="card-t"><i class="fas fa-truck-ramp-box" style="color:var(--or);margin-right:7px;"></i>Lignes à réceptionner</div>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th>Commandée</th>
+            <th>Déjà reçue</th>
+            <th>Restant</th>
+            <th>Qté reçue aujourd'hui</th>
+            <th>État</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in bc.lignes.all %}
+          {% with restant=l.quantite|add:l.quantite_recue|default:l.quantite %}
+          <tr {% if l.quantite_recue == l.quantite %}style="opacity:.55;"{% endif %}>
+            <td>
+              <div style="font-weight:700;font-size:13px;">{{ l.produit.nom }}</div>
+              <div class="mono" style="font-size:11px;color:var(--or);">{{ l.produit.sku }}</div>
+            </td>
+            <td><span class="mono" style="font-weight:700;">{{ l.quantite }}</span></td>
+            <td><span class="mono" style="color:var(--green);font-weight:700;">{{ l.quantite_recue|default:0 }}</span></td>
+            <td><span class="mono" style="color:var(--or);font-weight:800;">{{ l.quantite_restante }}</span></td>
+            <td style="width:130px;">
+              {% if l.quantite_restante > 0 %}
+              <input type="number"
+                     name="recu_{{ l.pk }}"
+                     class="fin" min="0"
+                     max="{{ l.quantite_restante }}"
+                     value="{{ l.quantite_restante }}"
+                     style="text-align:center;font-size:16px;font-weight:800;padding:7px;">
+              {% else %}
+              <input type="number" class="fin" value="0" disabled style="background:#f9fafb;text-align:center;">
+              {% endif %}
+            </td>
+            <td>
+              {% if l.quantite_recue == l.quantite %}<span class="badge bg-gr">Complet</span>
+              {% elif l.quantite_recue > 0 %}<span class="badge bg-ye">Partiel</span>
+              {% else %}<span class="badge bg-gy">En attente</span>{% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button type="submit" class="btn b-or"><i class="fas fa-check"></i> Valider la réception</button>
+      <a href="{% url 'responsable_achat:boncommande_detail' bc.pk %}" class="btn b-gh"><i class="fas fa-xmark"></i> Annuler</a>
+    </div>
+  </div>
+
+  <div>
+    <div class="card" style="padding:18px;">
+      <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-warehouse" style="color:var(--or);margin-right:6px;"></i>Entrepôt de destination</div>
+      <div class="fi" style="margin-bottom:14px;">
+        <label class="fl">Réceptionner dans <span style="color:var(--red);">*</span></label>
+        <select name="entrepot" class="fin" required>
+          <option value="">— Sélectionner —</option>
+          {% for e in entrepots %}
+          <option value="{{ e.id }}" {% if e.id == bc.entrepot_destination_id %}selected{% endif %}>{{ e.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="fi" style="margin-bottom:0;">
+        <label class="fl">Référence BL / Bon de livraison</label>
+        <input type="text" name="reference_bl" class="fin" placeholder="BL-FOURN-2024-001">
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

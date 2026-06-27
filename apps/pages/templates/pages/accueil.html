@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Accueil – StockMaster{% endblock %}
+{% block nav_accueil %}active{% endblock %}
+
+{% block content %}
+
+
+<section class="text-center py-16 fade-up">
+  <div style="display:inline-flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:#ea580c;margin-bottom:22px;">
+    <i class="fas fa-brain" style="font-size:11px;"></i> Propulsé par Prophet &amp; RandomForest
+  </div>
+  <h1 style="font-size:clamp(2rem,5vw,3.6rem);font-weight:800;color:#111827;line-height:1.15;letter-spacing:-.04em;margin-bottom:20px;">
+    Gérez vos stocks<br>
+    <span style="background:linear-gradient(135deg,#f97316,#ea580c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">intelligemment</span>
+  </h1>
+  <p style="font-size:1.1rem;color:#6b7280;max-width:600px;margin:0 auto 32px;line-height:1.7;">
+    Anticipez les ruptures, optimisez vos commandes et pilotez plusieurs entrepôts en temps réel grâce à l'IA prédictive.
+  </p>
+  <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+    <a href="{% url 'accounts:inscription' %}" class="btn-or" style="padding:13px 28px;font-size:15px;">
+      <i class="fas fa-rocket"></i> Démarrer gratuitement
+    </a>
+    <a href="{% url 'pages:contact' %}" class="btn-ghost" style="padding:13px 28px;font-size:15px;">
+      <i class="fas fa-phone"></i> Parler à un expert
+    </a>
+  </div>
+  <!-- Badges de réassurance -->
+  <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:28px;">
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#6b7280;">
+      <i class="fas fa-check-circle" style="color:#059669;"></i> Sans carte bancaire
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#6b7280;">
+      <i class="fas fa-check-circle" style="color:#059669;"></i> Données sécurisées RGPD
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#6b7280;">
+      <i class="fas fa-check-circle" style="color:#059669;"></i> Support 7j/7
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CHIFFRES CLÉS
+══════════════════════════════════════ -->
+<section style="background:#fff7ed;border-radius:20px;padding:40px;margin:20px 0 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:30px;text-align:center;" class="delay-1 fade-up">
+  <div>
+    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">+200</div>
+    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">entreprises clientes</div>
+  </div>
+  <div>
+    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">−72%</div>
+    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">de ruptures de stock</div>
+  </div>
+  <div>
+    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">15 min</div>
+    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">de formation moyenne</div>
+  </div>
+  <div>
+    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">98%</div>
+    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">taux de satisfaction</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     FONCTIONNALITÉS CLÉS
+══════════════════════════════════════ -->
+<section class="mb-20 delay-2 fade-up">
+  <div class="text-center mb-12">
+    <h2 style="font-size:2rem;font-weight:800;color:#111827;letter-spacing:-.03em;">Tout ce dont vous avez besoin</h2>
+    <p style="color:#6b7280;margin-top:8px;font-size:1rem;">Une plateforme complète pour chaque rôle dans votre entreprise.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+
+    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
+      <div style="width:48px;height:48px;background:#fff7ed;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <i class="fas fa-brain" style="color:#f97316;font-size:20px;"></i>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Prédiction IA</h3>
+      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">Prophet + RandomForest : prévisions à 30/60/90 jours avec score de confiance et alertes automatiques.</p>
+    </div>
+
+    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
+      <div style="width:48px;height:48px;background:#eff6ff;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <i class="fas fa-barcode" style="color:#2563eb;font-size:20px;"></i>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Scan code-barres</h3>
+      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">Opérations terrain ultra-rapides via PWA (iOS/Android) ou lecteur USB. Entrée/sortie en 2 secondes.</p>
+    </div>
+
+    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
+      <div style="width:48px;height:48px;background:#ecfdf5;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <i class="fas fa-chart-pie" style="color:#059669;font-size:20px;"></i>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Tableaux de bord</h3>
+      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">KPIs temps réel, alertes de rupture, valorisation FIFO/CUMP, exports PDF et Excel.</p>
+    </div>
+
+    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
+      <div style="width:48px;height:48px;background:#fffbeb;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <i class="fas fa-warehouse" style="color:#d97706;font-size:20px;"></i>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Multi-entrepôts</h3>
+      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">Gérez plusieurs entrepôts et emplacements depuis une seule interface. Transferts en quelques clics.</p>
+    </div>
+
+    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
+      <div style="width:48px;height:48px;background:#f5f3ff;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <i class="fas fa-users" style="color:#7c3aed;font-size:20px;"></i>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Gestion des rôles</h3>
+      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">7 rôles distincts : super admin, admin, gestionnaire, acheteur, magasinier, auditeur, comptable.</p>
+    </div>
+
+    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
+      <div style="width:48px;height:48px;background:#fef2f2;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <i class="fas fa-plug" style="color:#dc2626;font-size:20px;"></i>
+      </div>
+      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">API REST &amp; Intégrations</h3>
+      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">API DRF + JWT pour vos applications mobiles. Import/export CSV et Excel natif.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     COMMENT ÇA MARCHE
+══════════════════════════════════════ -->
+<section class="mb-20 delay-3 fade-up">
+  <div class="text-center mb-12">
+    <h2 style="font-size:2rem;font-weight:800;color:#111827;letter-spacing:-.03em;">Comment ça marche ?</h2>
+    <p style="color:#6b7280;margin-top:8px;">Opérationnel en moins de 15 minutes.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;position:relative;">
+    {% for step in steps %}
+    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 4px 14px rgba(249,115,22,.3);">
+        <span style="color:white;font-weight:800;font-size:18px;">{{ forloop.counter }}</span>
+      </div>
+      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">{{ step.titre }}</h3>
+      <p style="font-size:13px;color:#6b7280;line-height:1.6;">{{ step.description }}</p>
+    </div>
+    {% empty %}
+    <!-- Fallback si pas de contexte Django -->
+    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="color:white;font-weight:800;font-size:18px;">1</span></div>
+      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">Créez votre entreprise</h3>
+      <p style="font-size:13px;color:#6b7280;line-height:1.6;">Inscription en 2 minutes, invitez votre équipe par email.</p>
+    </div>
+    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="color:white;font-weight:800;font-size:18px;">2</span></div>
+      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">Importez vos produits</h3>
+      <p style="font-size:13px;color:#6b7280;line-height:1.6;">Via CSV, Excel ou saisie manuelle. Codes-barres automatiquement vérifiés.</p>
+    </div>
+    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="color:white;font-weight:800;font-size:18px;">3</span></div>
+      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">L'IA analyse et prédit</h3>
+      <p style="font-size:13px;color:#6b7280;line-height:1.6;">Après 7 jours de données, les prédictions et suggestions d'achat se lancent automatiquement.</p>
+    </div>
+    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="color:white;font-weight:800;font-size:18px;">4</span></div>
+      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">Commandez au bon moment</h3>
+      <p style="font-size:13px;color:#6b7280;line-height:1.6;">Bons de commande générés automatiquement selon les suggestions. Zéro rupture.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     TÉMOIGNAGES
+══════════════════════════════════════ -->
+<section class="mb-20 delay-4 fade-up">
+  <div class="text-center mb-10">
+    <h2 style="font-size:2rem;font-weight:800;color:#111827;letter-spacing:-.03em;">Ils nous font confiance</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;">
+    <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;position:relative;" class="card-hover">
+      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in "12345" %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}</div>
+      <i class="fas fa-quote-left" style="color:#fed7aa;font-size:18px;margin-bottom:10px;display:block;"></i>
+      <p style="font-size:13.5px;color:#4b5563;line-height:1.7;font-style:italic;">"La prédiction IA nous a permis de réduire notre stock dormant de 35% tout en maintenant un taux de service à 98%."</p>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">L</div>
+        <div><div style="font-size:13px;font-weight:700;color:#111827;">Laurent M.</div><div style="font-size:11.5px;color:#f97316;">Directeur logistique · TechLog</div></div>
+      </div>
+    </div>
+    <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;" class="card-hover">
+      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in "1234" %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}<i class="fas fa-star-half-alt" style="color:#f97316;font-size:13px;"></i></div>
+      <i class="fas fa-quote-left" style="color:#fed7aa;font-size:18px;margin-bottom:10px;display:block;"></i>
+      <p style="font-size:13.5px;color:#4b5563;line-height:1.7;font-style:italic;">"Gestion multi-entrepôts simplifiée, scan ultra-rapide. Notre équipe terrain est passée de 45 min à 8 min par inventaire."</p>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">S</div>
+        <div><div style="font-size:13px;font-weight:700;color:#111827;">Sophie B.</div><div style="font-size:11.5px;color:#f97316;">Gestionnaire stock · Mode&amp;Vous</div></div>
+      </div>
+    </div>
+    <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;" class="card-hover">
+      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in "12345" %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}</div>
+      <i class="fas fa-quote-left" style="color:#fed7aa;font-size:18px;margin-bottom:10px;display:block;"></i>
+      <p style="font-size:13.5px;color:#4b5563;line-height:1.7;font-style:italic;">"Interface claire, formation rapide pour nos équipes terrain. Le support est réactif et disponible même le week-end."</p>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#059669,#10b981);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">K</div>
+        <div><div style="font-size:13px;font-weight:700;color:#111827;">Sarah K.</div><div style="font-size:11.5px;color:#f97316;">Gestionnaire stock · Bio&amp;Co</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CTA FINAL
+══════════════════════════════════════ -->
+<section style="background:linear-gradient(135deg,#1a1208,#2d1f12);border-radius:24px;padding:56px 32px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;" class="delay-4 fade-up">
+  <div style="position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(249,115,22,.08);border-radius:50%;"></div>
+  <div style="position:absolute;bottom:-30px;left:-30px;width:150px;height:150px;background:rgba(249,115,22,.06);border-radius:50%;"></div>
+  <h2 style="font-size:2rem;font-weight:800;color:white;letter-spacing:-.03em;margin-bottom:14px;position:relative;">Prêt à transformer votre gestion de stock ?</h2>
+  <p style="color:rgba(255,255,255,.65);font-size:1rem;margin-bottom:28px;position:relative;">Rejoignez +200 entreprises qui anticipent leurs ruptures avec l'IA.</p>
+  <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;position:relative;">
+    <a href="{% url 'accounts:inscription' %}" class="btn-or" style="padding:13px 30px;font-size:15px;">
+      <i class="fas fa-rocket"></i> Essai gratuit — sans engagement
+    </a>
+    <a href="{% url 'pages:contact' %}" style="display:inline-flex;align-items:center;gap:8px;padding:13px 30px;font-size:15px;font-weight:600;color:rgba(255,255,255,.75);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='white';" onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,.75)';">
+      <i class="fas fa-phone"></i> Démo personnalisée
+    </a>
+  </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+{% block title %}Scanner{% endblock %}
+{% block page_title %}Scanner code-barres{% endblock %}
+{% block page_sub %}Entrée / sortie rapide par scan{% endblock %}
+{% block n_scan %}active{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto;" class="au">
+
+  <!-- Sélection action -->
+  <div class="card" style="padding:18px 20px;margin-bottom:18px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <div class="fi" style="flex:1;margin-bottom:0;">
+        <label class="fl">Action</label>
+        <select id="actionSelect" class="fin">
+          <option value="entree">Entrée en stock</option>
+          <option value="sortie">Sortie de stock</option>
+          <option value="inventaire">Inventaire (consultation)</option>
+        </select>
+      </div>
+      <div class="fi" style="flex:1;margin-bottom:0;">
+        <label class="fl">Entrepôt</label>
+        <select id="entrepotSelect" class="fin">
+          {% for e in entrepots %}<option value="{{ e.id }}">{{ e.nom }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zone de scan -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:18px;">
+    <div style="background:var(--bg-sidebar);padding:28px 24px;text-align:center;">
+      <div style="margin-bottom:20px;">
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(5,150,105,.2);border:2px solid var(--em);display:flex;align-items:center;justify-content:center;margin:0 auto;animation:scanPulse 2s ease-in-out infinite;">
+          <i class="fas fa-barcode" style="font-size:36px;color:var(--em-light);"></i>
+        </div>
+      </div>
+      <div class="fi" style="margin-bottom:0;">
+        <label class="fl" style="color:rgba(255,255,255,.6);text-align:center;">Code-barres / SKU</label>
+        <input type="text" id="scanInput" class="fin"
+               placeholder="Scannez ou tapez le code…"
+               autofocus autocomplete="off"
+               style="text-align:center;font-size:18px;font-family:'Fira Code',monospace;letter-spacing:2px;border-color:var(--em);background:#0f2318;color:white;">
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:10px;">
+        <i class="fas fa-circle" id="statusDot" style="color:var(--em-light);font-size:8px;margin-right:5px;"></i>
+        <span id="statusText">En attente d'un scan…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Résultat produit trouvé -->
+  <div id="resultCard" class="card" style="padding:0;overflow:hidden;display:none;">
+    <div style="height:5px;background:var(--em);"></div>
+    <div style="padding:20px 22px;">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;">
+        <div style="width:52px;height:52px;border-radius:12px;background:var(--em-dim);border:1px solid var(--em-border);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--em);flex-shrink:0;">
+          <i class="fas fa-box"></i>
+        </div>
+        <div style="flex:1;">
+          <div id="rNom" style="font-size:18px;font-weight:800;color:var(--text-p);"></div>
+          <div id="rSku" class="mono" style="font-size:12px;color:var(--text-m);"></div>
+        </div>
+        <div id="rPrix" style="font-size:16px;font-weight:700;color:var(--em);" class="mono"></div>
+      </div>
+
+      <!-- Stocks par entrepôt -->
+      <div id="rStocks" style="margin-bottom:18px;"></div>
+
+      <!-- Formulaire quantité -->
+      <div id="formQte" style="background:var(--bg);border-radius:10px;padding:14px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text-p);margin-bottom:12px;" id="formTitle">Enregistrer le mouvement</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Quantité <span style="color:var(--red);">*</span></label>
+            <input type="number" id="qteInput" class="fin" placeholder="0" min="0.01" step="0.01" style="font-size:20px;font-weight:700;text-align:center;">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Référence</label>
+            <input type="text" id="refInput" class="fin" placeholder="BL-2024-001">
+          </div>
+        </div>
+        <button id="btnValider" class="btn b-em" style="width:100%;justify-content:center;font-size:15px;padding:12px;">
+          <i class="fas fa-check"></i> Valider le mouvement
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Erreur produit non trouvé -->
+  <div id="errorCard" class="card" style="padding:20px;display:none;border-color:#fecaca;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:44px;height:44px;border-radius:10px;background:var(--red-dim);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--red);flex-shrink:0;">
+        <i class="fas fa-circle-xmark"></i>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--red);">Produit introuvable</div>
+        <div id="errorMsg" style="font-size:13px;color:var(--text-m);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historique des scans de la session -->
+  <div class="card au" style="margin-top:18px;padding:0;overflow:hidden;">
+    <div class="card-h"><div class="card-t">Scans de cette session</div></div>
+    <div id="scanHistory" style="max-height:240px;overflow-y:auto;">
+      <div style="padding:28px;text-align:center;color:var(--text-m);font-size:13px;">
+        <i class="fas fa-barcode" style="font-size:28px;opacity:.3;display:block;margin-bottom:8px;"></i>
+        Aucun scan pour le moment
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes scanPulse { 0%,100%{box-shadow:0 0 0 0 rgba(5,150,105,.4);} 50%{box-shadow:0 0 0 14px rgba(5,150,105,0);} }
+</style>
+{% endblock %}
+
+{% block xjs %}
+<script>
+const input      = document.getElementById('scanInput');
+const resultCard = document.getElementById('resultCard');
+const errorCard  = document.getElementById('errorCard');
+const history    = document.getElementById('scanHistory');
+const statusDot  = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+let currentProduct = null;
+let scanTimer;
+
+input.addEventListener('input', () => {
+  clearTimeout(scanTimer);
+  const code = input.value.trim();
+  if (!code) return;
+  // Délai pour attendre la fin du scan (lecteur USB envoie tout en <200ms)
+  scanTimer = setTimeout(() => triggerScan(code), 300);
+});
+
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    clearTimeout(scanTimer);
+    triggerScan(input.value.trim());
+  }
+});
+
+async function triggerScan(code) {
+  if (!code) return;
+  statusDot.style.color = '#f97316';
+  statusText.textContent = 'Recherche en cours…';
+  resultCard.style.display = 'none';
+  errorCard.style.display  = 'none';
+
+  try {
+    const res = await fetch('{% url "gestionnaire:api_scan" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({ code, action: document.getElementById('actionSelect').value })
+    });
+    const data = await res.json();
+
+    if (data.found) {
+      currentProduct = data.produit;
+      document.getElementById('rNom').textContent  = data.produit.nom;
+      document.getElementById('rSku').textContent  = data.produit.sku;
+      document.getElementById('rPrix').textContent = data.produit.prix + ' FCFA';
+      document.getElementById('formTitle').textContent =
+        document.getElementById('actionSelect').options[document.getElementById('actionSelect').selectedIndex].text;
+
+      let stocksHtml = '<div style="margin-bottom:10px;">';
+      data.stocks.forEach(s => {
+        stocksHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span>${s.entrepot}</span><strong class="mono">${s.quantite}</strong></div>`;
+      });
+      if (!data.stocks.length) stocksHtml += '<div style="font-size:13px;color:var(--text-m);">Aucun stock enregistré</div>';
+      stocksHtml += '</div>';
+      document.getElementById('rStocks').innerHTML = stocksHtml;
+
+      resultCard.style.display = 'block';
+      document.getElementById('qteInput').focus();
+      statusDot.style.color = '#059669';
+      statusText.textContent = 'Produit trouvé ✓';
+
+      addHistory(code, data.produit.nom, true);
+    } else {
+      document.getElementById('errorMsg').textContent = data.message;
+      errorCard.style.display = 'block';
+      statusDot.style.color = '#dc2626';
+      statusText.textContent = 'Produit introuvable';
+      addHistory(code, 'Inconnu', false);
+    }
+  } catch(e) {
+    statusText.textContent = 'Erreur réseau';
+  }
+  input.value = '';
+  setTimeout(() => input.focus(), 100);
+}
+
+document.getElementById('btnValider').addEventListener('click', async () => {
+  if (!currentProduct) return;
+  const qte    = parseFloat(document.getElementById('qteInput').value);
+  const ref    = document.getElementById('refInput').value;
+  const action = document.getElementById('actionSelect').value;
+  const entId  = document.getElementById('entrepotSelect').value;
+  if (!qte || qte <= 0) { alert('Quantité invalide'); return; }
+
+  const body = {
+    produit: currentProduct.id,
+    type_mouvement: action,
+    quantite: qte,
+    reference: ref,
+  };
+  body[action === 'entree' ? 'entrepot_destination' : 'entrepot_source'] = entId;
+
+  const form = document.createElement('form');
+  form.method = 'POST'; form.action = '{% url "gestionnaire:mouvement_form" %}';
+  const csrf = document.createElement('input');
+  csrf.type = 'hidden'; csrf.name = 'csrfmiddlewaretoken'; csrf.value = '{{ csrf_token }}';
+  form.appendChild(csrf);
+  Object.entries(body).forEach(([k,v]) => {
+    const f = document.createElement('input'); f.type='hidden'; f.name=k; f.value=v; form.appendChild(f);
+  });
+  document.body.appendChild(form); form.submit();
+});
+
+function addHistory(code, nom, success) {
+  const el = document.createElement('div');
+  el.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;';
+  el.innerHTML = `<i class="fas fa-${success?'check-circle':'circle-xmark'}" style="color:${success?'var(--em)':'var(--red)'}"></i>
+    <span class="mono" style="flex:1;font-size:12px;">${code}</span>
+    <span style="color:var(--text-m)">${nom}</span>`;
+  if (history.children.length === 1 && history.querySelector('div[style*="text-align"]')) history.innerHTML = '';
+  history.insertBefore(el, history.firstChild);
+}
+</script>
+{% endblock %}

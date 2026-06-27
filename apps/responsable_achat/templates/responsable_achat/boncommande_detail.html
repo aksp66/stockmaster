@@ -1,0 +1,167 @@
+{% extends 'responsable_achat/base_achat.html' %}
+{% block title %}BC {{ bc.reference }}{% endblock %}
+{% block page_title %}{{ bc.reference }}{% endblock %}
+{% block page_sub %}Bon de commande · {{ user.entreprise.nom }}{% endblock %}
+{% block n_bc %}active{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;" class="au a1">
+  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-m);">
+    <a href="{% url 'responsable_achat:boncommande_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>Bons de commande</a>
+    <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+    <span class="mono" style="font-weight:700;color:var(--text-p);">{{ bc.reference }}</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span class="badge bc-{{ bc.statut }}" style="font-size:12px;padding:5px 12px;">{{ bc.get_statut_display }}</span>
+    <a href="{% url 'responsable_achat:boncommande_pdf' bc.pk %}" class="btn b-gh b-sm"><i class="fas fa-file-pdf"></i> PDF</a>
+    {% if bc.statut == 'brouillon' %}
+    <a href="{% url 'responsable_achat:boncommande_edit' bc.pk %}" class="btn b-gh b-sm"><i class="fas fa-pen"></i> Modifier</a>
+    <form method="post" action="{% url 'responsable_achat:boncommande_envoyer' bc.pk %}" style="display:inline;">
+      {% csrf_token %}<button type="submit" class="btn b-or b-sm"><i class="fas fa-paper-plane"></i> Envoyer</button>
+    </form>
+    {% elif bc.statut == 'envoye' or bc.statut == 'partiel' %}
+    <a href="{% url 'responsable_achat:boncommande_reception' bc.pk %}" class="btn b-or"><i class="fas fa-truck-ramp-box"></i> Réceptionner</a>
+    {% elif bc.statut == 'recu' %}
+    <form method="post" action="{% url 'responsable_achat:boncommande_cloturer' bc.pk %}" style="display:inline;">
+      {% csrf_token %}<button type="submit" class="btn b-or b-sm"><i class="fas fa-lock"></i> Clôturer</button>
+    </form>
+    {% endif %}
+    {% if bc.statut not in 'cloture,annule' %}
+    <button onclick="openM('annuler-bc')" class="btn b-re b-sm"><i class="fas fa-ban"></i> Annuler</button>
+    {% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 280px;gap:18px;" class="au a2">
+
+  <div>
+    {# Lignes du BC #}
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h">
+        <div>
+          <div class="card-t"><i class="fas fa-list" style="color:var(--or);margin-right:6px;"></i>Lignes commandées</div>
+          <div class="card-sub">{{ bc.lignes.count }} produit{{ bc.lignes.count|pluralize }}</div>
+        </div>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th>SKU</th>
+            <th>Qté commandée</th>
+            <th>Qté reçue</th>
+            <th>Prix unitaire</th>
+            <th>Remise</th>
+            <th>Total HT</th>
+            <th>Statut réception</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in bc.lignes.all %}
+          <tr>
+            <td>
+              <div style="font-weight:700;font-size:13px;color:var(--text-p);">{{ l.produit.nom }}</div>
+            </td>
+            <td><span class="mono" style="font-size:12px;color:var(--or);">{{ l.produit.sku }}</span></td>
+            <td><span class="mono" style="font-size:15px;font-weight:800;">{{ l.quantite }}</span></td>
+            <td>
+              <span class="mono" style="font-size:15px;font-weight:800;color:{% if l.quantite_recue == l.quantite %}var(--green){% elif l.quantite_recue > 0 %}var(--or){% else %}var(--text-m){% endif %};">
+                {{ l.quantite_recue|default:0 }}
+              </span>
+            </td>
+            <td><span class="mono">{{ l.prix_unitaire|floatformat:2 }} FCFA</span></td>
+            <td><span class="mono">{{ l.remise|default:0 }}%</span></td>
+            <td><span class="mono" style="font-weight:800;color:var(--or);">{{ l.total_ht|floatformat:2 }} FCFA</span></td>
+            <td>
+              {% if l.quantite_recue == l.quantite %}<span class="badge bg-gr">Complet</span>
+              {% elif l.quantite_recue > 0 %}<span class="badge bg-ye">Partiel</span>
+              {% else %}<span class="badge bg-gy">En attente</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="background:var(--bg);">
+            <td colspan="6" style="text-align:right;padding:14px;font-size:13px;font-weight:700;">Total HT :</td>
+            <td style="padding:14px;"><span class="mono" style="font-size:18px;font-weight:800;color:var(--or);">{{ bc.montant_total|floatformat:2 }} FCFA</span></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    {# Historique des réceptions #}
+    {% if receptions %}
+    <div class="card">
+      <div class="card-h"><div class="card-t"><i class="fas fa-clock" style="color:var(--or);margin-right:6px;"></i>Historique des réceptions</div></div>
+      <table class="tbl">
+        <thead><tr><th>Date</th><th>Produit</th><th>Qté reçue</th><th>Entrepôt</th><th>Par</th></tr></thead>
+        <tbody>
+          {% for r in receptions %}
+          <tr>
+            <td class="mono" style="font-size:12px;">{{ r.date|date:"d/m/Y H:i" }}</td>
+            <td style="font-size:13px;font-weight:600;">{{ r.produit.nom }}</td>
+            <td><span class="mono" style="font-weight:700;color:var(--green);">+{{ r.quantite }}</span></td>
+            <td style="font-size:13px;">{{ r.entrepot.nom }}</td>
+            <td style="font-size:12px;color:var(--text-m);">{{ r.utilisateur.get_full_name }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Panneau infos #}
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div class="card" style="padding:18px;">
+      <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-info-circle" style="color:var(--or);margin-right:6px;"></i>Informations</div>
+      <div style="font-size:13px;line-height:2.1;color:var(--text-s);">
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
+          <span style="color:var(--text-m);">Référence</span><span class="mono" style="font-weight:700;color:var(--or);">{{ bc.reference }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
+          <span style="color:var(--text-m);">Fournisseur</span><span style="font-weight:600;">{{ bc.fournisseur.nom }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
+          <span style="color:var(--text-m);">Créé le</span><span class="mono">{{ bc.date_creation|date:"d/m/Y" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
+          <span style="color:var(--text-m);">Envoyé le</span><span class="mono">{{ bc.date_envoi|date:"d/m/Y"|default:"—" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
+          <span style="color:var(--text-m);">Livraison prévue</span>
+          <span class="mono" style="color:{% if bc.est_en_retard %}var(--red){% else %}var(--text-p){% endif %};">{{ bc.date_livraison_prevue|date:"d/m/Y"|default:"—" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;">
+          <span style="color:var(--text-m);">Créé par</span><span>{{ bc.createur.get_full_name }}</span>
+        </div>
+      </div>
+    </div>
+    {% if bc.commentaire %}
+    <div class="card" style="padding:18px;background:var(--or-dim);border-color:var(--or-border);">
+      <div class="card-t" style="color:var(--or-d);margin-bottom:8px;"><i class="fas fa-comment" style="margin-right:6px;"></i>Commentaire</div>
+      <p style="font-size:13px;color:var(--or-d);line-height:1.6;">{{ bc.commentaire }}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# Modal annulation #}
+<div class="modal-o" id="annuler-bc">
+  <div class="modal" style="max-width:420px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--red-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-ban" style="color:var(--red);font-size:20px;"></i></div>
+      <h3 style="font-size:16px;font-weight:800;">Annuler ce bon de commande ?</h3>
+      <p style="font-size:13px;color:var(--text-m);margin-top:6px;">Cette action est irréversible. Le BC passera au statut « Annulé ».</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeM('annuler-bc')" class="btn b-gh" style="flex:1;justify-content:center;">Non, conserver</button>
+      <form method="post" action="{% url 'responsable_achat:boncommande_annuler' bc.pk %}" style="flex:1;">
+        {% csrf_token %}<button type="submit" class="btn b-re" style="width:100%;justify-content:center;"><i class="fas fa-ban"></i> Oui, annuler</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

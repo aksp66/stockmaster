@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}FAQ – StockMaster{% endblock %}
+{% block nav_faq %}active{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;margin:0 auto;">
+
+  <div style="text-align:center;margin-bottom:48px;">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:#ea580c;margin-bottom:16px;">
+      <i class="fas fa-circle-question" style="font-size:11px;"></i> Questions fréquentes
+    </div>
+    <h1 style="font-size:2.2rem;font-weight:800;color:#111827;letter-spacing:-.04em;margin-bottom:12px;">Foire aux questions</h1>
+    <p style="color:#6b7280;font-size:1rem;max-width:480px;margin:0 auto;line-height:1.7;">
+      Tout ce que vous devez savoir sur StockMaster. Vous ne trouvez pas votre réponse ?
+      <a href="{% url 'pages:contact' %}" style="color:#f97316;font-weight:600;text-decoration:none;">Contactez-nous</a>.
+    </p>
+  </div>
+
+  <!-- Catégories de recherche rapide -->
+  <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px;">
+    {% for cat in faq_categories %}
+    <button onclick="filtrerFAQ('{{ cat.slug }}')" data-cat="{{ cat.slug }}"
+            style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:white;color:#6b7280;transition:all .15s;font-family:'Plus Jakarta Sans',sans-serif;"
+            class="faq-cat-btn">
+      <i class="{{ cat.icon }}" style="margin-right:5px;"></i>{{ cat.nom }}
+    </button>
+    {% empty %}
+    <button onclick="filtrerFAQ('all')" style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid #f97316;background:#fff7ed;color:#ea580c;font-family:'Plus Jakarta Sans',sans-serif;">Tout voir</button>
+    {% endfor %}
+  </div>
+
+  <!-- Questions -->
+  <div style="display:flex;flex-direction:column;gap:10px;" id="faq-list">
+
+    {% for q in faqs %}
+    <div class="faq-item" data-cat="{{ q.categorie }}">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          {% if q.icone %}<div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="{{ q.icone }}" style="color:#f97316;font-size:13px;"></i></div>{% endif %}
+          <span style="font-size:15px;font-weight:700;color:#111827;">{{ q.question }}</span>
+        </div>
+        <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
+      </button>
+      <div class="faq-body">
+        <div style="padding:0 22px 18px {% if q.icone %}44px{% endif %};font-size:14px;color:#4b5563;line-height:1.8;">
+          {{ q.reponse }}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    {# ── FAQ statique de secours ── #}
+    <div class="faq-item">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-brain" style="color:#f97316;font-size:13px;"></i></div>
+          <span style="font-size:15px;font-weight:700;color:#111827;">Comment fonctionne la prédiction IA ?</span>
+        </div>
+        <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
+      </button>
+      <div class="faq-body"><div style="padding:0 22px 18px 66px;font-size:14px;color:#4b5563;line-height:1.8;">Notre module utilise <strong>Prophet</strong> (séries temporelles de Facebook) et <strong>RandomForest</strong> pour analyser jusqu'à 24 mois d'historique de mouvements. Il génère des prévisions à 30, 60 et 90 jours avec un score de confiance. En cas de données insuffisantes, RandomForest prend le relais avec des features lag-7, lag-30 et rolling-7.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-file-csv" style="color:#f97316;font-size:13px;"></i></div>
+          <span style="font-size:15px;font-weight:700;color:#111827;">Est-il possible d'importer des produits en masse ?</span>
+        </div>
+        <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
+      </button>
+      <div class="faq-body"><div style="padding:0 22px 18px 66px;font-size:14px;color:#4b5563;line-height:1.8;">Oui, vous pouvez importer un fichier <strong>CSV ou Excel</strong> depuis l'interface Produits (gestionnaire ou admin). Les codes-barres EAN-13 et SKU sont automatiquement vérifiés pour détecter les doublons. Un modèle de fichier est disponible dans l'interface.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-users" style="color:#f97316;font-size:13px;"></i></div>
+          <span style="font-size:15px;font-weight:700;color:#111827;">Quels rôles sont disponibles dans la plateforme ?</span>
+        </div>
+        <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
+      </button>
+      <div class="faq-body"><div style="padding:0 22px 18px 66px;font-size:14px;color:#4b5563;line-height:1.8;">StockMaster propose <strong>7 rôles</strong> adaptés à chaque profil : Super Admin, Admin Entreprise, Gestionnaire de stock, Responsable achat, Magasinier, Auditeur et Comptable. Chaque rôle dispose d'un tableau de bord dédié et de permissions spécifiques.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-mobile-alt" style="color:#f97316;font-size:13px;"></i></div>
+          <span style="font-size:15px;font-weight:700;color:#111827;">Y a-t-il une application mobile ?</span>
+        </div>
+        <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
+      </button>
+      <div class="faq-body"><div style="padding:0 22px 18px 66px;font-size:14px;color:#4b5563;line-height:1.8;">Nous proposons une <strong>PWA (Progressive Web App)</strong> installable sur iOS et Android, avec scan de codes-barres via caméra. Une <strong>API REST DRF + JWT</strong> permet aussi des développements mobiles spécifiques.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-calculator" style="color:#f97316;font-size:13px;"></i></div>
+          <span style="font-size:15px;font-weight:700;color:#111827;">Quelles méthodes de valorisation sont supportées ?</span>
+        </div>
+        <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
+      </button>
+      <div class="faq-body"><div style="padding:0 22px 18px 66px;font-size:14px;color:#4b5563;line-height:1.8;">StockMaster supporte les méthodes <strong>FIFO</strong> (premier entré, premier sorti) et <strong>CUMP</strong> (Coût Unitaire Moyen Pondéré). Le module comptable génère les rapports avec le numéro de compte 370000 et les exports CSV/PDF compatibles avec les logiciels comptables.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-shield-halved" style="color:#f97316;font-size:13px;"></i></div>
+          <span style="font-size:15px;font-weight:700;color:#111827;">Nos données sont-elles sécurisées ?</span>
+        </div>
+        <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
+      </button>
+      <div class="faq-body"><div style="padding:0 22px 18px 66px;font-size:14px;color:#4b5563;line-height:1.8;">Oui. Toutes les communications sont chiffrées en <strong>HTTPS</strong>. Les mots de passe sont hachés avec <strong>bcrypt</strong>. Les bases de données PostgreSQL sont sauvegardées quotidiennement. Un journal d'audit complet trace chaque action. Nous sommes conformes au <strong>RGPD</strong>.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-warehouse" style="color:#f97316;font-size:13px;"></i></div>
+          <span style="font-size:15px;font-weight:700;color:#111827;">Peut-on gérer plusieurs entrepôts ?</span>
+        </div>
+        <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
+      </button>
+      <div class="faq-body"><div style="padding:0 22px 18px 66px;font-size:14px;color:#4b5563;line-height:1.8;">Oui, StockMaster supporte un nombre illimité d'entrepôts par entreprise, avec des emplacements (allées, rayons) configurables. Les transferts inter-entrepôts sont gérés nativement, et les rapports peuvent être filtrés par entrepôt.</div></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- CTA bas de page -->
+  <div style="text-align:center;margin-top:48px;padding:36px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:20px;">
+    <i class="fas fa-headset" style="font-size:32px;color:#f97316;display:block;margin-bottom:14px;"></i>
+    <h3 style="font-size:17px;font-weight:800;color:#111827;margin-bottom:8px;">Vous n'avez pas trouvé votre réponse ?</h3>
+    <p style="font-size:14px;color:#6b7280;margin-bottom:18px;">Notre équipe vous répond sous 2h ouvrées.</p>
+    <a href="{% url 'pages:contact' %}" class="btn-or"><i class="fas fa-envelope"></i> Nous contacter</a>
+  </div>
+</div>
+
+<script>
+function filtrerFAQ(cat) {
+  document.querySelectorAll('.faq-item').forEach(item => {
+    item.style.display = (cat === 'all' || !item.dataset.cat || item.dataset.cat === cat) ? '' : 'none';
+  });
+  document.querySelectorAll('.faq-cat-btn').forEach(btn => {
+    const active = btn.dataset.cat === cat;
+    btn.style.borderColor = active ? '#f97316' : '#e5e7eb';
+    btn.style.background = active ? '#fff7ed' : 'white';
+    btn.style.color = active ? '#ea580c' : '#6b7280';
+  });
+}
+</script>
+{% endblock %}

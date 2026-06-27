@@ -1,0 +1,144 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}{% if entrepot %}Modifier{% else %}Ajouter{% endif %} un
+entrepôt{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}{% if entrepot %}Modifier l'entrepôt{% else %}Nouvel
+entrepôt{% endif %}{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_subtitle %}{% if entrepot %}{{ entrepot.nom }}{% else %}Créer un
+site de stockage{% endif %}{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_entrepots %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<div style="max-width: 600px" class="au">
+  <a
+    href="{% url 'admin_entreprise:entrepot_list' %}"
+    class="btn btn-ghost btn-sm"
+    style="margin-bottom: 20px"
+  >
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+
+  <div class="card" style="padding: 0; overflow: hidden">
+    <div
+      style="
+        padding: 22px 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: linear-gradient(135deg, var(--orange-dim), white);
+      "
+    >
+      <div
+        style="
+          width: 50px;
+          height: 50px;
+          border-radius: 13px;
+          background: var(--orange);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          color: white;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        "
+      >
+        <i class="fas fa-warehouse"></i>
+      </div>
+      <div>
+        <div style="font-size: 17px; font-weight: 700">
+          {% if entrepot %}Modifier{% else %}Créer{% endif %} un entrepôt
+        </div>
+        <div style="font-size: 12.5px; color: var(--text-muted)">
+          {% if entrepot %}Mettez à jour les informations de cet entrepôt{% else
+          %}Définissez les informations de votre nouveau site{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 28px">
+      <form method="post">
+        {% csrf_token %} {% if form.non_field_errors %}
+        <div
+          style="
+            background: var(--red-dim);
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
+            color: var(--red);
+            font-size: 13px;
+          "
+        >
+          <i class="fas fa-circle-xmark" style="margin-right: 6px"></i>
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label"
+            >Nom de l'entrepôt <span style="color: var(--red)">*</span></label
+          >
+          {{ form.nom }} {% if form.nom.errors %}
+          <div style="color: var(--red); font-size: 11px; margin-top: 4px">
+            {{ form.nom.errors|join:', ' }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Adresse</label>
+          {{ form.adresse }}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+          <div class="form-group">
+            <label class="form-label">Ville</label>
+            {{ form.ville }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pays</label>
+            {{ form.pays }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          {{ form.telephone }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Responsable</label>
+          {{ form.responsable }}
+          <div class="form-hint">
+            Seuls les utilisateurs actifs de votre entreprise sont listés.
+          </div>
+        </div>
+
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding-top: 8px;
+          "
+        >
+          <a
+            href="{% url 'admin_entreprise:entrepot_list' %}"
+            class="btn btn-ghost"
+            >Annuler</a
+          >
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check"></i>
+            {% if entrepot %}Enregistrer les modifications{% else %}Créer
+            l'entrepôt{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Mon entreprise{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}Mon entreprise{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_subtitle %}Informations et configuration{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_entreprise %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<div style="max-width:640px;" class="au">
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px;">
+    <div style="padding:22px 24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--orange-dim),white);display:flex;align-items:center;gap:14px;">
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:22px;color:white;box-shadow:0 4px 12px rgba(249,115,22,.3);">
+        {{ entreprise.nom|slice:":1"|upper }}
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:800;">{{ entreprise.nom }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">{{ entreprise.get_type_entreprise_display }}</div>
+      </div>
+      <span class="badge {% if entreprise.est_active %}badge-green{% else %}badge-red{% endif %}" style="margin-left:auto;">
+        {% if entreprise.est_active %}Active{% else %}En attente d'activation{% endif %}
+      </span>
+    </div>
+
+    <div style="padding:28px;">
+      <form method="post">
+        {% csrf_token %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label class="form-label">Nom de l'entreprise <span style="color:var(--red);">*</span></label>
+            <input type="text" name="nom" value="{{ entreprise.nom }}" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pays</label>
+            <input type="text" name="pays" value="{{ entreprise.pays }}" class="form-input" placeholder="Togo">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ville</label>
+            <input type="text" name="ville" value="{{ entreprise.ville }}" class="form-input" placeholder="Lomé">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Taille</label>
+            <input type="text" name="taille" value="{{ entreprise.taille }}" class="form-input" placeholder="PME, Grande entreprise…">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nombre d'entrepôts déclarés</label>
+            <input type="number" name="nb_entrepots" value="{{ entreprise.nb_entrepots }}" class="form-input" min="0">
+          </div>
+        </div>
+
+        <div style="height:1px;background:var(--border);margin:8px 0 20px;"></div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check"></i> Enregistrer les modifications
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Infos lecture seule -->
+  <div class="card" style="padding:20px 24px;">
+    <div class="card-title" style="margin-bottom:16px;">Informations système</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:3px;">Identifiant</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-secondary);">{{ entreprise.id }}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:3px;">Date de création</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;">{{ entreprise.created_at|date:"d/m/Y H:i" }}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:3px;">Type</div>
+        <div style="font-size:13px;">{{ entreprise.get_type_entreprise_display }}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:3px;">Dernière mise à jour</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;">{{ entreprise.updated_at|date:"d/m/Y H:i" }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

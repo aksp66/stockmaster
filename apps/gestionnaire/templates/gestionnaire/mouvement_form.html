@@ -1,0 +1,552 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+<!---->
+{% block title %}Nouveau mouvement{% endblock %}
+<!---->
+{% block page_title %}Enregistrer un mouvement{% endblock %}
+<!---->
+{% block page_sub %}Opérations de stock · {{ user.entreprise.nom }}
+<!---->
+{% endblock %}
+<!---->
+{% block n_mouv %}active{% endblock %}
+<!---->
+{% block content %}
+
+<div
+  style="
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--text-m);
+  "
+  class="au a1"
+>
+  <a
+    href="{% url 'gestionnaire:mouvement_list' %}"
+    style="color: var(--or); text-decoration: none; font-weight: 600"
+    ><i class="fas fa-arrows-rotate" style="margin-right: 4px"></i>Mouvements</a
+  >
+  <i class="fas fa-chevron-right" style="font-size: 10px"></i>
+  <span>Nouveau</span>
+</div>
+
+<div
+  style="display: grid; grid-template-columns: 1fr 300px; gap: 20px"
+  class="au a2"
+>
+  <form method="post" id="mvt-form">
+    {% csrf_token %} {# ── Type de mouvement ── #}
+    <div class="card" style="margin-bottom: 16px">
+      <div class="card-h">
+        <div class="card-t">
+          <i class="fas fa-tag" style="color: var(--or); margin-right: 7px"></i
+          >Type de mouvement
+        </div>
+      </div>
+      <div style="padding: 20px">
+        <div
+          style="
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+          "
+          id="type-grid"
+        >
+          {% for val, label, icon, color in types_mouvement %}
+          <label style="cursor: pointer">
+            <input
+              type="radio"
+              name="type_mouvement"
+              value="{{ val }}"
+              {%
+              if
+              val=""
+              ="type_preselect"
+              or
+              forloop.first
+              %}checked{%
+              endif
+              %}
+              style="display: none"
+              class="type-radio"
+            />
+            <div
+              class="type-card"
+              data-val="{{ val }}"
+              style="
+                padding: 16px 12px;
+                border: 2px solid var(--border);
+                border-radius: 11px;
+                text-align: center;
+                transition: all 0.15s;
+                background: white;
+              "
+            >
+              <div
+                style="width:38px;height:38px;border-radius:10px;background:var(--{{ color }}-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:16px;"
+              >
+                <i class="fas {{ icon }}" style="color:var(--{{ color }});"></i>
+              </div>
+              <div
+                style="font-size: 13px; font-weight: 700; color: var(--text-p)"
+              >
+                {{ label }}
+              </div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Produit ── #}
+    <div class="card" style="margin-bottom: 16px">
+      <div class="card-h">
+        <div class="card-t">
+          <i class="fas fa-box" style="color: var(--or); margin-right: 7px"></i
+          >Produit concerné
+        </div>
+      </div>
+      <div style="padding: 20px">
+        <div class="fi" style="margin-bottom: 14px">
+          <label class="fl"
+            >Rechercher un produit
+            <span style="color: var(--red)">*</span></label
+          >
+          <div style="display: flex; gap: 8px">
+            <div class="search-w" style="flex: 1">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                id="produit-search"
+                placeholder="Nom, SKU, code-barres…"
+                class="fin"
+                autocomplete="off"
+              />
+            </div>
+            <a
+              href="{% url 'gestionnaire:scan' %}?redirect=mouvement"
+              class="btn b-gh b-sm"
+              ><i class="fas fa-barcode"></i> Scanner</a
+            >
+          </div>
+          <input
+            type="hidden"
+            name="produit"
+            id="produit-id"
+            value="{{ produit_preselect.id|default:'' }}"
+            required
+          />
+          <div
+            id="produit-results"
+            style="
+              display: none;
+              position: absolute;
+              background: white;
+              border: 1.5px solid var(--border);
+              border-radius: 10px;
+              box-shadow: var(--sh-hover);
+              z-index: 20;
+              width: 400px;
+              max-height: 240px;
+              overflow-y: auto;
+              margin-top: 2px;
+            "
+          ></div>
+        </div>
+
+        {# Produit sélectionné #}
+        <div
+          id="produit-selected"
+          style="{% if not produit_preselect %}display:none;{% endif %}padding:14px;background:var(--or-dim);border:1.5px solid var(--or-border);border-radius:10px;"
+        >
+          <div style="display: flex; align-items: center; gap: 12px">
+            <div
+              style="
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                background: var(--or);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+              "
+            >
+              <i class="fas fa-box" style="color: white; font-size: 16px"></i>
+            </div>
+            <div style="flex: 1">
+              <div
+                id="ps-nom"
+                style="font-size: 14px; font-weight: 700; color: var(--text-p)"
+              >
+                {{ produit_preselect.nom|default:'' }}
+              </div>
+              <div
+                id="ps-sku"
+                class="mono"
+                style="font-size: 11px; color: var(--or)"
+              >
+                {{ produit_preselect.sku|default:'' }}
+              </div>
+            </div>
+            <div style="text-align: right">
+              <div style="font-size: 11px; color: var(--text-m)">
+                Stock actuel
+              </div>
+              <div
+                id="ps-stock"
+                class="mono"
+                style="font-size: 20px; font-weight: 800; color: var(--or)"
+              >
+                {{ produit_preselect.quantite_totale|default:'—' }}
+              </div>
+            </div>
+            <button
+              type="button"
+              onclick="clearProduit()"
+              style="
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: var(--text-m);
+                padding: 4px;
+              "
+            >
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Quantité & entrepôts ── #}
+    <div class="card" style="margin-bottom: 16px">
+      <div class="card-h">
+        <div class="card-t">
+          <i
+            class="fas fa-cubes"
+            style="color: var(--or); margin-right: 7px"
+          ></i
+          >Détails de l'opération
+        </div>
+      </div>
+      <div style="padding: 20px">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+          <div class="fi" style="margin-bottom: 0">
+            <label class="fl"
+              >Quantité <span style="color: var(--red)">*</span></label
+            >
+            <input
+              type="number"
+              name="quantite"
+              class="fin"
+              min="1"
+              value="1"
+              required
+              style="font-size: 20px; font-weight: 800; text-align: center"
+            />
+          </div>
+          <div class="fi" style="margin-bottom: 0" id="entrepot-wrap">
+            <label class="fl" id="entrepot-label"
+              >Entrepôt <span style="color: var(--red)">*</span></label
+            >
+            <select name="entrepot" class="fin" required>
+              <option value="">— Sélectionner —</option>
+              {% for e in entrepots %}
+              <option
+                value="{{ e.id }}"
+                {%
+                if
+                e.id=""
+                ="entrepot_preselect"
+                %}selected{%
+                endif
+                %}
+              >
+                {{ e.nom }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        {# Entrepôt destination (transfert uniquement) #}
+        <div id="transfert-wrap" style="display: none; margin-top: 14px">
+          <div class="fi" style="margin-bottom: 0">
+            <label class="fl"
+              >Entrepôt de destination
+              <span style="color: var(--red)">*</span></label
+            >
+            <select name="entrepot_destination" class="fin">
+              <option value="">— Sélectionner —</option>
+              {% for e in entrepots %}
+              <option value="{{ e.id }}">{{ e.nom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 14px;
+          "
+        >
+          <div class="fi" style="margin-bottom: 0">
+            <label class="fl">Date du mouvement</label>
+            <input
+              type="datetime-local"
+              name="date_mouvement"
+              class="fin"
+              value="{{ now|date:'Y-m-d' }}T{{ now|date:'H:i' }}"
+            />
+          </div>
+          <div class="fi" style="margin-bottom: 0">
+            <label class="fl">Référence document</label>
+            <input
+              type="text"
+              name="reference_document"
+              class="fin"
+              placeholder="BC-001, BL-2024-12…"
+            />
+          </div>
+        </div>
+
+        <div class="fi" style="margin-top: 14px; margin-bottom: 0">
+          <label class="fl">Motif / Commentaire</label>
+          <textarea
+            name="motif"
+            class="fin"
+            rows="2"
+            placeholder="Raison du mouvement (optionnel)…"
+          ></textarea>
+        </div>
+
+        {# Prix unitaire pour les entrées #}
+        <div id="prix-wrap" style="margin-top: 14px">
+          <div class="fi" style="margin-bottom: 0">
+            <label class="fl">Prix unitaire d'achat (FCFA)</label>
+            <input
+              type="number"
+              name="prix_unitaire_achat"
+              class="fin"
+              step="0.01"
+              min="0"
+              placeholder="Pour le calcul CUMP"
+            />
+            <div class="fh">
+              Utilisé pour la valorisation du stock (méthode CUMP)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px">
+      <button type="submit" class="btn b-or">
+        <i class="fas fa-check"></i> Enregistrer le mouvement
+      </button>
+      <a href="{% url 'gestionnaire:mouvement_list' %}" class="btn b-gh"
+        ><i class="fas fa-xmark"></i> Annuler</a
+      >
+    </div>
+  </form>
+
+  {# ── Panneau droit ── #}
+  <div style="display: flex; flex-direction: column; gap: 14px">
+    {# Aide contextuelle #}
+    <div
+      class="card"
+      style="
+        padding: 18px;
+        border-color: var(--or-border);
+        background: var(--or-dim);
+      "
+    >
+      <div class="card-t" style="color: var(--or-d); margin-bottom: 12px">
+        <i class="fas fa-circle-info" style="margin-right: 6px"></i>Types de
+        mouvements
+      </div>
+      <div style="font-size: 13px; color: var(--or-d); line-height: 1.7">
+        <div style="padding: 6px 0; border-bottom: 1px solid var(--or-border)">
+          <strong>Entrée</strong> — Réception fournisseur, retour client,
+          production
+        </div>
+        <div style="padding: 6px 0; border-bottom: 1px solid var(--or-border)">
+          <strong>Sortie</strong> — Vente, consommation interne, perte
+        </div>
+        <div style="padding: 6px 0; border-bottom: 1px solid var(--or-border)">
+          <strong>Transfert</strong> — Déplacement entre entrepôts
+        </div>
+        <div style="padding: 6px 0">
+          <strong>Ajustement</strong> — Correction suite inventaire
+        </div>
+      </div>
+    </div>
+
+    {# Mouvements récents du produit sélectionné #}
+    <div class="card" id="historique-card" style="display: none">
+      <div class="card-h">
+        <div class="card-t">
+          <i
+            class="fas fa-clock"
+            style="color: var(--or); margin-right: 6px"
+          ></i
+          >Derniers mouvements
+        </div>
+      </div>
+      <div id="historique-body" style="padding: 8px 0"></div>
+    </div>
+
+    {# Raccourcis clavier #}
+    <div class="card" style="padding: 16px">
+      <div class="card-t" style="margin-bottom: 10px; font-size: 13px">
+        <i
+          class="fas fa-keyboard"
+          style="color: var(--or); margin-right: 6px"
+        ></i
+        >Raccourcis
+      </div>
+      <div style="font-size: 12px; color: var(--text-m); line-height: 2">
+        <div style="display: flex; justify-content: space-between">
+          <span>Valider</span
+          ><kbd
+            style="
+              background: var(--bg);
+              border: 1px solid var(--border);
+              border-radius: 4px;
+              padding: 2px 6px;
+              font-family: &quot;Fira Code&quot;, monospace;
+            "
+            >Ctrl+Entrée</kbd
+          >
+        </div>
+        <div style="display: flex; justify-content: space-between">
+          <span>Scanner</span
+          ><kbd
+            style="
+              background: var(--bg);
+              border: 1px solid var(--border);
+              border-radius: 4px;
+              padding: 2px 6px;
+              font-family: &quot;Fira Code&quot;, monospace;
+            "
+            >Ctrl+B</kbd
+          >
+        </div>
+        <div style="display: flex; justify-content: space-between">
+          <span>Annuler</span
+          ><kbd
+            style="
+              background: var(--bg);
+              border: 1px solid var(--border);
+              border-radius: 4px;
+              padding: 2px 6px;
+              font-family: &quot;Fira Code&quot;, monospace;
+            "
+            >Échap</kbd
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block xjs %}
+<script>
+  // Sélection de type
+  document.querySelectorAll(".type-radio").forEach((radio) => {
+    radio.addEventListener("change", () => {
+      document.querySelectorAll(".type-card").forEach((c) => {
+        c.style.borderColor = "var(--border)";
+        c.style.background = "white";
+      });
+      const card = radio.nextElementSibling;
+      card.style.borderColor = "var(--or)";
+      card.style.background = "var(--or-dim)";
+
+      // Afficher/masquer transfert
+      const isTransfert = radio.value === "transfert";
+      document.getElementById("transfert-wrap").style.display = isTransfert
+        ? "block"
+        : "none";
+      document.getElementById("prix-wrap").style.display =
+        radio.value === "entree" ? "block" : "none";
+      document.getElementById("entrepot-label").innerHTML = isTransfert
+        ? "Entrepôt source <span style='color:var(--red);'>*</span>"
+        : "Entrepôt <span style='color:var(--red);'>*</span>";
+    });
+    if (radio.checked) radio.dispatchEvent(new Event("change"));
+  });
+
+  // Recherche produit AJAX
+  const inp = document.getElementById("produit-search");
+  const res = document.getElementById("produit-results");
+  let timer;
+  inp.addEventListener("input", () => {
+    clearTimeout(timer);
+    if (inp.value.length < 2) {
+      res.style.display = "none";
+      return;
+    }
+    timer = setTimeout(() => {
+      fetch(
+        `{% url 'gestionnaire:produit_search_ajax' %}?q=${encodeURIComponent(inp.value)}`,
+      )
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.length) {
+            res.style.display = "none";
+            return;
+          }
+          res.innerHTML = data
+            .map(
+              (p) => `
+          <div onclick="selectProduit(${JSON.stringify(p)})"
+               style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;"
+               onmouseover="this.style.background='var(--or-dim)'" onmouseout="this.style.background='white'">
+            <div style="font-weight:600;font-size:13px;">${p.nom}</div>
+            <div style="font-size:11px;color:var(--text-m);">SKU: ${p.sku} · Stock: ${p.stock_total} ${p.unite}</div>
+          </div>`,
+            )
+            .join("");
+          res.style.display = "block";
+        });
+    }, 300);
+  });
+
+  function selectProduit(p) {
+    document.getElementById("produit-id").value = p.id;
+    document.getElementById("ps-nom").textContent = p.nom;
+    document.getElementById("ps-sku").textContent = p.sku;
+    document.getElementById("ps-stock").textContent = p.stock_total;
+    document.getElementById("produit-selected").style.display = "block";
+    res.style.display = "none";
+    inp.value = "";
+  }
+  function clearProduit() {
+    document.getElementById("produit-id").value = "";
+    document.getElementById("produit-selected").style.display = "none";
+  }
+
+  // Ctrl+Enter pour soumettre
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter")
+      document.getElementById("mvt-form").submit();
+    if (e.key === "Escape")
+      window.location = '{% url "gestionnaire:mouvement_list" %}';
+    if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+      e.preventDefault();
+      window.location = '{% url "gestionnaire:scan" %}?redirect=mouvement';
+    }
+  });
+  document.addEventListener("click", (e) => {
+    if (!res.contains(e.target) && e.target !== inp) res.style.display = "none";
+  });
+</script>
+{% endblock %}

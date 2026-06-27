@@ -1,0 +1,392 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="StockMaster – Solution de gestion de stock intelligente avec prédictions IA, scan code-barres et tableaux de bord temps réel.">
+  <title>StockMaster – {% block title %}Gestion de stock intelligente{% endblock %}</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'css/inscription.css' %}">
+
+  <style>
+    :root {
+      --or:     #f97316;
+      --or-d:   #ea580c;
+      --or-dim: #fff7ed;
+      --gray-light: #f9fafb;
+    }
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .mono { font-family: 'Fira Code', monospace; }
+
+    /* ── Layout sticky footer ── */
+    body { display:flex; flex-direction:column; min-height:100vh; background:#ffffff; color:#1f2937; }
+    main { flex:1; }
+
+    /* ── Dégradé orange ── */
+    .or-grad { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+
+    /* ── Hover carte ── */
+    .card-hover { transition: transform .2s ease, box-shadow .2s ease; }
+    .card-hover:hover { transform:translateY(-4px); box-shadow:0 20px 40px -12px rgba(0,0,0,.1); }
+
+    /* ── Navigation ── */
+    #navbar {
+      position:sticky; top:0; z-index:50;
+      background:rgba(255,255,255,.92);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid #f3f4f6;
+      box-shadow:0 1px 8px rgba(0,0,0,.05);
+      transition:box-shadow .2s;
+    }
+    .nav-link {
+      font-size:14px; font-weight:500; color:#6b7280;
+      text-decoration:none; transition:color .15s;
+      padding:4px 2px; border-bottom:2px solid transparent;
+    }
+    .nav-link:hover { color:var(--or); border-color:var(--or); }
+    .nav-link.active { color:var(--or); border-color:var(--or); font-weight:600; }
+
+    /* ── Boutons principaux ── */
+    .btn-or {
+      display:inline-flex; align-items:center; gap:8px;
+      background:var(--or); color:white;
+      padding:10px 22px; border-radius:10px;
+      font-size:14px; font-weight:600;
+      text-decoration:none; border:none; cursor:pointer;
+      box-shadow:0 2px 12px rgba(249,115,22,.35);
+      transition:background .15s, transform .1s, box-shadow .15s;
+    }
+    .btn-or:hover { background:var(--or-d); box-shadow:0 4px 18px rgba(249,115,22,.45); transform:translateY(-1px); }
+    .btn-or:active { transform:translateY(0); }
+    .btn-ghost {
+      display:inline-flex; align-items:center; gap:8px;
+      background:white; color:#374151;
+      padding:10px 22px; border-radius:10px;
+      font-size:14px; font-weight:600;
+      text-decoration:none; border:1.5px solid #e5e7eb; cursor:pointer;
+      transition:background .15s, border-color .15s;
+    }
+    .btn-ghost:hover { background:#fff7ed; border-color:#fed7aa; color:var(--or); }
+
+    /* ── FAQ accordéon ── */
+    .faq-item { border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+    .faq-trigger { cursor:pointer; width:100%; background:none; border:none; text-align:left; padding:18px 20px; font-family:'Plus Jakarta Sans',sans-serif; }
+    .faq-body { display:none; padding:0 20px 18px; }
+    .faq-item.open .faq-body { display:block; }
+    .faq-item.open .faq-chevron { transform:rotate(180deg); }
+    .faq-chevron { transition:transform .25s; }
+
+    /* ── Toast messages ── */
+    .msg-success { background:#ecfdf5; border-left:4px solid #059669; color:#065f46; }
+    .msg-error   { background:#fef2f2; border-left:4px solid #dc2626; color:#991b1b; }
+    .msg-warning { background:#fffbeb; border-left:4px solid #d97706; color:#92400e; }
+    .msg-info    { background:#eff6ff; border-left:4px solid #2563eb; color:#1e40af; }
+
+    /* ── WhatsApp flottant ── */
+    .wa-float {
+      position:fixed; bottom:26px; right:26px;
+      width:56px; height:56px; border-radius:50%;
+      background:#25d366; display:flex; align-items:center; justify-content:center;
+      box-shadow:0 4px 16px rgba(0,0,0,.18);
+      transition:transform .2s, background .15s;
+      z-index:999; text-decoration:none;
+    }
+    .wa-float:hover { transform:scale(1.08); background:#20b859; }
+    .wa-float svg { width:28px; height:28px; fill:white; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-thumb { background:#fed7aa; border-radius:3px; }
+
+    /* ── Animations ── */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);} }
+    .fade-up { animation:fadeUp .5s ease forwards; }
+    .delay-1 { animation-delay:.1s; opacity:0; }
+    .delay-2 { animation-delay:.2s; opacity:0; }
+    .delay-3 { animation-delay:.3s; opacity:0; }
+    .delay-4 { animation-delay:.4s; opacity:0; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     NAVIGATION
+════════════════════════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+
+      <!-- Logo -->
+      <a href="{% url 'pages:accueil' %}" class="flex items-center gap-2 text-decoration-none" style="text-decoration:none;">
+        <div class="w-9 h-9 or-grad rounded-xl flex items-center justify-center shadow-sm">
+          <i class="fas fa-boxes-stacked text-white" style="font-size:15px;"></i>
+        </div>
+        <span style="font-size:19px;font-weight:800;color:#1f2937;letter-spacing:-.4px;">
+          Stock<span style="color:var(--or);">Master</span>
+        </span>
+      </a>
+
+      <!-- Liens desktop -->
+      <div class="hidden md:flex items-center gap-6">
+        <a href="{% url 'pages:accueil' %}"    class="nav-link {% block nav_accueil %}{% endblock %}">Accueil</a>
+        <a href="{% url 'pages:entreprises' %}" class="nav-link {% block nav_ent %}{% endblock %}">Avis clients</a>
+        <a href="{% url 'pages:faq' %}"         class="nav-link {% block nav_faq %}{% endblock %}">FAQ</a>
+        <a href="{% url 'pages:contact' %}"     class="nav-link {% block nav_contact %}{% endblock %}">Contact</a>
+        <a href="{% url 'pages:politique' %}"   class="nav-link {% block nav_pol %}{% endblock %}">Confidentialité</a>
+      </div>
+
+      <!-- Actions CTA -->
+      <div class="hidden md:flex items-center gap-3">
+        {% if user.is_authenticated %}
+          <div class="flex items-center gap-3">
+            <!-- Lien vers le dashboard selon le rôle -->
+            {% if user.role == 'super_admin' %}
+              <a href="{% url 'superadmin:dashboard' %}" class="btn-or" style="padding:7px 16px;font-size:13px;">
+                <i class="fas fa-gauge-high"></i> Dashboard
+              </a>
+            {% elif user.role == 'admin_ent' %}
+              <a href="{% url 'admin_entreprise:dashboard' %}" class="btn-or" style="padding:7px 16px;font-size:13px;">
+                <i class="fas fa-gauge-high"></i> Dashboard
+              </a>
+            {% elif user.role == 'gestionnaire' %}
+              <a href="{% url 'gestionnaire:dashboard' %}" class="btn-or" style="padding:7px 16px;font-size:13px;">
+                <i class="fas fa-boxes-stacked"></i> Stock
+              </a>
+            {% elif user.role == 'responsable_achat' %}
+              <a href="{% url 'responsable_achat:dashboard' %}" class="btn-or" style="padding:7px 16px;font-size:13px;">
+                <i class="fas fa-file-invoice"></i> Achats
+              </a>
+            {% elif user.role == 'magasinier' %}
+              <a href="{% url 'magasinier:dashboard' %}" class="btn-or" style="padding:7px 16px;font-size:13px;">
+                <i class="fas fa-barcode"></i> Scanner
+              </a>
+            {% elif user.role == 'auditeur' %}
+              <a href="{% url 'auditeur:dashboard' %}" class="btn-or" style="padding:7px 16px;font-size:13px;">
+                <i class="fas fa-magnifying-glass-chart"></i> Audit
+              </a>
+            {% elif user.role == 'comptable' %}
+              <a href="{% url 'comptable:dashboard' %}" class="btn-or" style="padding:7px 16px;font-size:13px;">
+                <i class="fas fa-calculator"></i> Comptabilité
+              </a>
+            {% endif %}
+
+            <!-- Avatar + déconnexion -->
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:10px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;flex-shrink:0;">
+                {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+              </div>
+              <span style="font-size:13px;font-weight:600;color:#374151;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ user.get_full_name }}</span>
+            </div>
+            <form action="{% url 'accounts:logout' %}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn-ghost" style="padding:7px 14px;font-size:13px;">
+                <i class="fas fa-right-from-bracket"></i> Déconnexion
+              </button>
+            </form>
+          </div>
+        {% else %}
+          <a href="{% url 'accounts:connexion' %}"  class="btn-ghost" style="padding:7px 16px;font-size:13px;">
+            <i class="fas fa-right-to-bracket"></i> Connexion
+          </a>
+          <a href="{% url 'accounts:inscription' %}" class="btn-or" style="padding:7px 16px;font-size:13px;">
+            <i class="fas fa-rocket"></i> Essai gratuit
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Burger mobile -->
+      <button id="menuBtn" class="md:hidden flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 text-gray-600 hover:bg-orange-50 hover:text-orange-500 transition">
+        <i class="fas fa-bars" id="menuIcon"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Menu mobile -->
+  <div id="mobileMenu" class="hidden md:hidden bg-white border-t border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-1">
+      <a href="{% url 'pages:accueil' %}"    class="px-3 py-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 font-medium text-sm"><i class="fas fa-home mr-2 w-4"></i>Accueil</a>
+      <a href="{% url 'pages:entreprises' %}" class="px-3 py-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 font-medium text-sm"><i class="fas fa-building mr-2 w-4"></i>Avis clients</a>
+      <a href="{% url 'pages:faq' %}"         class="px-3 py-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 font-medium text-sm"><i class="fas fa-circle-question mr-2 w-4"></i>FAQ</a>
+      <a href="{% url 'pages:contact' %}"     class="px-3 py-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 font-medium text-sm"><i class="fas fa-envelope mr-2 w-4"></i>Contact</a>
+      <a href="{% url 'pages:politique' %}"   class="px-3 py-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 font-medium text-sm"><i class="fas fa-shield-halved mr-2 w-4"></i>Confidentialité</a>
+      <div class="border-t border-gray-100 pt-3 mt-1 flex flex-col gap-2">
+        {% if user.is_authenticated %}
+          <div class="flex items-center gap-2 px-3 py-2 bg-orange-50 rounded-lg">
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;flex-shrink:0;">
+              {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+            </div>
+            <span class="text-sm font-semibold text-gray-700">{{ user.get_full_name }}</span>
+          </div>
+          <form action="{% url 'accounts:logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 font-medium text-sm">
+              <i class="fas fa-right-from-bracket mr-2"></i>Déconnexion
+            </button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts:connexion' %}"  class="px-3 py-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 font-medium text-sm"><i class="fas fa-right-to-bracket mr-2"></i>Connexion</a>
+          <a href="{% url 'accounts:inscription' %}" class="mx-3 btn-or justify-center text-sm"><i class="fas fa-rocket"></i> Essai gratuit</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════
+     MESSAGES FLASH
+════════════════════════════════════════════════════════ -->
+{% if messages %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+  {% for message in messages %}
+  <div class="flex items-center gap-3 p-4 rounded-xl mb-3 text-sm font-medium
+    {% if message.tags == 'success' %}msg-success
+    {% elif message.tags == 'error' %}msg-error
+    {% elif message.tags == 'warning' %}msg-warning
+    {% else %}msg-info{% endif %}">
+    <i class="fas fa-{% if message.tags == 'success' %}circle-check{% elif message.tags == 'error' %}circle-xmark{% elif message.tags == 'warning' %}triangle-exclamation{% else %}circle-info{% endif %} text-lg flex-shrink-0"></i>
+    <span>{{ message }}</span>
+    <button onclick="this.parentElement.remove()" class="ml-auto opacity-60 hover:opacity-100">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ═══════════════════════════════════════════════════════
+     CONTENU PRINCIPAL
+════════════════════════════════════════════════════════ -->
+<main>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════ -->
+<footer style="background:#1a1208;color:rgba(255,255,255,.75);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;" class="footer-grid">
+
+      <!-- Colonne 1 : Brand -->
+      <div>
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-9 h-9 or-grad rounded-xl flex items-center justify-center">
+            <i class="fas fa-boxes-stacked text-white" style="font-size:15px;"></i>
+          </div>
+          <span style="font-size:18px;font-weight:800;color:white;letter-spacing:-.3px;">
+            Stock<span style="color:#fb923c;">Master</span>
+          </span>
+        </div>
+        <p style="font-size:13.5px;line-height:1.7;color:rgba(255,255,255,.55);max-width:280px;">
+          Solution de gestion de stock intelligente avec IA prédictive, scan code-barres et tableaux de bord en temps réel.
+        </p>
+        <div class="flex gap-3 mt-5">
+          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(249,115,22,.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-twitter text-sm"></i></a>
+          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(249,115,22,.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-linkedin text-sm"></i></a>
+          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(249,115,22,.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-github text-sm"></i></a>
+        </div>
+      </div>
+
+      <!-- Colonne 2 : Navigation -->
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:14px;">Navigation</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <a href="{% url 'pages:accueil' %}"    style="font-size:13.5px;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.6)';">Accueil</a>
+          <a href="{% url 'pages:entreprises' %}" style="font-size:13.5px;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.6)';">Avis clients</a>
+          <a href="{% url 'pages:faq' %}"         style="font-size:13.5px;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.6)';">FAQ</a>
+          <a href="{% url 'pages:contact' %}"     style="font-size:13.5px;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.6)';">Contact</a>
+        </div>
+      </div>
+
+      <!-- Colonne 3 : Compte -->
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:14px;">Compte</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <a href="{% url 'accounts:connexion' %}"   style="font-size:13.5px;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.6)';">Connexion</a>
+          <a href="{% url 'accounts:inscription' %}" style="font-size:13.5px;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.6)';">Inscription</a>
+          <a href="{% url 'accounts:restauration' %}" style="font-size:13.5px;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.6)';">Mot de passe oublié</a>
+          <a href="{% url 'pages:politique' %}"      style="font-size:13.5px;color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.6)';">Confidentialité</a>
+        </div>
+      </div>
+
+      <!-- Colonne 4 : Contact -->
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:14px;">Contact</div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:rgba(255,255,255,.6);">
+          <div style="display:flex;align-items:flex-start;gap:9px;"><i class="fas fa-envelope" style="color:#fb923c;margin-top:3px;flex-shrink:0;"></i><span>support@stockmaster.io</span></div>
+          <div style="display:flex;align-items:flex-start;gap:9px;"><i class="fas fa-phone" style="color:#fb923c;margin-top:3px;flex-shrink:0;"></i><span>+228 91 12 30 80</span></div>
+          <div style="display:flex;align-items:flex-start;gap:9px;"><i class="fas fa-location-dot" style="color:#fb923c;margin-top:3px;flex-shrink:0;"></i><span>Lomé, Togo<br>& Paris, France</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barre basse -->
+    <div style="border-top:1px solid rgba(255,255,255,.08);margin-top:40px;padding-top:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <p style="font-size:12.5px;color:rgba(255,255,255,.35);">&copy; 2026 StockMaster – Tous droits réservés.</p>
+      <div style="display:flex;gap:16px;">
+        <a href="{% url 'pages:politique' %}" style="font-size:12.5px;color:rgba(255,255,255,.35);text-decoration:none;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.35)';">Politique de confidentialité</a>
+        <a href="{% url 'pages:contact' %}"   style="font-size:12.5px;color:rgba(255,255,255,.35);text-decoration:none;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.35)';">Mentions légales</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════
+     WHATSAPP FLOTTANT
+════════════════════════════════════════════════════════ -->
+<a href="https://wa.me/22891123080?text=Bonjour%20support%20StockMaster%2C%20nous%20sommes%20l%27entreprise%20%5BVotre%20entreprise%5D%2C%20nous%20vous%20contactons%20%C3%A0%20propos%20de%20%5BSujet%5D."
+   target="_blank" class="wa-float" aria-label="Contacter le support via WhatsApp">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+    <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.1 13.9 10.9-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+  </svg>
+</a>
+
+<style>
+@media(max-width:768px){
+  .footer-grid { grid-template-columns:1fr 1fr !important; }
+}
+@media(max-width:480px){
+  .footer-grid { grid-template-columns:1fr !important; }
+}
+</style>
+
+<script>
+// ── Burger menu ─────────────────────────────────────────
+const menuBtn  = document.getElementById('menuBtn');
+const mobileMenu = document.getElementById('mobileMenu');
+const menuIcon = document.getElementById('menuIcon');
+menuBtn?.addEventListener('click', () => {
+  const open = !mobileMenu.classList.contains('hidden');
+  mobileMenu.classList.toggle('hidden');
+  menuIcon.className = open ? 'fas fa-bars' : 'fas fa-xmark';
+});
+
+// ── FAQ accordéon ────────────────────────────────────────
+document.querySelectorAll('.faq-item').forEach(item => {
+  const trigger  = item.querySelector('.faq-trigger');
+  const chevron  = item.querySelector('.faq-chevron');
+  trigger?.addEventListener('click', () => {
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+});
+
+// ── Auto-dismiss messages ────────────────────────────────
+setTimeout(() => {
+  document.querySelectorAll('[class*="msg-"]').forEach(el => {
+    el.style.transition = 'opacity .4s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 400);
+  });
+}, 4000);
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

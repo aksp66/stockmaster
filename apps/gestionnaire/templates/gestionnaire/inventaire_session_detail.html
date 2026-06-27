@@ -1,0 +1,232 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+{% block title %}Session · {{ session.entrepot.nom }}{% endblock %}
+{% block page_title %}Inventaire en cours{% endblock %}
+{% block page_sub %}{{ session.entrepot.nom }} · {{ user.entreprise.nom }}{% endblock %}
+{% block n_inv %}active{% endblock %}
+
+{% block content %}
+
+{# Fil d'ariane + statut #}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;" class="au a1">
+  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-m);">
+    <a href="{% url 'gestionnaire:inventaires' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-clipboard-list" style="margin-right:4px;"></i>Inventaires</a>
+    <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+    <span>{{ session.entrepot.nom }} ({{ session.date_debut|date:"d/m/Y H:i" }})</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    {% if session.statut == 'en_cours' %}
+    <button onclick="openM('valid-modal')" class="btn b-or" {% if not pret_validation %}disabled title="Tous les produits doivent être comptés"{% endif %}>
+      <i class="fas fa-check-double"></i> Valider l'inventaire
+    </button>
+    {% endif %}
+    <span class="badge {% if session.statut == 'en_cours' %}bg-or{% elif session.statut == 'valide' %}bg-gr{% else %}bg-gy{% endif %}">
+      {{ session.get_statut_display }}
+    </span>
+  </div>
+</div>
+
+{# KPIs de la session #}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;" class="au a1">
+  <div class="stat s-or">
+    <div class="si"><i class="fas fa-box"></i></div>
+    <div class="sv">{{ total_lignes }}</div>
+    <div class="sl">Produits à compter</div>
+  </div>
+  <div class="stat s-gr">
+    <div class="si"><i class="fas fa-check"></i></div>
+    <div class="sv">{{ lignes_comptees }}</div>
+    <div class="sl">Comptés</div>
+  </div>
+  <div class="stat s-re">
+    <div class="si"><i class="fas fa-triangle-exclamation"></i></div>
+    <div class="sv">{{ nb_ecarts }}</div>
+    <div class="sl">Écarts détectés</div>
+  </div>
+  <div class="stat s-ye">
+    <div class="si"><i class="fas fa-percent"></i></div>
+    <div class="sv" style="font-size:24px;">{{ progression }}%</div>
+    <div class="sl">Progression</div>
+  </div>
+</div>
+
+{# Barre de progression #}
+<div style="margin-bottom:18px;" class="au a2">
+  <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+    <div style="width:{{ progression }}%;height:100%;background:{% if progression == 100 %}var(--green){% elif progression > 60 %}var(--or){% else %}var(--red){% endif %};border-radius:4px;transition:width .5s;"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--text-m);">
+    <span>{{ lignes_comptees }} / {{ total_lignes }} produits</span>
+    <span>{{ progression }}% complet</span>
+  </div>
+</div>
+
+{# Filtre rapide #}
+<div style="display:flex;gap:8px;margin-bottom:14px;" class="au a2">
+  <button onclick="filtrerLignes('all')" id="f-all" class="btn b-or b-sm">Tous</button>
+  <button onclick="filtrerLignes('restant')" id="f-restant" class="btn b-gh b-sm">À compter</button>
+  <button onclick="filtrerLignes('ecart')" id="f-ecart" class="btn b-gh b-sm">Avec écart</button>
+  <button onclick="filtrerLignes('ok')" id="f-ok" class="btn b-gh b-sm">Sans écart</button>
+  <div class="search-w" style="margin-left:auto;width:220px;">
+    <i class="fas fa-search"></i>
+    <input type="text" id="search-ligne" placeholder="Filtrer par produit…" class="fin" style="height:34px;font-size:12px;">
+  </div>
+</div>
+
+{# Tableau de saisie #}
+<div class="card au a3">
+  <form method="post" action="{% url 'gestionnaire:inventaire_saisie' session.pk %}" id="inv-form">
+    {% csrf_token %}
+    <table class="tbl" id="inv-table">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Emplacement</th>
+          <th>Stock théorique</th>
+          <th>Qté comptée</th>
+          <th>Écart</th>
+          <th>Commentaire</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in lignes %}
+        <tr class="inv-row"
+            data-statut="{% if ligne.quantite_comptee is None %}restant{% elif ligne.quantite_comptee == ligne.quantite_theorique %}ok{% else %}ecart{% endif %}"
+            data-nom="{{ ligne.produit.nom|lower }}">
+          <td>
+            <div style="font-weight:700;font-size:13px;color:var(--text-p);">{{ ligne.produit.nom }}</div>
+            <div class="mono" style="font-size:11px;color:var(--or);">{{ ligne.produit.sku }}</div>
+          </td>
+          <td>
+            <span style="font-size:12px;color:var(--text-m);">{{ ligne.emplacement.code|default:"—" }}</span>
+          </td>
+          <td>
+            {% if masquer_stock %}
+              <span style="color:var(--text-m);font-size:13px;">—</span>
+            {% else %}
+              <span class="mono" style="font-size:15px;font-weight:700;color:var(--blue);">{{ ligne.quantite_theorique|floatformat:0 }}</span>
+            {% endif %}
+          </td>
+          <td style="width:130px;">
+            {% if session.statut == 'en_cours' %}
+            <input type="number"
+                   name="ligne_{{ ligne.pk }}"
+                   value="{{ ligne.quantite_comptee|default:'' }}"
+                   class="fin qte-input" min="0" step="1"
+                   style="text-align:center;font-size:16px;font-weight:800;padding:7px;width:100%;"
+                   data-theorique="{{ ligne.quantite_theorique|floatformat:0 }}"
+                   data-pk="{{ ligne.pk }}"
+                   placeholder="—"
+                   onchange="calcEcart(this)">
+            {% else %}
+            <span class="mono" style="font-size:15px;font-weight:700;color:var(--text-p);">{{ ligne.quantite_comptee|default:"—" }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="ecart-display mono" id="ecart-{{ ligne.pk }}" style="font-size:15px;font-weight:800;color:
+              {% if ligne.quantite_comptee is None %}var(--text-m)
+              {% elif ligne.ecart > 0 %}var(--green)
+              {% elif ligne.ecart < 0 %}var(--red)
+              {% else %}var(--text-m){% endif %};">
+              {% if ligne.quantite_comptee is None %}—
+              {% elif ligne.ecart > 0 %}+{{ ligne.ecart|floatformat:0 }}
+              {% elif ligne.ecart < 0 %}{{ ligne.ecart|floatformat:0 }}
+              {% else %}0{% endif %}
+            </span>
+          </td>
+          <td>
+            {% if session.statut == 'en_cours' %}
+            <input type="text" name="cmt_{{ ligne.pk }}" value="{{ ligne.note|default:'' }}" class="fin" style="font-size:12px;padding:6px 10px;" placeholder="Optionnel">
+            {% else %}
+            <span style="font-size:12px;color:var(--text-m);">{{ ligne.note|default:"—" }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty"><i class="fas fa-box"></i><h3>Aucun produit dans cet entrepôt</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if session.statut == 'en_cours' %}
+    <div style="padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px;">
+      <button type="submit" class="btn b-gh"><i class="fas fa-floppy-disk"></i> Sauvegarder</button>
+    </div>
+    {% endif %}
+  </form>
+</div>
+
+{# Modal validation #}
+<div class="modal-o" id="valid-modal">
+  <div class="modal" style="max-width:480px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="width:56px;height:56px;border-radius:15px;background:var(--or-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+        <i class="fas fa-check-double" style="color:var(--or);font-size:22px;"></i>
+      </div>
+      <h3 style="font-size:17px;font-weight:800;color:var(--text-p);">Valider cet inventaire ?</h3>
+      <p style="font-size:13px;color:var(--text-m);margin-top:8px;">
+        {{ nb_ecarts }} écart{{ nb_ecarts|pluralize }} détecté{{ nb_ecarts|pluralize }}.
+        {% if ajustement_auto %}Des mouvements d'ajustement seront automatiquement générés.{% endif %}
+        <br>Cette action est <strong>irréversible</strong>.
+      </p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeM('valid-modal')" class="btn b-gh" style="flex:1;justify-content:center;">Annuler</button>
+      <form method="post" action="{% url 'gestionnaire:inventaire_valider' session.pk %}" style="flex:1;">
+        {% csrf_token %}
+        <button type="submit" class="btn b-or" style="width:100%;justify-content:center;"><i class="fas fa-check-double"></i> Confirmer la validation</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block xjs %}
+<script>
+function calcEcart(input) {
+  const th = parseFloat(input.dataset.theorique) || 0;
+  const val = input.value === '' ? null : parseFloat(input.value);
+  const el = document.getElementById('ecart-' + input.dataset.pk);
+  if (val === null) {
+    el.textContent = '—';
+    el.style.color = 'var(--text-m)';
+    const row = input.closest('tr');
+    row.dataset.statut = 'restant';
+    return;
+  }
+  const ecart = val - th;
+  const sign = ecart > 0 ? '+' : '';
+  el.textContent = ecart === 0 ? '0' : sign + ecart;
+  el.style.color = ecart > 0 ? 'var(--green)' : ecart < 0 ? 'var(--red)' : 'var(--text-m)';
+  const row = input.closest('tr');
+  row.dataset.statut = ecart !== 0 ? 'ecart' : 'ok';
+}
+
+function filtrerLignes(type) {
+  document.querySelectorAll('.inv-row').forEach(row => {
+    row.style.display = (type === 'all' || row.dataset.statut === type) ? '' : 'none';
+  });
+  ['all','restant','ecart','ok'].forEach(t => {
+    const btn = document.getElementById('f-'+t);
+    if (btn) btn.className = 'btn b-sm ' + (t === type ? 'b-or' : 'b-gh');
+  });
+}
+
+document.getElementById('search-ligne')?.addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('.inv-row').forEach(row => {
+    row.style.display = row.dataset.nom.includes(q) ? '' : 'none';
+  });
+});
+
+document.querySelectorAll('.qte-input').forEach((inp, i, arr) => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const next = arr[i+1];
+      if (next) next.focus();
+    }
+  });
+});
+</script>
+{% endblock %}

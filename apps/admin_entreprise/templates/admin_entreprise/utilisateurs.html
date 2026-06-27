@@ -1,0 +1,286 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Utilisateurs{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}Gestion des utilisateurs{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_subtitle %}Membres de {{ user.entreprise.nom }}{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_utilisateurs %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<!-- En-tête -->
+<div
+  style="
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  "
+  class="au"
+>
+  <div>
+    <h1 style="font-size: 22px; font-weight: 800; letter-spacing: -0.4px">
+      Utilisateurs
+    </h1>
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px">
+      {{ utilisateurs.count }} membre{{ utilisateurs.count|pluralize }} dans
+      votre organisation
+    </p>
+  </div>
+  <a
+    href="{% url 'admin_entreprise:ajouter_utilisateur' %}"
+    class="btn btn-primary"
+  >
+    <i class="fas fa-user-plus"></i> Inviter un utilisateur
+  </a>
+</div>
+
+<!-- Filtres -->
+<div
+  class="card au au-1"
+  style="
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  "
+>
+  <form
+    method="get"
+    style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%"
+  >
+    <div class="search-wrap" style="flex: 1; min-width: 200px">
+      <i class="fas fa-search"></i>
+      <input
+        type="text"
+        name="q"
+        value="{{ request.GET.q }}"
+        placeholder="Rechercher…"
+        class="form-input"
+      />
+    </div>
+    <select name="role" class="form-input" style="width: 180px">
+      <option value="">Tous les rôles</option>
+      {% for r in roles_disponibles %}
+      <option
+        value="{{ r }}"
+        {%
+        if
+        request.GET.role=""
+        ="r"
+        %}selected{%
+        endif
+        %}
+      >
+        {{ r }}
+      </option>
+      {% endfor %}
+    </select>
+    <select name="statut" class="form-input" style="width: 150px">
+      <option value="">Tous statuts</option>
+      <option
+        value="actif"
+        {%
+        if
+        request.GET.statut=""
+        ="actif"
+        %}selected{%
+        endif
+        %}
+      >
+        Actifs
+      </option>
+      <option
+        value="inactif"
+        {%
+        if
+        request.GET.statut=""
+        ="inactif"
+        %}selected{%
+        endif
+        %}
+      >
+        Inactifs
+      </option>
+    </select>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-filter"></i> Filtrer
+    </button>
+    {% if request.GET.q or request.GET.role or request.GET.statut %}
+    <a href="{% url 'admin_entreprise:utilisateurs' %}" class="btn btn-ghost"
+      ><i class="fas fa-xmark"></i
+    ></a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Tableau -->
+<div class="card au au-2" style="padding: 0; overflow: hidden">
+  {% if utilisateurs %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="padding-left: 20px">Utilisateur</th>
+        <th>Rôle</th>
+        <th>Dernière connexion</th>
+        <th>Statut</th>
+        <th style="text-align: right; padding-right: 20px">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in utilisateurs %}
+      <tr>
+        <td style="padding-left: 20px">
+          <div style="display: flex; align-items: center; gap: 11px">
+            <div
+              style="
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, var(--orange), #ea580c);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 13px;
+                font-weight: 700;
+                color: white;
+                flex-shrink: 0;
+              "
+            >
+              {{ u.first_name|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}
+            </div>
+            <div>
+              <div style="font-weight: 600; font-size: 13.5px">
+                {{ u.get_full_name }}
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-muted)">
+                {{ u.email }}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td>
+          {% if u.role == 'admin_ent' %}
+          <span class="badge badge-orange">{{ u.get_role_display }}</span>
+          {% elif u.role == 'gestionnaire' %}
+          <span class="badge badge-blue">{{ u.get_role_display }}</span>
+          {% elif u.role == 'responsable_achat' %}
+          <span class="badge badge-yellow">{{ u.get_role_display }}</span>
+          {% elif u.role == 'magasinier' %}
+          <span class="badge badge-purple">{{ u.get_role_display }}</span>
+          {% else %}
+          <span class="badge badge-gray">{{ u.get_role_display }}</span>
+          {% endif %}
+        </td>
+        <td
+          style="
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: &quot;JetBrains Mono&quot;, monospace;
+          "
+        >
+          {{ u.last_login|date:"d/m/Y H:i"|default:"Jamais" }}
+        </td>
+        <td>
+          {% if u.est_actif %}
+          <span class="badge badge-green">Actif</span>
+          {% else %}
+          <span class="badge badge-red">Inactif</span>
+          {% endif %}
+        </td>
+        <td style="text-align: right; padding-right: 20px">
+          <div style="display: flex; gap: 6px; justify-content: flex-end">
+            <a
+              href="{% url 'admin_entreprise:modifier_utilisateur' u.id %}"
+              class="btn btn-ghost btn-sm"
+              title="Modifier"
+            >
+              <i class="fas fa-pen"></i>
+            </a>
+            <a
+              href="{% url 'admin_entreprise:desactiver_utilisateur' u.id %}"
+              class="btn {% if u.est_actif %}btn-danger{% else %}btn-success{% endif %} btn-sm"
+              title="{% if u.est_actif %}Désactiver{% else %}Activer{% endif %}"
+            >
+              <i
+                class="fas fa-{% if u.est_actif %}ban{% else %}check{% endif %}"
+              ></i>
+            </a>
+            <form
+              method="post"
+              action="{% url 'admin_entreprise:supprimer_utilisateur' u.id %}"
+              style="display: inline"
+              onsubmit="return confirm('Supprimer définitivement {{ u.get_full_name }} ?');"
+            >
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="btn btn-danger btn-sm"
+                title="Supprimer"
+              >
+                <i class="fas fa-trash-can"></i>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="fas fa-users"></i></div>
+    <h3>Aucun utilisateur trouvé</h3>
+    <p>Invitez des membres pour commencer à collaborer.</p>
+    <a
+      href="{% url 'admin_entreprise:ajouter_utilisateur' %}"
+      class="btn btn-primary"
+      style="margin-top: 14px"
+    >
+      <i class="fas fa-user-plus"></i> Inviter
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal suppression -->
+<div class="modal-overlay" id="deleteUserModal">
+  <div class="modal">
+    <div class="modal-icon" style="background: var(--red-dim)">
+      <i class="fas fa-trash-can" style="color: var(--red)"></i>
+    </div>
+    <div class="modal-title">Supprimer l'utilisateur ?</div>
+    <div class="modal-sub" id="deleteUserSub">
+      Cette action est irréversible.
+    </div>
+    <form method="post" id="deleteUserForm">
+      {% csrf_token %}
+      <div style="display: flex; gap: 10px; justify-content: flex-end">
+        <button
+          type="button"
+          onclick="closeModal('deleteUserModal')"
+          class="btn btn-ghost"
+        >
+          Annuler
+        </button>
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash-can"></i> Supprimer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  function openDeleteUserModal(id, name) {
+    document.getElementById("deleteUserForm").action =
+      `/admin-entreprise/utilisateurs/${id}/supprimer/`;
+    document.getElementById("deleteUserSub").textContent =
+      `Supprimer définitivement « ${name} » ?`;
+    openModal("deleteUserModal");
+  }
+</script>
+{% endblock %}

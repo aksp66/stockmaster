@@ -1,0 +1,99 @@
+{% extends 'auditeur/base_auditeur.html' %}
+{% block title %}Conformité{% endblock %}
+{% block page_title %}Conformité & alertes{% endblock %}
+{% block page_sub %}Contrôle qualité · {{ user.entreprise.nom }}{% endblock %}
+{% block n_conf %}active{% endblock %}
+
+{% block content %}
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;" class="au a1">
+  <div class="stat s-gr">
+    <div class="si"><i class="fas fa-shield-check"></i></div>
+    <div class="sv">{{ taux_conformite }}%</div>
+    <div class="sl">Taux global</div>
+    <i class="fas fa-shield-check sc"></i>
+  </div>
+  <div class="stat s-re">
+    <div class="si"><i class="fas fa-triangle-exclamation"></i></div>
+    <div class="sv">{{ nb_critiques }}</div>
+    <div class="sl">Alertes critiques</div>
+    <i class="fas fa-triangle-exclamation sc"></i>
+  </div>
+  <div class="stat s-ye">
+    <div class="si"><i class="fas fa-circle-exclamation"></i></div>
+    <div class="sv">{{ nb_majeures }}</div>
+    <div class="sl">Anomalies majeures</div>
+    <i class="fas fa-circle-exclamation sc"></i>
+  </div>
+  <div class="stat s-or">
+    <div class="si"><i class="fas fa-circle-info"></i></div>
+    <div class="sv">{{ nb_mineures }}</div>
+    <div class="sl">Anomalies mineures</div>
+    <i class="fas fa-circle-info sc"></i>
+  </div>
+</div>
+
+{# Scorecard de conformité #}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;" class="au a2">
+  {% for domaine in domaines_conformite %}
+  <div class="card" style="padding:20px;{% if domaine.score < 80 %}border-color:#fecaca;{% endif %}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:{{ domaine.bg }};display:flex;align-items:center;justify-content:center;">
+          <i class="{{ domaine.icon }}" style="color:{{ domaine.color }};font-size:14px;"></i>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-p);">{{ domaine.nom }}</div>
+          <div style="font-size:11px;color:var(--text-m);">{{ domaine.nb_controles }} contrôles</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="mono" style="font-size:24px;font-weight:800;color:{% if domaine.score >= 90 %}var(--green){% elif domaine.score >= 70 %}var(--or){% else %}var(--red){% endif %};">{{ domaine.score }}%</div>
+      </div>
+    </div>
+    <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:10px;">
+      <div style="width:{{ domaine.score }}%;height:100%;background:{% if domaine.score >= 90 %}var(--green){% elif domaine.score >= 70 %}var(--or){% else %}var(--red){% endif %};border-radius:3px;transition:width .5s;"></div>
+    </div>
+    {% if domaine.derniere_alerte %}
+    <div style="font-size:11.5px;color:var(--red);display:flex;align-items:center;gap:5px;">
+      <i class="fas fa-circle-xmark"></i> {{ domaine.derniere_alerte }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{# Liste des anomalies #}
+<div class="card au a3">
+  <div class="card-h">
+    <div><div class="card-t"><i class="fas fa-triangle-exclamation" style="color:var(--or);margin-right:7px;"></i>Anomalies détectées</div></div>
+    <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm"><i class="fas fa-download"></i> Exporter</a>
+  </div>
+  {% if anomalies %}
+  <table class="tbl">
+    <thead><tr><th>Niveau</th><th>Domaine</th><th>Description</th><th>Produit / Entité</th><th>Détecté le</th><th>Statut</th></tr></thead>
+    <tbody>
+      {% for a in anomalies %}
+      <tr>
+        <td>
+          {% if a.niveau == 'critique' %}<span class="badge bg-re"><i class="fas fa-circle-xmark" style="font-size:9px;"></i> Critique</span>
+          {% elif a.niveau == 'majeure' %}<span class="badge bg-ye"><i class="fas fa-triangle-exclamation" style="font-size:9px;"></i> Majeure</span>
+          {% else %}<span class="badge bg-or"><i class="fas fa-circle-info" style="font-size:9px;"></i> Mineure</span>{% endif %}
+        </td>
+        <td><span class="badge bg-gy">{{ a.domaine }}</span></td>
+        <td style="font-size:13px;font-weight:500;max-width:260px;">{{ a.description|truncatechars:80 }}</td>
+        <td style="font-size:13px;color:var(--text-m);">{{ a.entite|default:"—" }}</td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ a.date_detection|date:"d/m/Y" }}</td>
+        <td>
+          {% if a.resolu %}<span class="badge bg-gr">Résolu</span>
+          {% else %}<span class="badge bg-re">En cours</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><i class="fas fa-shield-check"></i><h3>Aucune anomalie</h3><p style="font-size:13px;">Tout est conforme.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

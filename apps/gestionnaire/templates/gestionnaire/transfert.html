@@ -1,0 +1,68 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+<!---->
+{% block title %}Transfert entre entrepôts{% endblock %}
+<!---->
+{% block page_title %}Transfert de stock{% endblock %}
+<!---->
+{% block page_sub %}Déplacer des produits d'un entrepôt à un autre{% endblock %}
+<!---->
+{% block n_trf %}active{% endblock %}
+<!---->
+{% block content %}
+<div class="card" style="max-width: 700px; margin: 0 auto">
+  <form method="post">
+    {% csrf_token %}
+    <div class="fi">
+      <label class="fl">Produit *</label>
+      <select name="produit" class="fin" required>
+        <option value="">-- Sélectionner un produit --</option>
+        {% for p in produits %}
+        <option value="{{ p.id }}">{{ p.nom }} ({{ p.sku }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="fi">
+      <label class="fl">Entrepôt source *</label>
+      <select name="entrepot_source" class="fin" required>
+        <option value="">-- Sélectionner --</option>
+        {% for e in entrepots %}
+        <option value="{{ e.id }}">{{ e.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="fi">
+      <label class="fl">Entrepôt destination *</label>
+      <select name="entrepot_destination" class="fin" required>
+        <option value="">-- Sélectionner --</option>
+        {% for e in entrepots %}
+        <option value="{{ e.id }}">{{ e.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="fi">
+      <label class="fl">Quantité *</label>
+      <input
+        type="number"
+        name="quantite"
+        step="any"
+        min="0.01"
+        class="fin"
+        required
+      />
+    </div>
+    <div class="fi">
+      <label class="fl">Note (optionnelle)</label>
+      <textarea
+        name="note"
+        rows="3"
+        class="fin"
+        placeholder="Raison du transfert..."
+      ></textarea>
+    </div>
+    <div style="display: flex; gap: 12px; justify-content: flex-end">
+      <a href="{% url 'gestionnaire:mouvements' %}" class="btn b-gh">Annuler</a>
+      <button type="submit" class="btn b-or">Effectuer le transfert</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends 'responsable_achat/base_achat.html' %}
+{% block title %}{{ fournisseur.nom }}{% endblock %}
+{% block page_title %}{{ fournisseur.nom }}{% endblock %}
+{% block page_sub %}Fournisseurs · {{ user.entreprise.nom }}{% endblock %}
+{% block n_f %}active{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;" class="au a1">
+  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-m);">
+    <a href="{% url 'responsable_achat:fournisseur_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-truck" style="margin-right:4px;"></i>Fournisseurs</a>
+    <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+    <span>{{ fournisseur.nom }}</span>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'responsable_achat:fournisseur_edit' fournisseur.pk %}" class="btn b-gh b-sm"><i class="fas fa-pen"></i> Modifier</a>
+    <a href="{% url 'responsable_achat:boncommande_create' %}?fournisseur={{ fournisseur.id }}" class="btn b-or b-sm"><i class="fas fa-plus"></i> Nouvelle commande</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 300px;gap:18px;" class="au a2">
+  <div>
+    {# Dernières commandes #}
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h">
+        <div><div class="card-t"><i class="fas fa-file-invoice" style="color:var(--or);margin-right:6px;"></i>Historique des commandes</div><div class="card-sub">{{ derniers_bc.count }} bon{{ derniers_bc.count|pluralize }} de commande</div></div>
+        <a href="{% url 'responsable_achat:boncommande_list' %}?fournisseur={{ fournisseur.id }}" class="btn b-gh b-sm">Tous <i class="fas fa-arrow-right"></i></a>
+      </div>
+      {% if derniers_bc %}
+      <table class="tbl">
+        <thead><tr><th>Référence</th><th>Montant HT</th><th>Statut</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+          {% for bc in derniers_bc %}
+          <tr>
+            <td><a href="{% url 'responsable_achat:boncommande_detail' bc.pk %}" class="mono" style="font-weight:700;color:var(--or);text-decoration:none;">{{ bc.reference }}</a></td>
+            <td><span class="mono" style="font-weight:700;">{{ bc.montant_total|floatformat:2 }} FCFA</span></td>
+            <td><span class="badge bc-{{ bc.statut }}">{{ bc.get_statut_display }}</span></td>
+            <td class="mono" style="font-size:12px;color:var(--text-m);">{{ bc.date_creation|date:"d/m/Y" }}</td>
+            <td><a href="{% url 'responsable_achat:boncommande_detail' bc.pk %}" class="btn b-gh b-sm"><i class="fas fa-eye"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty" style="padding:28px;"><i class="fas fa-file-invoice"></i><h3>Aucune commande</h3></div>
+      {% endif %}
+    </div>
+
+    {# Produits associés #}
+    <div class="card">
+      <div class="card-h"><div class="card-t"><i class="fas fa-box" style="color:var(--or);margin-right:6px;"></i>Produits approvisionnés</div></div>
+      {% if produits %}
+      <table class="tbl">
+        <thead><tr><th>Produit</th><th>SKU</th><th>Stock actuel</th><th>Délai réappro</th></tr></thead>
+        <tbody>
+          {% for p in produits %}
+          <tr>
+            <td style="font-weight:600;font-size:13px;">{{ p.nom }}</td>
+            <td><span class="mono" style="font-size:12px;color:var(--or);">{{ p.sku }}</span></td>
+            <td><span class="mono" style="font-weight:700;color:{% if p.quantite_totale == 0 %}var(--red){% elif p.quantite_totale <= p.seuil_alerte %}var(--or){% else %}var(--green){% endif %};">{{ p.quantite_totale }}</span></td>
+            <td><span class="mono" style="font-size:12px;color:var(--text-m);">{{ p.delai_reappro }}j</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty" style="padding:24px;"><i class="fas fa-box"></i><h3>Aucun produit associé</h3></div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Panneau infos #}
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    {# Fiche #}
+    <div class="card" style="padding:20px;">
+      <div style="text-align:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+        <div style="width:56px;height:56px;border-radius:14px;background:var(--or-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:20px;font-weight:800;color:var(--or);">{{ fournisseur.nom|slice:":2"|upper }}</div>
+        <div style="font-size:16px;font-weight:800;color:var(--text-p);">{{ fournisseur.nom }}</div>
+        {% if fournisseur.actif %}<span class="badge bg-gr" style="margin-top:5px;">Actif</span>{% else %}<span class="badge bg-gy" style="margin-top:5px;">Inactif</span>{% endif %}
+      </div>
+      <div style="font-size:13px;line-height:2.2;color:var(--text-s);">
+        {% if fournisseur.email %}<div style="display:flex;gap:8px;"><i class="fas fa-envelope" style="color:var(--text-m);width:16px;margin-top:4px;font-size:12px;"></i><span>{{ fournisseur.email }}</span></div>{% endif %}
+        {% if fournisseur.telephone %}<div style="display:flex;gap:8px;"><i class="fas fa-phone" style="color:var(--text-m);width:16px;margin-top:4px;font-size:12px;"></i><span>{{ fournisseur.telephone }}</span></div>{% endif %}
+        {% if fournisseur.adresse %}<div style="display:flex;gap:8px;"><i class="fas fa-location-dot" style="color:var(--text-m);width:16px;margin-top:4px;font-size:12px;"></i><span>{{ fournisseur.adresse }}, {{ fournisseur.ville }}</span></div>{% endif %}
+        {% if fournisseur.site_web %}<div style="display:flex;gap:8px;"><i class="fas fa-globe" style="color:var(--text-m);width:16px;margin-top:4px;font-size:12px;"></i><a href="{{ fournisseur.site_web }}" target="_blank" style="color:var(--blue);">{{ fournisseur.site_web|truncatechars:30 }}</a></div>{% endif %}
+      </div>
+    </div>
+
+    {# Statistiques #}
+    <div class="card" style="padding:18px;">
+      <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-chart-bar" style="color:var(--or);margin-right:6px;"></i>Statistiques</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="text-align:center;padding:12px;background:var(--or-dim);border-radius:10px;">
+          <div class="mono" style="font-size:22px;font-weight:800;color:var(--or);">{{ nb_commandes }}</div>
+          <div style="font-size:11px;color:var(--text-m);margin-top:2px;">Commandes</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--green-dim);border-radius:10px;">
+          <div class="mono" style="font-size:16px;font-weight:800;color:var(--green);">{{ montant_total|floatformat:0 }}FCFA</div>
+          <div style="font-size:11px;color:var(--text-m);margin-top:2px;">Volume total</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--blue-dim);border-radius:10px;">
+          <div class="mono" style="font-size:20px;font-weight:800;color:var(--blue);">{{ fournisseur.delai_livraison }}j</div>
+          <div style="font-size:11px;color:var(--text-m);margin-top:2px;">Délai livraison</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--yellow-dim);border-radius:10px;">
+          <div class="mono" style="font-size:20px;font-weight:800;color:var(--yellow);">{{ fournisseur.remise|default:0 }}%</div>
+          <div style="font-size:11px;color:var(--text-m);margin-top:2px;">Remise</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,620 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+{% block title %}{{ produit.nom }}{% endblock %}
+{% block page_title %}{{ produit.nom }}{% endblock %}
+{% block page_sub %}Détail produit · {{ user.entreprise.nom }}{% endblock %}
+{% block n_prod %}active{% endblock %}
+
+{% block content %}
+
+{# ── Fil d'ariane ── #}
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--text-m);" class="au a1">
+  <a href="{% url 'gestionnaire:produit_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;">
+    <i class="fas fa-box" style="margin-right:4px;"></i>Produits
+  </a>
+  <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+  <span style="color:var(--text-p);font-weight:600;">{{ produit.nom }}</span>
+</div>
+
+{# ── Bandeau statut ── #}
+{% if produit.quantite_totale == 0 %}
+<div style="padding:12px 18px;background:var(--red-dim);border:1.5px solid #fecaca;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;gap:12px;" class="au a1">
+  <i class="fas fa-circle-xmark" style="color:var(--red);font-size:20px;flex-shrink:0;"></i>
+  <div>
+    <div style="font-size:14px;font-weight:700;color:var(--red);">Rupture de stock</div>
+    <div style="font-size:13px;color:var(--red);opacity:.8;">Ce produit n'a plus aucune unité disponible. Enregistrez une entrée immédiatement.</div>
+  </div>
+  <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ produit.id }}&type=entree" class="btn b-re" style="margin-left:auto;flex-shrink:0;">
+    <i class="fas fa-plus"></i> Entrée urgente
+  </a>
+</div>
+{% elif produit.quantite_totale <= produit.seuil_alerte %}
+<div style="padding:12px 18px;background:var(--or-dim);border:1.5px solid var(--or-border);border-radius:12px;margin-bottom:20px;display:flex;align-items:center;gap:12px;" class="au a1">
+  <i class="fas fa-triangle-exclamation" style="color:var(--or);font-size:20px;flex-shrink:0;"></i>
+  <div>
+    <div style="font-size:14px;font-weight:700;color:var(--or-d);">Stock sous le seuil d'alerte</div>
+    <div style="font-size:13px;color:var(--or-d);opacity:.8;">{{ produit.quantite_totale }} unité{{ produit.quantite_totale|pluralize }} disponible{{ produit.quantite_totale|pluralize }} pour un seuil de {{ produit.seuil_alerte }}.</div>
+  </div>
+  <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ produit.id }}&type=entree" class="btn b-ye" style="margin-left:auto;flex-shrink:0;">
+    <i class="fas fa-plus"></i> Réapprovisionner
+  </a>
+</div>
+{% endif %}
+
+{# ── En-tête produit ── #}
+<div class="card au a1" style="margin-bottom:18px;padding:0;overflow:hidden;">
+  <div style="padding:24px 26px;display:flex;align-items:flex-start;gap:20px;">
+    {# Avatar produit #}
+    <div style="width:72px;height:72px;border-radius:16px;background:var(--or-dim);border:2px solid var(--or-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      {% if produit.image %}
+        <img src="{{ produit.image.url }}" alt="{{ produit.nom }}" style="width:68px;height:68px;border-radius:14px;object-fit:cover;">
+      {% else %}
+        <i class="fas fa-box" style="font-size:28px;color:var(--or);"></i>
+      {% endif %}
+    </div>
+
+    {# Infos principales #}
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+        <h2 style="font-size:22px;font-weight:800;color:var(--text-p);letter-spacing:-.4px;margin:0;">{{ produit.nom }}</h2>
+        {% if produit.quantite_totale == 0 %}
+          <span class="badge bg-re">Rupture</span>
+        {% elif produit.quantite_totale <= produit.seuil_alerte %}
+          <span class="badge bg-or">Alerte</span>
+        {% else %}
+          <span class="badge bg-gr">Stock OK</span>
+        {% endif %}
+        {% if produit.actif %}
+          <span class="badge bg-gy">Actif</span>
+        {% else %}
+          <span class="badge bg-re">Inactif</span>
+        {% endif %}
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <span class="mono" style="font-size:13px;color:var(--or);font-weight:700;background:var(--or-dim);padding:3px 10px;border-radius:8px;border:1px solid var(--or-border);">
+          <i class="fas fa-barcode" style="margin-right:5px;"></i>{{ produit.sku }}
+        </span>
+        {% if produit.code_barre %}
+        <span class="mono" style="font-size:13px;color:var(--text-m);">
+          <i class="fas fa-qrcode" style="margin-right:4px;"></i>{{ produit.code_barre }}
+        </span>
+        {% endif %}
+        {% if produit.categorie %}
+        <span style="font-size:13px;color:var(--text-m);">
+          <i class="fas fa-tag" style="margin-right:4px;color:var(--or);"></i>{{ produit.categorie.nom }}
+        </span>
+        {% endif %}
+      </div>
+      {% if produit.description %}
+      <p style="font-size:13.5px;color:var(--text-m);margin-top:10px;line-height:1.6;">{{ produit.description }}</p>
+      {% endif %}
+    </div>
+
+    {# Actions rapides #}
+    <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+      <a href="{% url 'gestionnaire:produit_edit' produit.pk %}" class="btn b-or b-sm">
+        <i class="fas fa-pen"></i> Modifier
+      </a>
+      <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ produit.id }}" class="btn b-gh b-sm">
+        <i class="fas fa-arrows-rotate"></i> Mouvement
+      </a>
+      <a href="{% url 'gestionnaire:scan' %}?produit={{ produit.id }}" class="btn b-gh b-sm">
+        <i class="fas fa-barcode"></i> Scanner
+      </a>
+    </div>
+  </div>
+</div>
+
+{# ══════════ CORPS PRINCIPAL ══════════ #}
+<div style="display:grid;grid-template-columns:1fr 320px;gap:18px;">
+
+  {# ── Colonne gauche ── #}
+  <div style="display:flex;flex-direction:column;gap:18px;">
+
+    {# ── Statistiques de stock ── #}
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;" class="au a2">
+      <div class="stat s-or" style="padding:16px;">
+        <div class="si" style="margin-bottom:10px;width:38px;height:38px;"><i class="fas fa-boxes-stacked"></i></div>
+        <div class="sv" style="font-size:26px;">{{ produit.quantite_totale }}</div>
+        <div class="sl">Stock total</div>
+        <i class="fas fa-boxes-stacked sc"></i>
+      </div>
+      <div class="stat s-gr" style="padding:16px;">
+        <div class="si" style="margin-bottom:10px;width:38px;height:38px;"><i class="fas fa-coins"></i></div>
+        <div class="sv" style="font-size:{% if valeur_stock > 99999 %}16px{% else %}20px{% endif %};">{{ valeur_stock|floatformat:2 }} FCFA</div>
+        <div class="sl">Valeur en stock</div>
+        <i class="fas fa-coins sc"></i>
+      </div>
+      <div class="stat s-bl" style="padding:16px;">
+        <div class="si" style="margin-bottom:10px;width:38px;height:38px;"><i class="fas fa-arrow-trend-up"></i></div>
+        <div class="sv" style="font-size:26px;">{{ nb_entrees_30j }}</div>
+        <div class="sl">Entrées (30j)</div>
+        <i class="fas fa-arrow-trend-up sc"></i>
+      </div>
+      <div class="stat s-re" style="padding:16px;">
+        <div class="si" style="margin-bottom:10px;width:38px;height:38px;"><i class="fas fa-arrow-trend-down"></i></div>
+        <div class="sv" style="font-size:26px;">{{ nb_sorties_30j }}</div>
+        <div class="sl">Sorties (30j)</div>
+        <i class="fas fa-arrow-trend-down sc"></i>
+      </div>
+    </div>
+
+    {# ── Graphique évolution du stock ── #}
+    <div class="card au a2">
+      <div class="card-h">
+        <div>
+          <div class="card-t"><i class="fas fa-chart-line" style="color:var(--or);margin-right:7px;"></i>Évolution du stock</div>
+          <div class="card-sub">Derniers 90 jours</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <a href="?periode=30j"  class="btn b-sm {% if request.GET.periode == '30j' or not request.GET.periode %}b-or{% else %}b-gh{% endif %}">30j</a>
+          <a href="?periode=90j"  class="btn b-sm {% if request.GET.periode == '90j' %}b-or{% else %}b-gh{% endif %}">90j</a>
+          <a href="?periode=180j" class="btn b-sm {% if request.GET.periode == '180j' %}b-or{% else %}b-gh{% endif %}">6 mois</a>
+        </div>
+      </div>
+      <div style="padding:20px;">
+        <canvas id="chart-stock" height="180"></canvas>
+      </div>
+    </div>
+
+    {# ── Historique des mouvements ── #}
+    <div class="card au a3">
+      <div class="card-h">
+        <div>
+          <div class="card-t"><i class="fas fa-arrows-rotate" style="color:var(--or);margin-right:7px;"></i>Historique des mouvements</div>
+          <div class="card-sub">{{ total_mouvements }} mouvement{{ total_mouvements|pluralize }}</div>
+        </div>
+        <a href="{% url 'gestionnaire:mouvement_list' %}?produit={{ produit.id }}" class="btn b-gh b-sm">
+          Tout voir <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+
+      {# Filtres rapides #}
+      <div style="padding:10px 20px 0;display:flex;gap:6px;border-bottom:1px solid var(--border);padding-bottom:10px;">
+        <a href="?filtre=all"      class="btn b-sm {% if request.GET.filtre != 'entree' and request.GET.filtre != 'sortie' %}b-or{% else %}b-gh{% endif %}">Tous</a>
+        <a href="?filtre=entree"   class="btn b-sm {% if request.GET.filtre == 'entree' %}b-or{% else %}b-gh{% endif %}"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Entrées</a>
+        <a href="?filtre=sortie"   class="btn b-sm {% if request.GET.filtre == 'sortie' %}b-or{% else %}b-gh{% endif %}"><i class="fas fa-arrow-up" style="font-size:10px;"></i> Sorties</a>
+      </div>
+
+      {% if mouvements %}
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Quantité</th>
+            <th>Stock après</th>
+            <th>Entrepôt</th>
+            <th>Opérateur</th>
+            <th>Référence</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in mouvements %}
+          <tr>
+            <td>
+              <div class="mono" style="font-size:12px;font-weight:600;color:var(--text-p);">{{ m.date_mouvement|date:"d/m/Y" }}</div>
+              <div class="mono" style="font-size:10px;color:var(--text-m);">{{ m.date_mouvement|date:"H:i" }}</div>
+            </td>
+            <td>
+              {% if m.type_mouvement == 'entree' %}
+                <span class="badge bg-gr"><i class="fas fa-arrow-down" style="font-size:9px;"></i> Entrée</span>
+              {% elif m.type_mouvement == 'sortie' %}
+                <span class="badge bg-re"><i class="fas fa-arrow-up" style="font-size:9px;"></i> Sortie</span>
+              {% elif m.type_mouvement == 'transfert' %}
+                <span class="badge bg-bl"><i class="fas fa-right-left" style="font-size:9px;"></i> Transfert</span>
+              {% else %}
+                <span class="badge bg-ye">{{ m.get_type_mouvement_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="mono" style="font-size:16px;font-weight:800;color:{% if m.type_mouvement == 'sortie' %}var(--red){% elif m.type_mouvement == 'entree' %}var(--green){% else %}var(--or){% endif %};">
+                {% if m.type_mouvement == 'entree' %}+{% elif m.type_mouvement == 'sortie' %}−{% endif %}{{ m.quantite }}
+              </span>
+            </td>
+            <td>
+              <span class="mono" style="font-size:14px;font-weight:700;color:var(--text-p);">{{ m.stock_apres|default:"—" }}</span>
+            </td>
+            <td style="font-size:12.5px;color:var(--text-m);">{{ m.entrepot.nom|default:"—" }}</td>
+            <td style="font-size:12.5px;">
+              {% if m.utilisateur %}
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div style="width:24px;height:24px;border-radius:50%;background:var(--or-dim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--or);flex-shrink:0;">
+                  {{ m.utilisateur.first_name|slice:":1"|upper }}{{ m.utilisateur.last_name|slice:":1"|upper }}
+                </div>
+                <span style="font-size:12px;">{{ m.utilisateur.get_full_name }}</span>
+              </div>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if m.reference_document %}
+              <span class="mono" style="font-size:11.5px;color:var(--blue);">{{ m.reference_document }}</span>
+              {% else %}
+              <span style="color:var(--text-m);font-size:12px;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# Pagination #}
+      {% if mouvements.has_other_pages %}
+      <div class="pager">
+        {% if mouvements.has_previous %}
+        <a href="?page={{ mouvements.previous_page_number }}&filtre={{ request.GET.filtre }}">
+          <i class="fas fa-chevron-left" style="font-size:11px;"></i>
+        </a>
+        {% endif %}
+        {% for num in mouvements.paginator.page_range %}
+          {% if mouvements.number == num %}
+            <span class="cur">{{ num }}</span>
+          {% elif num > mouvements.number|add:'-3' and num < mouvements.number|add:'3' %}
+            <a href="?page={{ num }}&filtre={{ request.GET.filtre }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if mouvements.has_next %}
+        <a href="?page={{ mouvements.next_page_number }}&filtre={{ request.GET.filtre }}">
+          <i class="fas fa-chevron-right" style="font-size:11px;"></i>
+        </a>
+        {% endif %}
+        <span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">
+          {{ total_mouvements }} mouvement{{ total_mouvements|pluralize }}
+        </span>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="empty">
+        <i class="fas fa-arrows-rotate"></i>
+        <h3>Aucun mouvement</h3>
+        <p style="font-size:13px;">Aucun mouvement enregistré pour ce produit.</p>
+        <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ produit.id }}" class="btn b-or b-sm" style="margin-top:12px;">
+          <i class="fas fa-plus"></i> Premier mouvement
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Alertes liées ── #}
+    {% if alertes %}
+    <div class="card au a4" style="border-color:#fecaca;">
+      <div class="card-h" style="background:var(--red-dim);border-color:#fecaca;">
+        <div class="card-t" style="color:var(--red);"><i class="fas fa-bell" style="margin-right:7px;"></i>Alertes actives</div>
+        <span class="badge bg-re">{{ alertes|length }}</span>
+      </div>
+      <div style="padding:8px 0;">
+        {% for a in alertes %}
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--red-dim);">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:var(--red);">{{ a.get_type_display }}</div>
+            <div style="font-size:11.5px;color:var(--text-m);">{{ a.date_creation|date:"d/m/Y H:i" }}</div>
+          </div>
+          {% if a.statut == 'active' %}
+          <form method="post" action="{% url 'gestionnaire:alerte_acquitter' a.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn b-gh b-sm"><i class="fas fa-check"></i> Acquitter</button>
+          </form>
+          {% else %}
+          <span class="badge bg-gr">Acquittée</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {# ── Colonne droite ── #}
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    {# ── Fiche produit ── #}
+    <div class="card au a2" style="padding:18px;">
+      <div style="font-size:13.5px;font-weight:700;color:var(--text-p);margin-bottom:14px;">
+        <i class="fas fa-circle-info" style="color:var(--or);margin-right:6px;"></i>Informations
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0;font-size:13px;">
+        {% for label, valeur, icon in fiche_produit %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-m);display:flex;align-items:center;gap:6px;">
+            {% if icon %}<i class="{{ icon }}" style="color:var(--or);width:14px;text-align:center;font-size:11px;"></i>{% endif %}
+            {{ label }}
+          </span>
+          <span style="font-weight:600;color:var(--text-p);text-align:right;max-width:160px;overflow:hidden;text-overflow:ellipsis;">{{ valeur|default:"—" }}</span>
+        </div>
+        {% empty %}
+        {# Fallback statique #}
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-m);"><i class="fas fa-tag" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Catégorie</span>
+          <span style="font-weight:600;">{{ produit.categorie.nom|default:"—" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-m);"><i class="fas fa-ruler" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Unité</span>
+          <span style="font-weight:600;">{{ produit.unite|default:"unité" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-m);"><i class="fas fa-euro-sign" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Prix unitaire</span>
+          <span style="font-weight:700;color:var(--or);">{{ produit.prix_unitaire|floatformat:2 }} FCFA</span>
+        </div>
+        {% if produit.prix_vente %}
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-m);"><i class="fas fa-tag" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Prix de vente</span>
+          <span style="font-weight:700;color:var(--green);">{{ produit.prix_vente|floatformat:2 }} FCFA</span>
+        </div>
+        {% endif %}
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-m);"><i class="fas fa-bell" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Seuil d'alerte</span>
+          <span style="font-weight:600;">{{ produit.seuil_alerte }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-m);"><i class="fas fa-truck" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Fournisseur</span>
+          <span style="font-weight:600;">{{ produit.fournisseur.nom|default:"—" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-m);"><i class="fas fa-clock" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Délai réappro.</span>
+          <span style="font-weight:600;">{{ produit.delai_reappro|default:"—" }}j</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;">
+          <span style="color:var(--text-m);"><i class="fas fa-calendar" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Créé le</span>
+          <span class="mono" style="font-size:12px;">{{ produit.date_creation|date:"d/m/Y" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Stock par entrepôt ── #}
+    <div class="card au a3">
+      <div class="card-h">
+        <div class="card-t"><i class="fas fa-warehouse" style="color:var(--or);margin-right:6px;"></i>Stock par entrepôt</div>
+      </div>
+      {% if stocks_par_entrepot %}
+      <div style="padding:8px 0;">
+        {% for s in stocks_par_entrepot %}
+        <div style="padding:12px 18px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-p);">{{ s.entrepot }}</div>
+              {% if s.emplacement %}<div style="font-size:11px;color:var(--text-m);" class="mono">{{ s.emplacement }}</div>{% endif %}
+            </div>
+            <span class="mono" style="font-size:18px;font-weight:800;color:{% if s.quantite == 0 %}var(--red){% elif s.quantite <= produit.seuil_alerte %}var(--or){% else %}var(--green){% endif %};">{{ s.quantite }}</span>
+          </div>
+          {# Barre visuelle #}
+          {% if produit.quantite_totale > 0 %}
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+            <div style="width:{% widthratio s.quantite produit.quantite_totale 100 %}%;height:100%;background:var(--or);border-radius:2px;transition:width .5s;"></div>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        <div style="padding:10px 18px;background:var(--bg);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;font-weight:700;color:var(--text-m);text-transform:uppercase;letter-spacing:.8px;">Total</span>
+          <span class="mono" style="font-size:18px;font-weight:800;color:var(--or);">{{ produit.quantite_totale }}</span>
+        </div>
+      </div>
+      {% else %}
+      <div style="padding:20px;text-align:center;color:var(--text-m);font-size:13px;">
+        <i class="fas fa-warehouse" style="font-size:24px;opacity:.3;display:block;margin-bottom:8px;"></i>
+        Aucun stock enregistré
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Prédiction IA ── #}
+    {% if prediction %}
+    <div class="card au a3" style="border-color:#e9d5ff;background:linear-gradient(135deg,#faf5ff,#fff7ed);">
+      <div class="card-h" style="border-color:#e9d5ff;background:#f5f3ff;">
+        <div>
+          <div class="card-t" style="color:var(--purple);"><i class="fas fa-brain" style="margin-right:6px;"></i>Prédiction IA</div>
+          <div class="card-sub" style="color:var(--purple);opacity:.7;">Modèle : {{ prediction.modele_utilise|upper }}</div>
+        </div>
+        <span class="badge bg-pu" style="font-size:11px;">{{ prediction.score_confiance }}% confiance</span>
+      </div>
+      <div style="padding:16px 18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div style="text-align:center;padding:12px;background:white;border-radius:10px;border:1px solid #e9d5ff;">
+            <div class="mono" style="font-size:22px;font-weight:800;color:var(--red);">{{ prediction.consommation_prevue|floatformat:0 }}</div>
+            <div style="font-size:11px;color:var(--text-m);margin-top:3px;">Consommation J+30</div>
+          </div>
+          <div style="text-align:center;padding:12px;background:white;border-radius:10px;border:1px solid #e9d5ff;">
+            <div class="mono" style="font-size:22px;font-weight:800;color:{% if prediction.stock_prevu_j30 < 0 %}var(--red){% elif prediction.stock_prevu_j30 <= produit.seuil_alerte %}var(--or){% else %}var(--green){% endif %};">
+              {% if prediction.stock_prevu_j30 < 0 %}0{% else %}{{ prediction.stock_prevu_j30|floatformat:0 }}{% endif %}
+            </div>
+            <div style="font-size:11px;color:var(--text-m);margin-top:3px;">Stock prévu J+30</div>
+          </div>
+        </div>
+        {% if prediction.quantite_a_commander > 0 %}
+        <div style="background:white;border:1.5px solid #e9d5ff;border-radius:10px;padding:12px;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:4px;">
+            <i class="fas fa-cart-plus" style="margin-right:5px;"></i>Commande recommandée
+          </div>
+          <div class="mono" style="font-size:20px;font-weight:800;color:var(--purple);">{{ prediction.quantite_a_commander|floatformat:0 }} unités</div>
+        </div>
+        <a href="{% url 'responsable_achat:boncommande_create' %}?produit={{ produit.id }}&qte={{ prediction.quantite_a_commander|floatformat:0 }}" class="btn" style="background:var(--purple);color:white;width:100%;justify-content:center;font-size:13px;border-radius:9px;padding:9px;">
+          <i class="fas fa-file-invoice"></i> Créer un bon de commande
+        </a>
+        {% else %}
+        <div style="text-align:center;padding:8px;font-size:13px;color:var(--green);font-weight:600;">
+          <i class="fas fa-check-circle" style="margin-right:5px;"></i>Aucune commande nécessaire
+        </div>
+        {% endif %}
+        <div style="font-size:11px;color:var(--text-m);margin-top:10px;text-align:center;">
+          Mise à jour : {{ prediction.date_calcul|date:"d/m/Y H:i" }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Actions complémentaires ── #}
+    <div class="card au a4" style="padding:18px;">
+      <div style="font-size:13.5px;font-weight:700;color:var(--text-p);margin-bottom:12px;">
+        <i class="fas fa-bolt" style="color:var(--or);margin-right:6px;"></i>Actions
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ produit.id }}&type=entree" class="btn b-gh b-sm" style="justify-content:flex-start;">
+          <i class="fas fa-arrow-down" style="color:var(--green);"></i> Enregistrer une entrée
+        </a>
+        <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ produit.id }}&type=sortie" class="btn b-gh b-sm" style="justify-content:flex-start;">
+          <i class="fas fa-arrow-up" style="color:var(--red);"></i> Enregistrer une sortie
+        </a>
+        <a href="{% url 'gestionnaire:transfert' %}?produit={{ produit.id }}" class="btn b-gh b-sm" style="justify-content:flex-start;">
+          <i class="fas fa-right-left" style="color:var(--blue);"></i> Transfert inter-entrepôts
+        </a>
+        <a href="{% url 'gestionnaire:mouvement_list' %}?produit={{ produit.id }}" class="btn b-gh b-sm" style="justify-content:flex-start;">
+          <i class="fas fa-clock-rotate-left" style="color:var(--or);"></i> Historique complet
+        </a>
+        <a href="?export=csv" class="btn b-gh b-sm" style="justify-content:flex-start;">
+          <i class="fas fa-download" style="color:var(--yellow);"></i> Exporter historique CSV
+        </a>
+        <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:2px;">
+          <button onclick="openM('del-produit')" class="btn b-re b-sm" style="width:100%;justify-content:center;">
+            <i class="fas fa-trash"></i> Archiver ce produit
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# ── Modal suppression ── #}
+<div class="modal-o" id="del-produit">
+  <div class="modal" style="max-width:440px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="width:56px;height:56px;border-radius:16px;background:var(--red-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+        <i class="fas fa-trash" style="color:var(--red);font-size:22px;"></i>
+      </div>
+      <h3 style="font-size:17px;font-weight:800;color:var(--text-p);">Archiver « {{ produit.nom }} » ?</h3>
+      <p style="font-size:13.5px;color:var(--text-m);margin-top:8px;line-height:1.6;">
+        Le produit sera désactivé. L'historique des mouvements et les données de stock seront <strong>conservés</strong>. Cette action est réversible.
+      </p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeM('del-produit')" class="btn b-gh" style="flex:1;justify-content:center;">
+        Annuler
+      </button>
+      <form method="post" action="{% url 'gestionnaire:produit_delete' produit.pk %}" style="flex:1;">
+        {% csrf_token %}
+        <button type="submit" class="btn b-re" style="width:100%;justify-content:center;">
+          <i class="fas fa-trash"></i> Archiver
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block xjs %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ── Graphique évolution du stock ─────────────────────────
+const ctx = document.getElementById('chart-stock').getContext('2d');
+const labels  = {{ labels_stock|safe }};
+const entrees = {{ data_entrees|safe }};
+const sorties = {{ data_sorties|safe }};
+const stock   = {{ data_stock|safe }};
+
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Stock',
+        data: stock,
+        borderColor: '#f97316',
+        backgroundColor: 'rgba(249,115,22,.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#f97316',
+        pointRadius: 3,
+        tension: 0.35,
+        fill: true,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Entrées',
+        data: entrees,
+        borderColor: '#059669',
+        backgroundColor: 'rgba(5,150,105,.0)',
+        borderWidth: 1.5,
+        pointBackgroundColor: '#059669',
+        pointRadius: 3,
+        borderDash: [5,4],
+        tension: 0.3,
+        yAxisID: 'y2',
+      },
+      {
+        label: 'Sorties',
+        data: sorties,
+        borderColor: '#dc2626',
+        backgroundColor: 'rgba(220,38,38,.0)',
+        borderWidth: 1.5,
+        pointBackgroundColor: '#dc2626',
+        pointRadius: 3,
+        borderDash: [5,4],
+        tension: 0.3,
+        yAxisID: 'y2',
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { font:{ family:'Plus Jakarta Sans', size:12 }, boxWidth:12, padding:16 }
+      },
+      tooltip: {
+        backgroundColor: '#1a1208',
+        titleFont: { family:'Fira Code', size:12 },
+        bodyFont:  { family:'Plus Jakarta Sans', size:12 },
+        padding: 10,
+      },
+      annotation: {
+        annotations: {
+          seuil: {
+            type: 'line',
+            yMin: {{ produit.seuil_alerte }},
+            yMax: {{ produit.seuil_alerte }},
+            borderColor: 'rgba(249,115,22,.4)',
+            borderWidth: 1.5,
+            borderDash: [6,4],
+            label: {
+              content: 'Seuil : {{ produit.seuil_alerte }}',
+              enabled: true,
+              position: 'start',
+              font: { size:11, family:'Fira Code' },
+              color: '#f97316',
+              backgroundColor: '#fff7ed',
+            }
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color:'#f3f4f6' },
+        ticks: { font:{ family:'Fira Code', size:10 }, maxTicksLimit:10 }
+      },
+      y: {
+        position: 'left',
+        grid: { color:'#f3f4f6' },
+        ticks: {
+          font: { family:'Fira Code', size:10 },
+          callback: v => v + ' ' + '{{ produit.unite|default:"u" }}'
+        },
+        title: { display:true, text:'Stock', font:{ size:11 }, color:'#9ca3af' }
+      },
+      y2: {
+        position: 'right',
+        grid: { display:false },
+        ticks: { font:{ family:'Fira Code', size:10 } },
+        title: { display:true, text:'Mvts', font:{ size:11 }, color:'#9ca3af' }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

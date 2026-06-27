@@ -1,0 +1,125 @@
+{% extends 'magasinier/base_magasinier.html' %}
+{% block title %}Stocks{% endblock %}
+{% block n_st %}active{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;" class="au a1">
+  <h2 style="font-size:18px;font-weight:800;color:var(--text-p);">
+    <i class="fas fa-boxes-stacked" style="color:var(--or);margin-right:8px;"></i>Consultation des stocks
+  </h2>
+  <span style="font-size:11px;font-weight:700;color:var(--text-m);background:#f3f4f6;padding:4px 10px;border-radius:20px;"><i class="fas fa-eye" style="margin-right:4px;"></i>Lecture seule</span>
+</div>
+
+{# Compteurs rapides #}
+<div class="g3 au a1" style="margin-bottom:14px;">
+  <div style="background:white;border:1.5px solid var(--border);border-radius:11px;padding:12px;text-align:center;">
+    <div class="mono" style="font-size:20px;font-weight:800;color:var(--text-p);">{{ total_produits }}</div>
+    <div style="font-size:10.5px;color:var(--text-m);margin-top:2px;">Produits</div>
+  </div>
+  <div style="background:white;border:1.5px solid #fecaca;border-radius:11px;padding:12px;text-align:center;">
+    <div class="mono" style="font-size:20px;font-weight:800;color:var(--red);">{{ nb_rupture }}</div>
+    <div style="font-size:10.5px;color:var(--text-m);margin-top:2px;">Ruptures</div>
+  </div>
+  <div style="background:white;border:1.5px solid var(--or-border);border-radius:11px;padding:12px;text-align:center;">
+    <div class="mono" style="font-size:20px;font-weight:800;color:var(--or);">{{ nb_alerte }}</div>
+    <div style="font-size:10.5px;color:var(--text-m);margin-top:2px;">Alertes</div>
+  </div>
+</div>
+
+{# Filtres #}
+<div class="card au a2" style="padding:14px;margin-bottom:14px;">
+  <form method="get" style="display:flex;flex-direction:column;gap:10px;">
+    <div class="search-w">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Nom, SKU, code-barres…" class="fin" style="height:44px;font-size:14px;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <select name="entrepot" class="fin" style="height:40px;font-size:13px;padding:0 10px;">
+        <option value="">Tous entrepôts</option>
+        {% for e in entrepots %}
+        <option value="{{ e.id }}" {% if request.GET.entrepot == e.id|stringformat:"s" %}selected{% endif %}>{{ e.nom }}</option>
+        {% endfor %}
+      </select>
+      <select name="statut" class="fin" style="height:40px;font-size:13px;padding:0 10px;">
+        <option value="">Tout statut</option>
+        <option value="rupture" {% if request.GET.statut == 'rupture' %}selected{% endif %}>Rupture</option>
+        <option value="alerte"  {% if request.GET.statut == 'alerte' %}selected{% endif %}>Alerte</option>
+        <option value="ok"      {% if request.GET.statut == 'ok' %}selected{% endif %}>OK</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button type="submit" class="btn b-or" style="flex:1;height:42px;font-size:14px;"><i class="fas fa-filter"></i> Filtrer</button>
+      {% if request.GET.q or request.GET.entrepot or request.GET.statut %}
+      <a href="{% url 'magasinier:stocks' %}" class="btn b-gh" style="height:42px;"><i class="fas fa-xmark"></i></a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+{# Liste produits #}
+<div class="au a3">
+  {% if produits %}
+    {% for p in produits %}
+    <div class="card" style="margin-bottom:10px;padding:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;">
+        {# Indicateur statut #}
+        <div style="width:44px;height:44px;border-radius:12px;background:{% if p.quantite_totale == 0 %}var(--red-dim){% elif p.quantite_totale <= p.seuil_alerte %}var(--or-dim){% else %}var(--green-dim){% endif %};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-{% if p.quantite_totale == 0 %}circle-xmark{% elif p.quantite_totale <= p.seuil_alerte %}triangle-exclamation{% else %}box{% endif %}"
+             style="color:{% if p.quantite_totale == 0 %}var(--red){% elif p.quantite_totale <= p.seuil_alerte %}var(--or){% else %}var(--green){% endif %};font-size:16px;"></i>
+        </div>
+        {# Infos produit #}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--text-p);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--or);margin-top:1px;">{{ p.sku }}</div>
+          {% if p.categorie %}<div style="margin-top:3px;"><span class="badge bg-gy" style="font-size:10px;">{{ p.categorie.nom }}</span></div>{% endif %}
+        </div>
+        {# Stock + badge #}
+        <div style="text-align:right;flex-shrink:0;">
+          <div class="mono" style="font-size:26px;font-weight:800;color:{% if p.quantite_totale == 0 %}var(--red){% elif p.quantite_totale <= p.seuil_alerte %}var(--or){% else %}var(--green){% endif %};">{{ p.quantite_totale }}</div>
+          <div style="font-size:10px;color:var(--text-m);">/ seuil {{ p.seuil_alerte }}</div>
+        </div>
+      </div>
+
+      {# Détail par entrepôt (accordéon) #}
+      {% if p.stocks_par_entrepot|length > 1 %}
+      <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('i').style.transform=this.querySelector('i').style.transform===''?'rotate(180deg)':'';"
+              style="width:100%;padding:8px 16px;background:var(--bg);border:none;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12px;color:var(--text-m);font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;">
+        <span>Détail par entrepôt</span>
+        <i class="fas fa-chevron-down" style="font-size:10px;transition:transform .2s;"></i>
+      </button>
+      <div style="display:none;border-top:1px solid var(--border);">
+        {% for s in p.stocks_par_entrepot %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);">
+          <span style="font-size:12.5px;font-weight:500;color:var(--text-s);">{{ s.entrepot__nom }}</span>
+          <span class="mono" style="font-weight:700;font-size:14px;color:var(--or);">{{ s.total }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {# Pagination #}
+    {% if produits.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 0;">
+      {% if produits.has_previous %}
+      <a href="?page={{ produits.previous_page_number }}&q={{ request.GET.q }}&entrepot={{ request.GET.entrepot }}&statut={{ request.GET.statut }}" class="btn b-gh b-sm"><i class="fas fa-chevron-left"></i></a>
+      {% endif %}
+      <span style="font-size:13px;color:var(--text-m);">Page {{ produits.number }} / {{ produits.paginator.num_pages }}</span>
+      {% if produits.has_next %}
+      <a href="?page={{ produits.next_page_number }}&q={{ request.GET.q }}&entrepot={{ request.GET.entrepot }}&statut={{ request.GET.statut }}" class="btn b-gh b-sm"><i class="fas fa-chevron-right"></i></a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  {% else %}
+  <div class="empty card" style="padding:40px 20px;">
+    <i class="fas fa-boxes-stacked"></i>
+    <h3>Aucun produit trouvé</h3>
+    <p style="font-size:13px;">{% if request.GET.q %}Aucun résultat pour « {{ request.GET.q }} ».{% else %}Aucun produit dans votre entrepôt.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

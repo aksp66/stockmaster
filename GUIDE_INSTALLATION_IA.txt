@@ -1,0 +1,194 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║        STOCKMASTER — GUIDE DE MISE EN MARCHE MODULE IA                      ║
+║                     Étape par étape                                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 1 — INSTALLER LES DÉPENDANCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+pip install prophet scikit-learn pandas numpy celery redis django-redis
+
+# Pour les exports PDF et Excel :
+pip install reportlab openpyxl weasyprint
+
+# Pour les notifications email :
+# (déjà inclus dans Django)
+
+Ajoute dans requirements.txt :
+──────────────────────────────
+celery>=5.3.0
+redis>=5.0.0
+django-redis>=5.4.0
+prophet>=1.1.5
+scikit-learn>=1.3.0
+pandas>=2.0.0
+numpy>=1.24.0
+reportlab>=4.0.0
+openpyxl>=3.1.0
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 2 — INSTALLER ET DÉMARRER REDIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sur Ubuntu/Debian :
+  sudo apt update && sudo apt install redis-server
+  sudo systemctl start redis-server
+  sudo systemctl enable redis-server   # Démarrage automatique
+
+Sur macOS :
+  brew install redis
+  brew services start redis
+
+Vérification :
+  redis-cli ping   # Doit répondre : PONG
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 3 — COPIER LES FICHIERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  stockmaster_seed.py  →  scripts/stockmaster_seed.py
+  celery.py            →  stockmaster/celery.py
+  __init__.py          →  stockmaster/__init__.py   (remplace l'existant)
+  settings_patch.py    →  Copie le contenu à la FIN de stockmaster/settings.py
+  ia_tasks.py          →  apps/ia/tasks.py          (remplace l'existant)
+  ia_views.py          →  apps/ia/views.py          (remplace l'existant)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 4 — PEUPLER LA BASE DE DONNÉES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Option A — Via django-extensions (recommandé)
+pip install django-extensions
+# Ajouter 'django_extensions' dans INSTALLED_APPS
+cp stockmaster_seed.py scripts/stockmaster_seed.py
+python manage.py runscript stockmaster_seed
+
+# Option B — Via le shell Django
+python manage.py shell < stockmaster_seed.py
+
+# Option C — Script autonome
+python stockmaster_seed.py
+
+⏱️  Durée estimée : 2-5 minutes (selon votre machine)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 5 — DÉMARRER CELERY (3 terminaux séparés)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Terminal 1 — Worker Celery :
+  celery -A stockmaster worker --loglevel=info
+
+Terminal 2 — Celery Beat (planificateur) :
+  celery -A stockmaster beat --loglevel=info
+
+Terminal 3 — Django :
+  python manage.py runserver
+
+# Optionnel : interface de monitoring Celery
+pip install flower
+celery -A stockmaster flower --port=5555
+# → Accès : http://localhost:5555
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 6 — TESTER LES PRÉDICTIONS IA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Test rapide dans le shell Django :
+python manage.py shell
+
+>>> from apps.ia.tasks import predire_produit, lancer_toutes_predictions
+>>> from apps.inventory.models import Produit
+>>>
+>>> # Tester sur un produit
+>>> p = Produit.objects.filter(actif=True).first()
+>>> result = predire_produit(p.pk, modele="prophet", horizon_jours=30)
+>>> print(result)
+>>>
+>>> # Lancer toutes les prédictions (synchrone pour tester)
+>>> result = lancer_toutes_predictions()
+>>> print(result)
+
+# Test asynchrone via Celery :
+>>> task = predire_produit.delay(p.pk)
+>>> task.get(timeout=60)   # Attendre le résultat
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ URLS à ajouter dans apps/ia/urls.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from django.urls import path
+from . import views
+
+app_name = "ia"
+
+urlpatterns = [
+    path("",                       views.predictions_dashboard,    name="predictions_dashboard"),
+    path("lancer/",                views.lancer_analyse,           name="lancer_analyse"),
+    path("statut/<str:task_id>/",  views.statut_tache,             name="statut_tache"),
+    path("produit/<int:produit_id>/", views.prediction_detail,     name="prediction_detail"),
+    path("suggestion/<int:suggestion_id>/valider/",
+         views.valider_suggestion, name="valider_suggestion"),
+    path("api/graphique/",         views.api_graphique_predictions, name="api_graphique"),
+]
+
+# Dans stockmaster/urls.py, ajouter :
+# path("ia/", include("apps.ia.urls")),
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ RÉSOLUTION DES PROBLÈMES COURANTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ "Connection refused" (Redis) :
+   → sudo systemctl start redis-server
+
+❌ "ImportError: No module named 'prophet'" :
+   → pip install prophet
+   → Sur Windows : conda install -c conda-forge prophet
+
+❌ "ModuleNotFoundError: No module named 'apps.ia'" :
+   → Vérifie que 'apps.ia' est dans INSTALLED_APPS
+   → Vérifie le chemin dans les imports du seeder
+
+❌ Le seeder échoue sur un champ manquant :
+   → Adapte les imports en haut de stockmaster_seed.py
+   → Les try/except ignorent les champs non existants
+
+❌ Prophet très lent au premier lancement :
+   → Normal — il compile Stan (moteur statistique)
+   → Utilise modele="random_forest" pour les tests rapides
+
+❌ "Task received at worker but never completes" :
+   → Vérifie que le worker Celery est bien démarré
+   → Vérifie CELERY_BROKER_URL dans settings.py
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ DONNÉES GÉNÉRÉES PAR LE SEEDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  Catégories    :   6 (ELEC, BURO, INDU, CONS, MOBI, HYGN)│
+  │  Fournisseurs  :   8 (Afrique de l'Ouest + international) │
+  │  Entrepôts     :   4 (Lomé + banlieue)                    │
+  │  Produits      : 110 (avec référence, prix, seuil)        │
+  │  Mouvements    : ~3 600 (entrées/sorties sur 18 mois)     │
+  │  Bons commande :  ~500 (tous statuts)                     │
+  │  Données IA    : ~11 440 points (hebdo × 24 mois × 110p) │
+  │  Utilisateurs  :   9 (tous rôles, mdp: StockMaster2024!) │
+  └────────────────────────────────────────────────────────────┘
+
+Connexions de test :
+  admin_entreprise / StockMaster2024!
+  gestionnaire1    / StockMaster2024!
+  resp_achat1      / StockMaster2024!
+  magasinier1      / StockMaster2024!
+  auditeur1        / StockMaster2024!
+  comptable1       / StockMaster2024!

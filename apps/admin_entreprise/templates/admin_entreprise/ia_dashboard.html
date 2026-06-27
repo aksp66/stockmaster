@@ -1,0 +1,176 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Intelligence Artificielle{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}Tableau de bord IA{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_subtitle %}Prédictions et recommandations de réapprovisionnement{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_ia %}active{% endblock %}
+
+{% block content %}
+<!-- En-tête IA -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;" class="au">
+  <div>
+    <h1 style="font-size:22px;font-weight:800;letter-spacing:-.4px;display:flex;align-items:center;gap:10px;">
+      <i class="fas fa-brain" style="color:var(--green);"></i> Intelligence Artificielle
+    </h1>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">
+      Modèle actif : <span class="mono" style="font-size:12px;color:var(--blue);">{{ modele_actif|default:"Prophet / RandomForest" }}</span>
+      &nbsp;·&nbsp;
+      <span class="ai-badge"><span class="ai-dot"></span> Opérationnel</span>
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <form method="post" action="{% url 'admin_entreprise:ia_lancer' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-play"></i> Lancer l'analyse
+      </button>
+    </form>
+    <a href="{% url 'admin_entreprise:exports' %}?type=ia" class="btn btn-ghost">
+      <i class="fas fa-download"></i> Exporter
+    </a>
+  </div>
+</div>
+
+<!-- Stats IA -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;" class="au au-1">
+  <div class="stat-card s-green">
+    <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+    <div class="stat-value">{{ nb_predictions|default:"0" }}</div>
+    <div class="stat-label">Prédictions actives</div>
+    <i class="fas fa-chart-line stat-corner"></i>
+  </div>
+  <div class="stat-card s-orange">
+    <div class="stat-icon"><i class="fas fa-cart-plus"></i></div>
+    <div class="stat-value">{{ nb_recommandations|default:"0" }}</div>
+    <div class="stat-label">Commandes suggérées</div>
+    <i class="fas fa-cart-plus stat-corner"></i>
+  </div>
+  <div class="stat-card s-blue">
+    <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
+    <div class="stat-value">{{ precision_moyenne|default:"—" }}%</div>
+    <div class="stat-label">Précision moyenne</div>
+    <i class="fas fa-bullseye stat-corner"></i>
+  </div>
+  <div class="stat-card s-purple">
+    <div class="stat-icon"><i class="fas fa-clock-rotate-left"></i></div>
+    <div class="stat-value">{{ derniere_analyse|date:"d/m"|default:"—" }}</div>
+    <div class="stat-label">Dernière analyse</div>
+    <i class="fas fa-clock-rotate-left stat-corner"></i>
+  </div>
+</div>
+
+<!-- Prédictions -->
+<div class="card au au-2" style="padding:0;overflow:hidden;margin-bottom:20px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Prédictions de stock</div>
+      <div class="card-subtitle">Quantités prévues par produit sur les 30 prochains jours</div>
+    </div>
+  </div>
+  {% if predictions %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="padding-left:20px;">Produit</th>
+        <th>Date cible</th>
+        <th>Qté prévue</th>
+        <th>Intervalle</th>
+        <th>Confiance</th>
+        <th>Modèle</th>
+        <th style="text-align:right;padding-right:20px;">Recommandation</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in predictions %}
+      <tr>
+        <td style="padding-left:20px;">
+          <div style="font-weight:600;font-size:13px;">{{ p.produit.nom }}</div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ p.produit.sku }}</div>
+        </td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted);">
+          {{ p.date_cible|date:"d/m/Y" }}
+        </td>
+        <td>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;">
+            {{ p.quantite_prevue|floatformat:0 }}
+          </span>
+        </td>
+        <td style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">
+          [{{ p.borne_inferieure|floatformat:0|default:"—" }} – {{ p.borne_superieure|floatformat:0|default:"—" }}]
+        </td>
+        <td>
+          {% if p.confiance %}
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:{{ p.confiance|floatformat:0 }}%;background:{% if p.confiance >= 80 %}var(--green){% elif p.confiance >= 50 %}var(--yellow){% else %}var(--red){% endif %};border-radius:3px;"></div>
+            </div>
+            <span style="font-size:12px;font-family:'JetBrains Mono',monospace;">{{ p.confiance|floatformat:0 }}%</span>
+          </div>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          <span class="badge badge-blue" style="font-size:10px;font-family:'JetBrains Mono',monospace;">{{ p.modele_utilise|default:"—" }}</span>
+        </td>
+        <td style="text-align:right;padding-right:20px;">
+          {% if p.quantite_recommandee_commande %}
+          <span class="badge badge-green">
+            <i class="fas fa-cart-plus"></i> {{ p.quantite_recommandee_commande|floatformat:0 }} unités
+          </span>
+          {% else %}
+          <span style="font-size:12px;color:var(--text-muted);">Stock suffisant</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="fas fa-brain"></i></div>
+    <h3>Aucune prédiction disponible</h3>
+    <p>Lancez une analyse IA pour générer vos premières prédictions.</p>
+    <form method="post" action="{% url 'admin_entreprise:ia_lancer' %}" style="margin-top:14px;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-play"></i> Lancer l'analyse maintenant
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Infos modèle -->
+<div class="card au au-3" style="padding:20px 22px;background:linear-gradient(135deg,var(--green-dim),white);border-color:#bbf7d0;">
+  <div class="card-title" style="color:var(--green);margin-bottom:14px;">
+    <i class="fas fa-microchip" style="margin-right:6px;"></i> Comment fonctionne l'IA ?
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+    {% for step in steps_ia %}
+    <div style="text-align:center;padding:12px;">
+      <div style="font-size:28px;margin-bottom:8px;"><i class="fas fa-{{ step.icon }}"></i></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px;">{{ step.titre }}</div>
+      <div style="font-size:12px;color:var(--text-muted);">{{ step.desc }}</div>
+    </div>
+    {% empty %}
+    <div style="text-align:center;padding:12px;">
+      <div style="width:42px;height:42px;border-radius:12px;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--green);font-size:18px;"><i class="fas fa-database"></i></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px;">1. Collecte</div>
+      <div style="font-size:12px;color:var(--text-muted);">Analyse de l'historique des mouvements de stock</div>
+    </div>
+    <div style="text-align:center;padding:12px;">
+      <div style="width:42px;height:42px;border-radius:12px;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--green);font-size:18px;"><i class="fas fa-gears"></i></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px;">2. Modélisation</div>
+      <div style="font-size:12px;color:var(--text-muted);">Prophet & RandomForest entraînés sur vos données</div>
+    </div>
+    <div style="text-align:center;padding:12px;">
+      <div style="width:42px;height:42px;border-radius:12px;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--green);font-size:18px;"><i class="fas fa-lightbulb"></i></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px;">3. Recommandations</div>
+      <div style="font-size:12px;color:var(--text-muted);">Suggestions de commandes avec score de confiance</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

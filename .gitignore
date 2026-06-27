@@ -1,0 +1,28 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtualenvs
+.venv/
+env/
+venv/
+
+# Django
+*.log
+db.sqlite3
+/staticfiles/
+/media/
+celerybeat-schedule*
+
+# Node
+node_modules/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Env files (secrets)
+.env
+.env.*

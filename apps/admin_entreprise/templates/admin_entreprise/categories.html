@@ -1,0 +1,44 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Catégories{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}Gestion des catégories{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_categories %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<div class="grid md:grid-cols-2 gap-6">
+  <div class="card p-6">
+    <h3 class="font-bold mb-4">Ajouter une catégorie</h3>
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Nom</label>
+        <input type="text" name="nom" class="form-input w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Catégorie parente</label>
+        <select name="parent" class="form-input w-full">
+          <option value="">-- Aucune --</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Ajouter</button>
+    </form>
+  </div>
+  <div class="card p-6">
+    <h3 class="font-bold mb-4">Liste des catégories</h3>
+    {% if categories %}
+    <ul class="divide-y">
+      {% for cat in categories %}
+      <li class="py-2">{{ cat.nom }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-500">Aucune catégorie.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

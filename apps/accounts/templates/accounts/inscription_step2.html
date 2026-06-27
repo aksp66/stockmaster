@@ -1,0 +1,63 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Inscription – Votre
+entreprise{% endblock %} {% block content %}
+<div class="wrap">
+  <div class="stepper">
+    <div class="step">
+      <div class="step-dot done">✓</div>
+      <div class="step-label">Type</div>
+    </div>
+    <div class="step">
+      <div class="step-dot active">2</div>
+      <div class="step-label active">Entreprise</div>
+    </div>
+    <div class="step">
+      <div class="step-dot">3</div>
+      <div class="step-label">Admin</div>
+    </div>
+    <div class="step">
+      <div class="step-dot">4</div>
+      <div class="step-label">Confirmation</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      <h2>Votre entreprise</h2>
+      <p class="sub">
+        Ces informations sont modifiables depuis les paramètres.
+      </p>
+
+      <div class="field">
+        <label>{{ form.nom.label }}</label>
+        {{ form.nom }} {{ form.nom.errors }}
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>{{ form.pays.label }}</label>
+          {{ form.pays }}
+        </div>
+        <div class="field">
+          <label>{{ form.ville.label }}</label>
+          {{ form.ville }}
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>{{ form.taille.label }}</label>
+          {{ form.taille }}
+        </div>
+        <div class="field">
+          <label>{{ form.nb_entrepots.label }}</label>
+          {{ form.nb_entrepots }}
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <a href="?step=1" class="btn-secondary">← Retour</a>
+        <button type="submit" class="btn-primary">Continuer →</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'magasinier/base_magasinier.html' %}
+{% block title %}Paramètres{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:18px;" class="au a1">
+  <h2 style="font-size:18px;font-weight:800;color:var(--text-p);"><i class="fas fa-gear" style="color:var(--or);margin-right:8px;"></i>Paramètres</h2>
+  <p style="font-size:12.5px;color:var(--text-m);margin-top:3px;">Vos préférences personnelles</p>
+</div>
+
+<form method="post" class="au a2">
+{% csrf_token %}
+
+{# Entrepôt par défaut #}
+<div class="card" style="margin-bottom:14px;padding:18px;">
+  <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-warehouse" style="color:var(--or);margin-right:6px;"></i>Entrepôt par défaut</div>
+  <div class="fi" style="margin-bottom:0;">
+    <label class="fl">Pré-sélectionner lors des mouvements et scans</label>
+    <select name="entrepot_defaut" class="fin" style="height:48px;">
+      <option value="">— Aucun (demander à chaque fois) —</option>
+      {% for e in entrepots %}
+      <option value="{{ e.id }}" {% if prefs.entrepot_defaut_id == e.id %}selected{% endif %}>{{ e.nom }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+{# Préférences scan #}
+<div class="card" style="margin-bottom:14px;padding:18px;">
+  <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-barcode" style="color:var(--or);margin-right:6px;"></i>Préférences de scan</div>
+
+  {% for label, name, desc, checked in scan_settings %}
+  <label style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+    <div>
+      <div style="font-size:14px;font-weight:600;color:var(--text-p);">{{ label }}</div>
+      <div style="font-size:12px;color:var(--text-m);margin-top:2px;">{{ desc }}</div>
+    </div>
+    <div style="position:relative;width:48px;height:26px;flex-shrink:0;margin-left:12px;">
+      <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} style="opacity:0;width:0;height:0;position:absolute;" id="toggle-{{ forloop.counter }}">
+      <label for="toggle-{{ forloop.counter }}" style="position:absolute;inset:0;background:var(--border);border-radius:13px;cursor:pointer;transition:background .2s;" onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked;this.style.background=this.previousElementSibling.checked?'var(--or)':'var(--border)';" style="background:{% if checked %}var(--or){% else %}var(--border){% endif %};">
+        <span style="position:absolute;top:3px;{% if checked %}left:24px{% else %}left:3px{% endif %};width:20px;height:20px;background:white;border-radius:50%;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.15);display:block;"></span>
+      </label>
+    </div>
+  </label>
+  {% endfor %}
+</div>
+
+{# Type de mouvement par défaut #}
+<div class="card" style="margin-bottom:20px;padding:18px;">
+  <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-arrows-rotate" style="color:var(--or);margin-right:6px;"></i>Mouvement par défaut</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <label style="cursor:pointer;">
+      <input type="radio" name="type_defaut" value="entree" {% if prefs.type_defaut == 'entree' or not prefs.type_defaut %}checked{% endif %} style="display:none;">
+      <div style="padding:14px;border:2px solid var(--green);border-radius:12px;text-align:center;background:var(--green-dim);">
+        <i class="fas fa-arrow-down" style="font-size:20px;color:var(--green);display:block;margin-bottom:6px;"></i>
+        <div style="font-size:14px;font-weight:700;color:var(--green);">Entrée</div>
+      </div>
+    </label>
+    <label style="cursor:pointer;">
+      <input type="radio" name="type_defaut" value="sortie" {% if prefs.type_defaut == 'sortie' %}checked{% endif %} style="display:none;">
+      <div style="padding:14px;border:2px solid var(--red);border-radius:12px;text-align:center;background:var(--red-dim);">
+        <i class="fas fa-arrow-up" style="font-size:20px;color:var(--red);display:block;margin-bottom:6px;"></i>
+        <div style="font-size:14px;font-weight:700;color:var(--red);">Sortie</div>
+      </div>
+    </label>
+  </div>
+</div>
+
+<button type="submit" class="btn b-or b-lg" style="width:100%;height:54px;font-size:15px;">
+  <i class="fas fa-check"></i> Enregistrer mes préférences
+</button>
+
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+  <button type="button" onclick="openM('logout-modal')" class="btn b-re" style="width:100%;justify-content:center;height:48px;">
+    <i class="fas fa-right-from-bracket"></i> Se déconnecter
+  </button>
+</div>
+</form>
+
+{# Modal logout #}
+<div class="modal-o" id="logout-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;margin-bottom:20px;">
+      <i class="fas fa-right-from-bracket" style="font-size:32px;color:var(--red);display:block;margin-bottom:12px;"></i>
+      <h3 style="font-size:16px;font-weight:800;color:var(--text-p);">Se déconnecter ?</h3>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeM('logout-modal')" class="btn b-gh" style="flex:1;height:48px;justify-content:center;">Annuler</button>
+      <button onclick="document.getElementById('logout-form').submit()" class="btn b-re" style="flex:1;height:48px;justify-content:center;"><i class="fas fa-right-from-bracket"></i> Déconnecter</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

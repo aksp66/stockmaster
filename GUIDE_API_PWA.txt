@@ -1,0 +1,329 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║        STOCKMASTER — GUIDE API REST + PWA                                   ║
+║        0% → 97% : plan d'implémentation complet                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 1 — DÉPENDANCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+pip install djangorestframework djangorestframework-simplejwt django-cors-headers
+
+Ajouter dans requirements.txt :
+  djangorestframework>=3.15.0
+  djangorestframework-simplejwt>=5.3.0
+  django-cors-headers>=4.3.0
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 2 — settings.py (bloc API à ajouter)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+INSTALLED_APPS += [
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "corsheaders",
+    "apps.api",
+]
+
+MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",   # ← EN PREMIER
+    *MIDDLEWARE,
+]
+
+# ── DRF ──────────────────────────────────────────────────────────────
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 50,
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
+    "DEFAULT_FILTER_BACKENDS": [
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+}
+
+# ── SimpleJWT ─────────────────────────────────────────────────────────
+from datetime import timedelta
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME":  timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ROTATE_REFRESH_TOKENS":  True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# Ajouter 'rest_framework_simplejwt.token_blacklist' dans INSTALLED_APPS
+# puis : python manage.py migrate
+
+# ── CORS (pour la PWA en développement) ───────────────────────────────
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://stockmaster.votre-domaine.com",  # ← adapter
+]
+CORS_ALLOW_CREDENTIALS = True
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 3 — STRUCTURE DES FICHIERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+apps/
+└── api/
+    ├── __init__.py
+    ├── apps.py
+    ├── urls.py           ← livré
+    ├── views.py          ← livré
+    ├── serializers.py    ← livré
+    └── permissions.py    ← livré
+
+static/
+├── pwa/
+│   ├── app.js            ← livré (client API + scanner + offline)
+│   ├── sw.js             ← livré (Service Worker)
+│   ├── offline.html      ← à créer (page fallback hors ligne)
+│   ├── manifest.json     ← livré
+│   └── icons/
+│       ├── icon-192.png  ← à générer
+│       └── icon-512.png  ← à générer
+└── sounds/
+    ├── beep_ok.mp3       ← à télécharger (voir ci-dessous)
+    └── beep_err.mp3      ← à télécharger
+
+templates/
+└── magasinier/
+    ├── base_mobile.html  ← inclure manifest + sw.js
+    └── scan.html         ← livré
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 4 — URLS PRINCIPALES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# stockmaster/urls.py
+from django.urls import path, include
+
+urlpatterns = [
+    ...
+    path("api/v1/", include("apps.api.urls")),
+
+    # Service Worker doit être servi depuis la racine
+    path("sw.js", serve_sw, name="sw"),
+    path("manifest.json", serve_manifest, name="manifest"),
+]
+
+# Vue pour servir le SW depuis la racine (important pour le scope PWA)
+from django.views.generic import TemplateView
+def serve_sw(request):
+    from django.http import FileResponse
+    import os
+    path = os.path.join(settings.STATIC_ROOT, "pwa", "sw.js")
+    return FileResponse(open(path, "rb"), content_type="application/javascript")
+
+def serve_manifest(request):
+    from django.http import FileResponse
+    import os
+    path = os.path.join(settings.STATIC_ROOT, "pwa", "manifest.json")
+    return FileResponse(open(path, "rb"), content_type="application/manifest+json")
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 5 — base_mobile.html (balises <head> requises)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dans <head> de base_mobile.html :
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#F97316">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="StockMaster">
+  <link rel="apple-touch-icon" href="/static/pwa/icons/icon-192.png">
+
+  <!-- Viewport mobile optimisé -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+Avant </body> :
+  <script src="{% static 'pwa/app.js' %}"></script>
+  <script>
+    // Enregistrer le Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => console.log('[PWA] SW enregistré, scope:', reg.scope))
+        .catch(err => console.error('[PWA] SW erreur:', err));
+    }
+
+    // Bouton "Installer"
+    document.getElementById('btn-installer-pwa')?.addEventListener('click', async () => {
+      const result = await PWAInstaller.installer();
+      if (result === 'accepted') afficherToast('Application installée !', 'success');
+    });
+  </script>
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 6 — MIGRATIONS (token blacklist)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Ajouter dans INSTALLED_APPS :
+#   "rest_framework_simplejwt.token_blacklist",
+
+python manage.py migrate
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 7 — SONS FEEDBACK (beep)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Télécharger des sons libres de droits :
+mkdir -p static/sounds
+
+# Option A — Générer avec Python (sans dépendance)
+python -c "
+import struct, wave
+def gen_beep(filename, freq=880, duration=0.15, vol=0.4):
+    import math
+    rate = 44100
+    frames = int(rate * duration)
+    data = b''
+    for i in range(frames):
+        fade = min(1.0, min(i, frames-i) / (rate * 0.02))
+        val = int(vol * fade * 32767 * math.sin(2*math.pi*freq*i/rate))
+        data += struct.pack('<h', val)
+    with wave.open(filename, 'w') as f:
+        f.setnchannels(1); f.setsampwidth(2); f.setframerate(rate)
+        f.writeframes(data)
+gen_beep('static/sounds/beep_ok.mp3',  freq=880,  duration=0.15)  # Aigu = OK
+gen_beep('static/sounds/beep_err.mp3', freq=220,  duration=0.3)   # Grave = Erreur
+print('Sons générés.')
+"
+# Note: génère des .wav nommés .mp3 — suffisant pour les navigateurs mobiles
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ÉTAPE 8 — ICÔNES PWA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Générer automatiquement toutes les tailles depuis un PNG source :
+pip install Pillow
+
+python -c "
+from PIL import Image
+import os
+
+SOURCE = 'static/pwa/icons/logo-source.png'  # ← ton logo 1024x1024
+SIZES  = [72, 96, 128, 192, 512]
+os.makedirs('static/pwa/icons', exist_ok=True)
+
+img = Image.open(SOURCE).convert('RGBA')
+for size in SIZES:
+    img.resize((size, size), Image.LANCZOS).save(f'static/pwa/icons/icon-{size}.png')
+    print(f'Icône {size}x{size} générée.')
+"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ENDPOINTS API COMPLETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AUTH
+  POST   /api/v1/auth/login/           → { access, refresh, user }
+  POST   /api/v1/auth/logout/          → blacklist refresh token
+  POST   /api/v1/auth/refresh/         → { access }
+  GET    /api/v1/auth/profile/         → profil utilisateur
+
+DASHBOARD MOBILE (1 seul appel)
+  GET    /api/v1/mobile/dashboard/     → KPIs + derniers mouvements + alertes
+
+PRODUITS
+  GET    /api/v1/produits/             → liste paginée (?search=, ?categorie=, ?en_alerte=1)
+  GET    /api/v1/produits/{id}/        → détail complet
+  GET    /api/v1/produits/scan/?code=  → recherche par code-barres ← CLEF SCAN
+  GET    /api/v1/produits/alertes/     → produits sous le seuil
+  GET    /api/v1/produits/stats/       → KPIs résumés
+  GET    /api/v1/produits/{id}/mouvements/ → historique du produit
+
+MOUVEMENTS
+  GET    /api/v1/mouvements/           → liste filtrée
+  POST   /api/v1/mouvements/           → créer un mouvement complet
+  POST   /api/v1/mouvements/rapide/    → mouvement simplifié scan ← CLEF MOBILE
+
+ALERTES
+  GET    /api/v1/alertes/              → liste (?non_lues=1, ?niveau=critique)
+  PATCH  /api/v1/alertes/{id}/         → marquer comme lue
+  POST   /api/v1/alertes/lire-toutes/  → marquer toutes comme lues
+  GET    /api/v1/alertes/compteur/     → { non_lues: N } ← polling badge
+
+RÉFÉRENTIELS (lecture seule)
+  GET    /api/v1/categories/
+  GET    /api/v1/entrepots/
+  GET    /api/v1/fournisseurs/
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TEST RAPIDE DEPUIS LE TERMINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# 1. Login → récupérer le token
+curl -X POST http://localhost:8000/api/v1/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"magasinier1","password":"StockMaster2024!"}' | python -m json.tool
+
+# 2. Lister les produits en alerte
+curl http://localhost:8000/api/v1/produits/alertes/ \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+
+# 3. Scan code-barres
+curl "http://localhost:8000/api/v1/produits/scan/?code=ELEC-00001" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+
+# 4. Enregistrer un mouvement rapide
+curl -X POST http://localhost:8000/api/v1/mouvements/rapide/ \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"produit_id":1,"type_mouvement":"consommation","quantite":5}'
+
+# 5. Dashboard mobile
+curl http://localhost:8000/api/v1/mobile/dashboard/ \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ CHECKLIST FINALE (0% → 97%)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+API REST
+  ☐ pip install djangorestframework djangorestframework-simplejwt django-cors-headers
+  ☐ Ajouter dans INSTALLED_APPS + REST_FRAMEWORK + SIMPLE_JWT dans settings.py
+  ☐ Copier apps/api/ (serializers, views, urls, permissions)
+  ☐ Ajouter path("api/v1/", include("apps.api.urls")) dans urls.py
+  ☐ python manage.py migrate (token blacklist)
+  ☐ Tester avec curl (voir ci-dessus)
+
+PWA
+  ☐ Copier static/pwa/sw.js + app.js + manifest.json
+  ☐ Ajouter les balises <head> dans base_mobile.html
+  ☐ Servir sw.js depuis la racine / (pas depuis /static/)
+  ☐ Générer les icônes PNG (72, 96, 128, 192, 512)
+  ☐ Générer les sons beep_ok.mp3 et beep_err.mp3
+  ☐ Créer static/pwa/offline.html (page hors ligne)
+
+SCANNER
+  ☐ Copier templates/magasinier/scan.html
+  ☐ Ajouter le champ code_barres dans le modèle Produit (si absent)
+  ☐ Remplir des références de test dans la BD (seeder déjà fait)
+  ☐ Tester sur un vrai smartphone (Chrome Android recommandé)
+
+HTTPS (obligatoire pour PWA + caméra)
+  ☐ En dev : utiliser ngrok (ngrok http 8000) ou mkcert
+  ☐ En prod : Nginx + Let's Encrypt (certbot)

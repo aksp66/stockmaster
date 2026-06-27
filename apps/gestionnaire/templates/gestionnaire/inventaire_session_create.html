@@ -1,0 +1,93 @@
+
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+{% block title %}Nouvelle session d'inventaire{% endblock %}
+{% block page_title %}Nouvelle session d'inventaire{% endblock %}
+{% block page_sub %}Inventaires · {{ user.entreprise.nom }}{% endblock %}
+{% block n_inv %}active{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--text-m);" class="au a1">
+  <a href="{% url 'gestionnaire:inventaire_session_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-clipboard-list" style="margin-right:4px;"></i>Inventaires</a>
+  <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+  <span>Nouvelle session</span>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 300px;gap:20px;" class="au a2">
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h">
+        <div class="card-t"><i class="fas fa-info-circle" style="color:var(--or);margin-right:7px;"></i>Paramètres de la session</div>
+      </div>
+      <div style="padding:22px;">
+        <div class="fi">
+          <label class="fl">Nom de la session</label>
+          <input type="text" name="nom" class="fin" placeholder="Ex: Inventaire mensuel Entrepôt A – Avril 2026">
+          <div class="fh">Laissez vide pour générer un nom automatique</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Entrepôt <span style="color:var(--red);">*</span></label>
+            <select name="entrepot" class="fin" required>
+              <option value="">— Sélectionner —</option>
+              {% for e in entrepots %}
+              <option value="{{ e.id }}">{{ e.nom }} ({{ e.nb_produits }} produits)</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Catégorie (optionnel)</label>
+            <select name="categorie" class="fin">
+              <option value="">Toutes catégories</option>
+              {% for c in categories %}
+              <option value="{{ c.id }}">{{ c.nom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="fi" style="margin-top:14px;margin-bottom:0;">
+          <label class="fl">Commentaire</label>
+          <textarea name="commentaire" class="fin" rows="2" placeholder="Instructions pour l'équipe…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    {# Options avancées #}
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h"><div class="card-t"><i class="fas fa-sliders" style="color:var(--or);margin-right:7px;"></i>Options</div></div>
+      <div style="padding:18px 22px;">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 0;border-bottom:1px solid var(--border);">
+          <input type="checkbox" name="masquer_stock" style="width:16px;height:16px;accent-color:var(--or);">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text-p);">Masquer le stock théorique</div>
+            <div style="font-size:12px;color:var(--text-m);">Les compteurs ne verront pas le stock actuel (inventaire à l'aveugle)</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 0;">
+          <input type="checkbox" name="ajustement_auto" checked style="width:16px;height:16px;accent-color:var(--or);">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text-p);">Ajustements automatiques à la validation</div>
+            <div style="font-size:12px;color:var(--text-m);">Génère les mouvements d'ajustement dès la validation</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button type="submit" class="btn b-or"><i class="fas fa-plus"></i> Créer la session</button>
+      <a href="{% url 'gestionnaire:inventaire_session_list' %}" class="btn b-gh"><i class="fas fa-xmark"></i> Annuler</a>
+    </div>
+  </form>
+
+  <div class="card" style="padding:18px;height:fit-content;border-color:var(--or-border);background:var(--or-dim);">
+    <div class="card-t" style="color:var(--or-d);margin-bottom:14px;"><i class="fas fa-lightbulb" style="margin-right:6px;"></i>Comment ça fonctionne ?</div>
+    <ol style="font-size:13px;color:var(--or-d);line-height:1.9;padding-left:18px;">
+      <li>Créez la session en choisissant l'entrepôt</li>
+      <li>Saisissez les quantités comptées ligne par ligne</li>
+      <li>Le système calcule les écarts automatiquement</li>
+      <li>Validez pour générer les ajustements de stock</li>
+    </ol>
+  </div>
+</div>
+{% endblock %}

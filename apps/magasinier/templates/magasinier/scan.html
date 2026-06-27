@@ -1,0 +1,655 @@
+{% extends 'magasinier/base_magasinier.html' %}
+<!-- -->
+{% load static %}
+<!-- -->
+{% block title %}Scanner{% endblock %}
+<!-- -->
+{% block n_sc %}active{% endblock %}
+<!-- -->
+{% block content %} {# ── Zone de scan ── #}
+<div style="margin-bottom: 16px" class="au a1">
+  <h2
+    style="
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-p);
+      margin-bottom: 4px;
+    "
+  >
+    <i class="fas fa-barcode" style="color: var(--or); margin-right: 8px"></i
+    >Scan rapide
+  </h2>
+  <p style="font-size: 12.5px; color: var(--text-m)">
+    Scannez ou tapez un code-barres / SKU
+  </p>
+</div>
+
+{# Champ de scan principal #}
+<div
+  class="card au a1"
+  style="padding: 20px; margin-bottom: 16px; border-color: var(--or-border)"
+>
+  <div style="position: relative; margin-bottom: 14px">
+    <div
+      style="
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      "
+    >
+      <i class="fas fa-barcode" style="font-size: 20px; color: var(--or)"></i>
+    </div>
+    <input
+      type="text"
+      id="scan-input"
+      class="fin mono"
+      placeholder="Scanner ou saisir un code…"
+      style="
+        padding-left: 48px;
+        font-size: 17px;
+        font-weight: 700;
+        height: 54px;
+        letter-spacing: 0.5px;
+        border-color: var(--or);
+        box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+      "
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+    />
+  </div>
+  <div style="display: flex; gap: 8px">
+    <button
+      onclick="lancerScan()"
+      class="btn b-or"
+      style="flex: 1; height: 46px; font-size: 14px"
+    >
+      <i class="fas fa-search"></i> Rechercher
+    </button>
+    <button onclick="clearScan()" class="btn b-gh b-sm" style="height: 46px">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+</div>
+
+{# ── Résultat du scan ── #}
+<div id="scan-result" style="display: none; margin-bottom: 16px" class="au a2">
+  <div class="card" id="result-card" style="border-color: var(--or-border)">
+    {# En-tête produit #}
+    <div
+      style="
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      "
+    >
+      <div
+        style="
+          width: 48px;
+          height: 48px;
+          border-radius: 13px;
+          background: var(--or);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          box-shadow: 0 3px 10px rgba(249, 115, 22, 0.3);
+        "
+      >
+        <i class="fas fa-box" style="color: white; font-size: 18px"></i>
+      </div>
+      <div style="flex: 1; min-width: 0">
+        <div
+          id="r-nom"
+          style="font-size: 16px; font-weight: 800; color: var(--text-p)"
+        ></div>
+        <div
+          id="r-sku"
+          class="mono"
+          style="font-size: 12px; color: var(--or); margin-top: 2px"
+        ></div>
+      </div>
+      <div style="text-align: right; flex-shrink: 0">
+        <div style="font-size: 11px; color: var(--text-m)">Stock actuel</div>
+        <div
+          id="r-stock"
+          class="mono"
+          style="font-size: 24px; font-weight: 800; color: var(--text-p)"
+        ></div>
+      </div>
+    </div>
+
+    {# Choix entrée / sortie #}
+    <div style="padding: 16px 18px; border-bottom: 1px solid var(--border)">
+      <div
+        style="
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-m);
+          letter-spacing: 0.8px;
+          text-transform: uppercase;
+          margin-bottom: 10px;
+        "
+      >
+        Type de mouvement
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+        <label
+          id="btn-entree"
+          onclick="setType('entree')"
+          style="cursor: pointer"
+        >
+          <input
+            type="radio"
+            name="type_mouv"
+            value="entree"
+            style="display: none"
+            checked
+          />
+          <div
+            class="type-btn"
+            style="
+              padding: 14px;
+              border: 2px solid var(--green);
+              border-radius: 12px;
+              text-align: center;
+              background: var(--green-dim);
+              transition: all 0.15s;
+            "
+          >
+            <i
+              class="fas fa-arrow-down"
+              style="
+                font-size: 22px;
+                color: var(--green);
+                display: block;
+                margin-bottom: 6px;
+              "
+            ></i>
+            <div style="font-size: 14px; font-weight: 700; color: var(--green)">
+              Entrée
+            </div>
+            <div style="font-size: 11px; color: var(--green); opacity: 0.7">
+              Réception stock
+            </div>
+          </div>
+        </label>
+        <label
+          id="btn-sortie"
+          onclick="setType('sortie')"
+          style="cursor: pointer"
+        >
+          <input
+            type="radio"
+            name="type_mouv"
+            value="sortie"
+            style="display: none"
+          />
+          <div
+            class="type-btn"
+            style="
+              padding: 14px;
+              border: 2px solid var(--border);
+              border-radius: 12px;
+              text-align: center;
+              background: white;
+              transition: all 0.15s;
+            "
+          >
+            <i
+              class="fas fa-arrow-up"
+              style="
+                font-size: 22px;
+                color: var(--text-m);
+                display: block;
+                margin-bottom: 6px;
+              "
+            ></i>
+            <div
+              style="font-size: 14px; font-weight: 700; color: var(--text-m)"
+            >
+              Sortie
+            </div>
+            <div style="font-size: 11px; color: var(--text-m); opacity: 0.7">
+              Prélèvement
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    {# Quantité + entrepôt #}
+    <div style="padding: 16px 18px">
+      <div
+        style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 12px;
+        "
+      >
+        <div class="fi" style="margin-bottom: 0">
+          <label class="fl"
+            >Quantité <span style="color: var(--red)">*</span></label
+          >
+          <input
+            type="number"
+            id="r-quantite"
+            class="fin"
+            value="1"
+            min="1"
+            style="
+              text-align: center;
+              font-size: 22px;
+              font-weight: 800;
+              height: 54px;
+            "
+          />
+        </div>
+        <div class="fi" style="margin-bottom: 0">
+          <label class="fl">Entrepôt</label>
+          <select
+            id="r-entrepot"
+            class="fin"
+            style="height: 54px; font-size: 13px"
+          >
+            {% for e in entrepots %}
+            <option
+              value="{{ e.id }}"
+              {%
+              if
+              e.id=""
+              ="entrepot_defaut_id"
+              %}selected{%
+              endif
+              %}
+            >
+              {{ e.nom }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="fi" style="margin-bottom: 14px">
+        <label class="fl">Motif (optionnel)</label>
+        <input
+          type="text"
+          id="r-motif"
+          class="fin"
+          placeholder="Réception fournisseur, consommation…"
+        />
+      </div>
+      <button
+        onclick="validerMouvement()"
+        id="btn-valider"
+        class="btn b-or b-lg"
+        style="width: 100%"
+      >
+        <i class="fas fa-check"></i> Valider le mouvement
+      </button>
+      <input type="hidden" id="r-produit-id" value="" />
+    </div>
+  </div>
+</div>
+
+{# ── Feedback succès ── #}
+<div id="scan-success" style="display: none; margin-bottom: 16px">
+  <div
+    style="
+      background: var(--green-dim);
+      border: 2px solid #a7f3d0;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+    "
+    class="au a1"
+  >
+    <i
+      class="fas fa-circle-check"
+      style="
+        font-size: 38px;
+        color: var(--green);
+        display: block;
+        margin-bottom: 10px;
+      "
+    ></i>
+    <div
+      id="success-msg"
+      style="font-size: 16px; font-weight: 800; color: var(--green)"
+    ></div>
+    <div
+      id="success-sub"
+      style="
+        font-size: 13px;
+        color: var(--green);
+        opacity: 0.8;
+        margin-top: 4px;
+      "
+    ></div>
+    <button
+      onclick="nouvelScan()"
+      class="btn b-or"
+      style="margin-top: 16px; width: 100%"
+    >
+      <i class="fas fa-barcode"></i> Nouveau scan
+    </button>
+  </div>
+</div>
+
+{# ── Erreur ── #}
+<div id="scan-error" style="display: none; margin-bottom: 16px">
+  <div
+    style="
+      background: var(--red-dim);
+      border: 2px solid #fecaca;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+    "
+  >
+    <i
+      class="fas fa-circle-xmark"
+      style="
+        font-size: 38px;
+        color: var(--red);
+        display: block;
+        margin-bottom: 10px;
+      "
+    ></i>
+    <div
+      id="error-msg"
+      style="font-size: 15px; font-weight: 700; color: var(--red)"
+    ></div>
+    <button
+      onclick="clearScan()"
+      class="btn b-gh"
+      style="margin-top: 14px; width: 100%"
+    >
+      Réessayer
+    </button>
+  </div>
+</div>
+
+{# ── Historique de session ── #}
+<div
+  class="card au a3"
+  id="historique-session"
+  {%
+  if
+  not
+  historique_session
+  %}style="display:none;"
+  {%
+  endif
+  %}
+>
+  <div class="card-h">
+    <div class="card-t">
+      <i class="fas fa-clock" style="color: var(--or); margin-right: 6px"></i
+      >Scans de cette session
+    </div>
+    <span
+      id="nb-scans"
+      style="
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--or);
+        background: var(--or-dim);
+        padding: 2px 9px;
+        border-radius: 10px;
+      "
+      >{{ historique_session|length }}</span
+    >
+  </div>
+  <div id="historique-body" style="padding: 4px 0">
+    {% for h in historique_session %}
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+      "
+    >
+      <div
+        style="width:8px;height:8px;border-radius:50%;background:{% if h.type == 'entree' %}var(--green){% else %}var(--red){% endif %};flex-shrink:0;"
+      ></div>
+      <div style="flex: 1; min-width: 0">
+        <div
+          style="
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          "
+        >
+          {{ h.produit }}
+        </div>
+        <div class="mono" style="font-size: 11px; color: var(--text-m)">
+          {{ h.type|title }} · {{ h.quantite }} · {{ h.entrepot }}
+        </div>
+      </div>
+      <span
+        class="mono"
+        style="font-size: 11px; color: var(--text-m); flex-shrink: 0"
+        >{{ h.heure }}</span
+      >
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{# Son feedback #}
+<audio
+  id="beep-ok"
+  src="{% static 'sounds/beep_ok.mp3' %}"
+  preload="auto"
+></audio>
+<audio
+  id="beep-err"
+  src="{% static 'sounds/beep_err.mp3' %}"
+  preload="auto"
+></audio>
+
+{% endblock %} {% block xjs %}
+<script>
+  const inp = document.getElementById("scan-input");
+  let typeCourant = "entree";
+  let produitCourant = null;
+  let sessionScans = [];
+
+  // Focus auto
+  inp.focus();
+
+  // Soumission sur Entrée
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      lancerScan();
+    }
+  });
+
+  async function lancerScan() {
+    const code = inp.value.trim();
+    if (!code) return;
+
+    // Afficher loader
+    document.getElementById("scan-result").style.display = "none";
+    document.getElementById("scan-success").style.display = "none";
+    document.getElementById("scan-error").style.display = "none";
+
+    try {
+      const resp = await fetch(
+        `{% url 'magasinier:api_scan' %}?code=${encodeURIComponent(code)}`,
+      );
+      const data = await resp.json();
+
+      if (data.found) {
+        produitCourant = data;
+        document.getElementById("r-nom").textContent = data.nom;
+        document.getElementById("r-sku").textContent = data.sku;
+        document.getElementById("r-stock").textContent = data.stock_total;
+        document.getElementById("r-stock").style.color =
+          data.stock_total === 0
+            ? "var(--red)"
+            : data.stock_total <= data.seuil_alerte
+              ? "var(--or)"
+              : "var(--green)";
+        document.getElementById("r-produit-id").value = data.id;
+        document.getElementById("r-quantite").value = 1;
+        document.getElementById("scan-result").style.display = "block";
+        document.getElementById("r-quantite").focus();
+        playBeep("ok");
+      } else {
+        document.getElementById("error-msg").textContent =
+          data.message || `Produit introuvable pour le code « ${code} »`;
+        document.getElementById("scan-error").style.display = "block";
+        playBeep("err");
+      }
+    } catch (e) {
+      document.getElementById("error-msg").textContent =
+        "Erreur réseau. Vérifiez la connexion.";
+      document.getElementById("scan-error").style.display = "block";
+      playBeep("err");
+    }
+  }
+
+  async function validerMouvement() {
+    if (!produitCourant) return;
+    const qte = parseInt(document.getElementById("r-quantite").value);
+    const entrepot = document.getElementById("r-entrepot").value;
+    const motif = document.getElementById("r-motif").value;
+    const btn = document.getElementById("btn-valider");
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validation…';
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch('{% url "magasinier:api_scan" %}', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: JSON.stringify({
+          produit_id: produitCourant.id,
+          type: typeCourant,
+          quantite: qte,
+          entrepot_id: entrepot,
+          motif,
+        }),
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        const typeLabel = typeCourant === "entree" ? "Entrée" : "Sortie";
+        document.getElementById("success-msg").textContent =
+          `${typeLabel} enregistrée avec succès !`;
+        document.getElementById("success-sub").textContent =
+          `${qte} × ${produitCourant.nom} — Nouveau stock : ${data.nouveau_stock}`;
+        document.getElementById("scan-result").style.display = "none";
+        document.getElementById("scan-success").style.display = "block";
+        // Ajouter à l'historique session
+        ajouterHistorique({
+          produit: produitCourant.nom,
+          type: typeCourant,
+          quantite: qte,
+          entrepot: data.entrepot_nom,
+          heure: data.heure,
+        });
+        playBeep("ok");
+        inp.value = "";
+      } else {
+        alert(data.message || "Erreur lors de l'enregistrement.");
+        btn.innerHTML = '<i class="fas fa-check"></i> Valider le mouvement';
+        btn.disabled = false;
+      }
+    } catch (e) {
+      alert("Erreur réseau.");
+      btn.innerHTML = '<i class="fas fa-check"></i> Valider le mouvement';
+      btn.disabled = false;
+    }
+  }
+
+  function setType(t) {
+    typeCourant = t;
+    const eDiv = document
+      .getElementById("btn-entree")
+      .querySelector(".type-btn");
+    const sDiv = document
+      .getElementById("btn-sortie")
+      .querySelector(".type-btn");
+    if (t === "entree") {
+      eDiv.style.borderColor = "var(--green)";
+      eDiv.style.background = "var(--green-dim)";
+      eDiv.querySelector("i").style.color = "var(--green)";
+      eDiv.querySelector("div").style.color = "var(--green)";
+      sDiv.style.borderColor = "var(--border)";
+      sDiv.style.background = "white";
+      sDiv.querySelector("i").style.color = "var(--text-m)";
+      sDiv.querySelector("div").style.color = "var(--text-m)";
+    } else {
+      sDiv.style.borderColor = "var(--red)";
+      sDiv.style.background = "var(--red-dim)";
+      sDiv.querySelector("i").style.color = "var(--red)";
+      sDiv.querySelector("div").style.color = "var(--red)";
+      eDiv.style.borderColor = "var(--border)";
+      eDiv.style.background = "white";
+      eDiv.querySelector("i").style.color = "var(--text-m)";
+      eDiv.querySelector("div").style.color = "var(--text-m)";
+    }
+  }
+
+  function clearScan() {
+    inp.value = "";
+    produitCourant = null;
+    document.getElementById("scan-result").style.display = "none";
+    document.getElementById("scan-success").style.display = "none";
+    document.getElementById("scan-error").style.display = "none";
+    inp.focus();
+  }
+
+  function nouvelScan() {
+    clearScan();
+    // Réinitialiser bouton valider
+    const btn = document.getElementById("btn-valider");
+    btn.innerHTML = '<i class="fas fa-check"></i> Valider le mouvement';
+    btn.disabled = false;
+  }
+
+  function ajouterHistorique(item) {
+    sessionScans.unshift(item);
+    const body = document.getElementById("historique-body");
+    const div = document.createElement("div");
+    div.style.cssText =
+      "display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);animation:au .25s ease;";
+    div.innerHTML = `
+    <div style="width:8px;height:8px;border-radius:50%;background:${item.type === "entree" ? "var(--green)" : "var(--red)"};flex-shrink:0;"></div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.produit}</div>
+      <div style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text-m);">${item.type === "entree" ? "Entrée" : "Sortie"} · ${item.quantite} · ${item.entrepot}</div>
+    </div>
+    <span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text-m);flex-shrink:0;">${item.heure}</span>`;
+    body.insertBefore(div, body.firstChild);
+    document.getElementById("historique-session").style.display = "block";
+    document.getElementById("nb-scans").textContent = sessionScans.length;
+  }
+
+  function playBeep(type) {
+    try {
+      document.getElementById(`beep-${type}`).play();
+    } catch (e) {}
+  }
+
+  // Raccourci : Échap pour effacer
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") clearScan();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Supprimer l'entrepôt{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}Supprimer l'entrepôt{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_entrepots %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<div style="max-width:480px;margin:0 auto;" class="au">
+  <div class="card" style="padding:0;overflow:hidden;border-color:#fecaca;">
+    <div style="height:5px;background:var(--red);"></div>
+    <div style="padding:32px;text-align:center;">
+      <div style="width:60px;height:60px;border-radius:50%;background:var(--red-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:24px;color:var(--red);">
+        <i class="fas fa-triangle-exclamation"></i>
+      </div>
+      <h2 style="font-size:19px;font-weight:800;margin-bottom:8px;">Supprimer {{ entrepot.nom }} ?</h2>
+      <p style="font-size:13.5px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;">
+        Cette action est <strong style="color:var(--red);">irréversible</strong>. Toutes les données de stock associées à cet entrepôt seront également supprimées.
+      </p>
+      <div style="background:var(--body-bg);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:24px;text-align:left;">
+        <div style="font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span>Entrepôt</span><strong style="color:var(--text-primary);">{{ entrepot.nom }}</strong>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;">
+          <span>Localisation</span><strong style="color:var(--text-primary);">{{ entrepot.ville|default:entrepot.pays|default:"—" }}</strong>
+        </div>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <div style="display:flex;gap:10px;">
+          <a href="{% url 'admin_entreprise:entrepot_list' %}" class="btn btn-ghost" style="flex:1;justify-content:center;">Annuler</a>
+          <button type="submit" class="btn btn-danger" style="flex:1;justify-content:center;">
+            <i class="fas fa-trash-can"></i> Confirmer la suppression
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

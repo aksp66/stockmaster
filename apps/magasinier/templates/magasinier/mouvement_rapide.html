@@ -1,0 +1,180 @@
+{% extends 'magasinier/base_magasinier.html' %}
+{% block title %}Mouvement rapide{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:16px;" class="au a1">
+  <h2 style="font-size:18px;font-weight:800;color:var(--text-p);"><i class="fas fa-arrows-rotate" style="color:var(--or);margin-right:8px;"></i>Mouvement rapide</h2>
+  <p style="font-size:12.5px;color:var(--text-m);margin-top:3px;">Formulaire simplifié pour les opérations courantes</p>
+</div>
+
+<form method="post" id="mvt-form" class="au a2">
+{% csrf_token %}
+
+{# Type de mouvement #}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+  <label id="lbl-entree" onclick="setType('entree')" style="cursor:pointer;">
+    <input type="radio" name="type_mouvement" value="entree" {% if request.GET.type == 'entree' or not request.GET.type %}checked{% endif %} style="display:none;">
+    <div id="card-entree" style="padding:18px 14px;border:2px solid var(--green);border-radius:14px;text-align:center;background:var(--green-dim);transition:all .15s;">
+      <i class="fas fa-arrow-down" style="font-size:28px;color:var(--green);display:block;margin-bottom:8px;"></i>
+      <div style="font-size:15px;font-weight:800;color:var(--green);">Entrée</div>
+      <div style="font-size:11px;color:var(--green);opacity:.7;margin-top:2px;">Réception stock</div>
+    </div>
+  </label>
+  <label id="lbl-sortie" onclick="setType('sortie')" style="cursor:pointer;">
+    <input type="radio" name="type_mouvement" value="sortie" {% if request.GET.type == 'sortie' %}checked{% endif %} style="display:none;">
+    <div id="card-sortie" style="padding:18px 14px;border:2px solid var(--border);border-radius:14px;text-align:center;background:white;transition:all .15s;">
+      <i class="fas fa-arrow-up" style="font-size:28px;color:var(--text-m);display:block;margin-bottom:8px;"></i>
+      <div style="font-size:15px;font-weight:800;color:var(--text-m);">Sortie</div>
+      <div style="font-size:11px;color:var(--text-m);opacity:.7;margin-top:2px;">Prélèvement</div>
+    </div>
+  </label>
+</div>
+
+{# Produit #}
+<div class="card" style="padding:16px;margin-bottom:12px;">
+  <div class="card-t" style="margin-bottom:12px;"><i class="fas fa-box" style="color:var(--or);margin-right:6px;"></i>Produit</div>
+  <div class="fi" style="margin-bottom:0;">
+    <div style="display:flex;gap:8px;">
+      <div class="search-w" style="flex:1;">
+        <i class="fas fa-search"></i>
+        <input type="text" id="prod-search" placeholder="Rechercher par nom, SKU…" class="fin" style="height:46px;font-size:14px;" autocomplete="off">
+      </div>
+      <a href="{% url 'magasinier:scan' %}" class="btn b-or b-sm" style="height:46px;flex-shrink:0;"><i class="fas fa-barcode"></i></a>
+    </div>
+    <input type="hidden" name="produit" id="prod-id" value="{{ produit_preselect.id|default:'' }}" required>
+    <div id="prod-results" style="display:none;position:absolute;background:white;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:20;left:16px;right:16px;max-height:220px;overflow-y:auto;margin-top:2px;"></div>
+  </div>
+
+  {# Produit sélectionné #}
+  <div id="prod-selected" style="{% if not produit_preselect %}display:none;{% endif %}margin-top:12px;padding:12px 14px;background:var(--or-dim);border:1.5px solid var(--or-border);border-radius:11px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--or);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fas fa-box" style="color:white;font-size:15px;"></i>
+      </div>
+      <div style="flex:1;">
+        <div id="ps-nom" style="font-size:14px;font-weight:700;color:var(--text-p);">{{ produit_preselect.nom|default:'' }}</div>
+        <div id="ps-sku" class="mono" style="font-size:11px;color:var(--or);">{{ produit_preselect.sku|default:'' }}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;color:var(--text-m);">Stock actuel</div>
+        <div id="ps-stock" class="mono" style="font-size:22px;font-weight:800;color:var(--or);">{{ produit_preselect.quantite_totale|default:'—' }}</div>
+      </div>
+      <button type="button" onclick="clearProduit()" style="background:none;border:none;cursor:pointer;color:var(--text-m);padding:4px;font-size:16px;"><i class="fas fa-xmark"></i></button>
+    </div>
+  </div>
+</div>
+
+{# Quantité #}
+<div class="card" style="padding:16px;margin-bottom:12px;">
+  <div class="card-t" style="margin-bottom:12px;"><i class="fas fa-hashtag" style="color:var(--or);margin-right:6px;"></i>Quantité</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button type="button" onclick="changeQte(-1)" style="width:48px;height:48px;border:2px solid var(--border);border-radius:12px;background:white;font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-m);flex-shrink:0;">−</button>
+    <input type="number" name="quantite" id="qte-inp" class="fin mono" value="1" min="1"
+           style="text-align:center;font-size:28px;font-weight:800;height:54px;flex:1;">
+    <button type="button" onclick="changeQte(1)"  style="width:48px;height:48px;border:2px solid var(--or);border-radius:12px;background:var(--or);font-size:22px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;">+</button>
+  </div>
+</div>
+
+{# Entrepôt + motif #}
+<div class="card" style="padding:16px;margin-bottom:20px;">
+  <div class="card-t" style="margin-bottom:12px;"><i class="fas fa-warehouse" style="color:var(--or);margin-right:6px;"></i>Détails</div>
+  <div class="fi">
+    <label class="fl">Entrepôt <span style="color:var(--red);">*</span></label>
+    <select name="entrepot" class="fin" required style="height:46px;">
+      <option value="">— Sélectionner —</option>
+      {% for e in entrepots %}
+      <option value="{{ e.id }}" {% if e.id == entrepot_defaut_id %}selected{% endif %}>{{ e.nom }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="fi" style="margin-bottom:0;">
+    <label class="fl">Motif (optionnel)</label>
+    <input type="text" name="motif" class="fin" placeholder="Réception, consommation interne…" style="height:46px;">
+  </div>
+</div>
+
+<button type="submit" class="btn b-or b-lg" style="width:100%;font-size:16px;height:56px;" id="btn-submit">
+  <i class="fas fa-check"></i> Enregistrer le mouvement
+</button>
+</form>
+
+{% endblock %}
+
+{% block xjs %}
+<script>
+// Init type depuis URL
+const urlType = new URLSearchParams(location.search).get('type');
+if (urlType) setType(urlType);
+else setType('entree');
+
+function setType(t) {
+  const ce = document.getElementById('card-entree');
+  const cs = document.getElementById('card-sortie');
+  document.querySelectorAll('[name="type_mouvement"]').forEach(r => r.checked = r.value === t);
+  if (t === 'entree') {
+    ce.style.cssText = 'padding:18px 14px;border:2px solid var(--green);border-radius:14px;text-align:center;background:var(--green-dim);transition:all .15s;';
+    ce.querySelector('i').style.color = 'var(--green)'; ce.querySelector('div').style.color = 'var(--green)';
+    cs.style.cssText = 'padding:18px 14px;border:2px solid var(--border);border-radius:14px;text-align:center;background:white;transition:all .15s;';
+    cs.querySelector('i').style.color = 'var(--text-m)'; cs.querySelector('div').style.color = 'var(--text-m)';
+  } else {
+    cs.style.cssText = 'padding:18px 14px;border:2px solid var(--red);border-radius:14px;text-align:center;background:var(--red-dim);transition:all .15s;';
+    cs.querySelector('i').style.color = 'var(--red)'; cs.querySelector('div').style.color = 'var(--red)';
+    ce.style.cssText = 'padding:18px 14px;border:2px solid var(--border);border-radius:14px;text-align:center;background:white;transition:all .15s;';
+    ce.querySelector('i').style.color = 'var(--text-m)'; ce.querySelector('div').style.color = 'var(--text-m)';
+  }
+}
+
+function changeQte(delta) {
+  const inp = document.getElementById('qte-inp');
+  inp.value = Math.max(1, parseInt(inp.value) + delta);
+}
+
+// Recherche produit
+let timer;
+document.getElementById('prod-search').addEventListener('input', function() {
+  clearTimeout(timer);
+  const q = this.value.trim();
+  if (q.length < 2) { document.getElementById('prod-results').style.display = 'none'; return; }
+  timer = setTimeout(() => {
+    fetch(`{% url 'magasinier:produit_search_ajax' %}?q=${encodeURIComponent(q)}`)
+      .then(r => r.json()).then(data => {
+        const res = document.getElementById('prod-results');
+        if (!data.length) { res.style.display = 'none'; return; }
+        res.innerHTML = data.map(p => `
+          <div onclick='selectProduit(${JSON.stringify(p)})'
+               style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);"
+               onmouseover="this.style.background='var(--or-dim)'" onmouseout="this.style.background=''">
+            <div style="font-weight:700;font-size:14px;">${p.nom}</div>
+            <div style="font-size:11px;color:var(--text-m);font-family:'Fira Code',monospace;">SKU: ${p.sku} · Stock: ${p.stock_total}</div>
+          </div>`).join('');
+        res.style.display = 'block';
+      });
+  }, 300);
+});
+
+function selectProduit(p) {
+  document.getElementById('prod-id').value = p.id;
+  document.getElementById('ps-nom').textContent = p.nom;
+  document.getElementById('ps-sku').textContent = p.sku;
+  document.getElementById('ps-stock').textContent = p.stock_total;
+  document.getElementById('prod-selected').style.display = 'block';
+  document.getElementById('prod-results').style.display = 'none';
+  document.getElementById('prod-search').value = '';
+}
+function clearProduit() {
+  document.getElementById('prod-id').value = '';
+  document.getElementById('prod-selected').style.display = 'none';
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('prod-results').contains(e.target) && e.target !== document.getElementById('prod-search'))
+    document.getElementById('prod-results').style.display = 'none';
+});
+
+document.getElementById('mvt-form').addEventListener('submit', function() {
+  const btn = document.getElementById('btn-submit');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement…';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends 'auditeur/base_auditeur.html' %}
+{% block title %}Logs d'audit{% endblock %}
+{% block page_title %}Logs d'audit{% endblock %}
+{% block page_sub %}Traçabilité complète · {{ user.entreprise.nom }}{% endblock %}
+{% block n_logs %}active{% endblock %}
+
+{% block content %}
+
+<div class="card au a1" style="padding:14px 18px;margin-bottom:18px;">
+  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <div class="search-w" style="width:210px;">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Action, utilisateur, objet…" class="fin" style="height:36px;font-size:13px;">
+    </div>
+    <select name="action" class="fin" style="width:170px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Toutes actions</option>
+      {% for code, label in types_action %}
+      <option value="{{ code }}" {% if request.GET.action == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="utilisateur" class="fin" style="width:170px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous utilisateurs</option>
+      {% for u in utilisateurs %}
+      <option value="{{ u.id }}" {% if request.GET.utilisateur == u.id|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="date_debut" value="{{ request.GET.date_debut }}" class="fin" style="width:145px;height:36px;font-size:13px;">
+    <input type="date" name="date_fin"   value="{{ request.GET.date_fin }}"   class="fin" style="width:145px;height:36px;font-size:13px;">
+    <button type="submit" class="btn b-or b-sm"><i class="fas fa-filter"></i> Filtrer</button>
+    {% if request.GET.q or request.GET.action or request.GET.utilisateur %}
+    <a href="{% url 'auditeur:logs' %}" class="btn b-gh b-sm"><i class="fas fa-xmark"></i></a>
+    {% endif %}
+    <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm" style="margin-left:auto;"><i class="fas fa-download"></i> CSV</a>
+  </form>
+</div>
+
+<div class="card au a2">
+  <div class="card-h">
+    <div><div class="card-t"><i class="fas fa-list-check" style="color:var(--or);margin-right:7px;"></i>Journal d'audit</div><div class="card-sub">{{ total_logs }} action{{ total_logs|pluralize }} enregistrée{{ total_logs|pluralize }}</div></div>
+  </div>
+  {% if logs %}
+  <table class="tbl">
+    <thead><tr><th>Date / Heure</th><th>Utilisateur</th><th>Action</th><th>Modèle</th><th>Objet concerné</th><th>IP</th><th>Détail</th></tr></thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td class="mono" style="font-size:12px;white-space:nowrap;">{{ log.date|date:"d/m/Y H:i:s" }}</td>
+        <td>
+          <div style="font-weight:600;font-size:13px;">{{ log.utilisateur.get_full_name }}</div>
+          <div style="font-size:11px;color:var(--text-m);">{{ log.utilisateur.role }}</div>
+        </td>
+        <td>
+          <span class="badge {% if log.action_type in 'CREATE,ADD' %}bg-gr{% elif log.action_type in 'DELETE,REMOVE' %}bg-re{% elif log.action_type == 'UPDATE' %}bg-bl{% else %}bg-gy{% endif %}">
+            {{ log.get_action_type_display }}
+          </span>
+        </td>
+        <td class="mono" style="font-size:12px;color:var(--purple);">{{ log.modele }}</td>
+        <td style="font-size:13px;font-weight:500;">{{ log.objet_str|default:"—"|truncatechars:40 }}</td>
+        <td class="mono" style="font-size:11px;color:var(--text-m);">{{ log.ip_address|default:"—" }}</td>
+        <td>
+          {% if log.details %}
+          <button onclick="openM('log-{{ log.pk }}')" class="btn b-gh b-sm"><i class="fas fa-eye"></i></button>
+          <div class="modal-o" id="log-{{ log.pk }}" style="align-items:center;">
+            <div style="background:white;border-radius:16px;padding:24px;max-width:560px;width:100%;margin:20px;box-shadow:0 24px 60px rgba(0,0,0,.14);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="font-size:15px;font-weight:800;">Détail du log</h3>
+                <button onclick="closeM('log-{{ log.pk }}')" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-m);"><i class="fas fa-xmark"></i></button>
+              </div>
+              <pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;font-family:'Fira Code',monospace;overflow-x:auto;max-height:300px;white-space:pre-wrap;">{{ log.details }}</pre>
+            </div>
+          </div>
+          {% else %}<span style="color:var(--text-m);font-size:12px;">—</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if logs.has_other_pages %}
+  <div class="pager">
+    {% if logs.has_previous %}<a href="?page={{ logs.previous_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-left" style="font-size:11px;"></i></a>{% endif %}
+    {% for num in logs.paginator.page_range %}
+      {% if logs.number == num %}<span class="cur">{{ num }}</span>
+      {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}<a href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>{% endif %}
+    {% endfor %}
+    {% if logs.has_next %}<a href="?page={{ logs.next_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-right" style="font-size:11px;"></i></a>{% endif %}
+    <span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">{{ total_logs }} logs</span>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty"><i class="fas fa-list-check"></i><h3>Aucun log</h3></div>
+  {% endif %}
+</div>
+
+<script>
+function openM(id){document.getElementById(id).style.display='flex';}
+function closeM(id){document.getElementById(id).style.display='none';}
+</script>
+{% endblock %}

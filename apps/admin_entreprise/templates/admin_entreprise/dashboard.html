@@ -1,0 +1,498 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Tableau de bord{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}Tableau de bord{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_subtitle %}Vue d'ensemble de votre entreprise{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_dashboard %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<!-- ══ EN-TÊTE ══ -->
+<div
+  style="
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  "
+  class="au"
+>
+  <div>
+    <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px">
+      Bonjour, Administrateur {{ user.first_name }}
+    </h1>
+    <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px">
+      Voici l'état de <strong>{{ user.entreprise.nom }}</strong> aujourd'hui.
+    </p>
+  </div>
+  <div style="display: flex; gap: 8px">
+    <a href="{% url 'admin_entreprise:exports' %}" class="btn btn-ghost btn-sm">
+      <i class="fas fa-download"></i> Exporter
+    </a>
+    <a
+      href="{% url 'admin_entreprise:ajouter_utilisateur' %}"
+      class="btn btn-primary btn-sm"
+    >
+      <i class="fas fa-plus"></i> Inviter
+    </a>
+  </div>
+</div>
+
+<!-- ══ STATS ══ -->
+<div
+  style="
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  "
+>
+  <div class="stat-card s-orange au au-1">
+    <div class="stat-icon"><i class="fas fa-users"></i></div>
+    <div class="stat-value">{{ total_users }}</div>
+    <div class="stat-label">Utilisateurs</div>
+    <div class="stat-delta" style="color: var(--orange)">
+      <i class="fas fa-user-check"></i> {{ users_actifs|default:0 }} actifs
+    </div>
+    <i class="fas fa-users stat-corner"></i>
+  </div>
+  <div class="stat-card s-blue au au-2">
+    <div class="stat-icon"><i class="fas fa-warehouse"></i></div>
+    <div class="stat-value">{{ total_entrepots|default:0 }}</div>
+    <div class="stat-label">Entrepôts</div>
+    <div class="stat-delta" style="color: var(--blue)">
+      <i class="fas fa-location-dot"></i> {{ user.entreprise.pays }}
+    </div>
+    <i class="fas fa-warehouse stat-corner"></i>
+  </div>
+  <div class="stat-card s-green au au-3">
+    <div class="stat-icon"><i class="fas fa-box"></i></div>
+    <div class="stat-value">{{ total_produits|default:0 }}</div>
+    <div class="stat-label">Produits référencés</div>
+    <div class="stat-delta" style="color: var(--green)">
+      <i class="fas fa-arrow-trend-up"></i> Catalogue actif
+    </div>
+    <i class="fas fa-box stat-corner"></i>
+  </div>
+  <div class="stat-card s-purple au au-4">
+    <div class="stat-icon"><i class="fas fa-tags"></i></div>
+    <div class="stat-value">{{ total_roles }}</div>
+    <div class="stat-label">Rôles différents</div>
+    <div class="stat-delta" style="color: var(--purple)">
+      <i class="fas fa-shield-halved"></i> Gestion des accès
+    </div>
+    <i class="fas fa-tags stat-corner"></i>
+  </div>
+</div>
+
+<!-- ══ CONTENU PRINCIPAL ══ -->
+<div style="display: grid; grid-template-columns: 1fr 380px; gap: 18px">
+  <!-- Colonne gauche -->
+  <div style="display: flex; flex-direction: column; gap: 18px">
+    <!-- Derniers utilisateurs -->
+    <div class="card au au-2">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Derniers utilisateurs</div>
+          <div class="card-subtitle">Membres récemment ajoutés</div>
+        </div>
+        <a
+          href="{% url 'admin_entreprise:utilisateurs' %}"
+          class="btn btn-ghost btn-sm"
+        >
+          Voir tout <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+      {% if derniers_utilisateurs %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="padding-left: 20px">Utilisateur</th>
+            <th>Rôle</th>
+            <th>Inscription</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in derniers_utilisateurs %}
+          <tr>
+            <td style="padding-left: 20px">
+              <div style="display: flex; align-items: center; gap: 10px">
+                <div
+                  style="
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, var(--orange), #ea580c);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: white;
+                    flex-shrink: 0;
+                  "
+                >
+                  {{ u.first_name|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}
+                </div>
+                <div>
+                  <div style="font-weight: 600; font-size: 13px">
+                    {{ u.get_full_name }}
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted)">
+                    {{ u.email }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge badge-orange" style="font-size: 11px"
+                >{{ u.get_role_display }}</span
+              >
+            </td>
+            <td
+              style="
+                font-size: 12px;
+                color: var(--text-muted);
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+              "
+            >
+              {{ u.date_joined|date:"d/m/Y" }}
+            </td>
+            <td>
+              {% if u.est_actif %}
+              <span class="badge badge-green">Actif</span>
+              {% else %}
+              <span class="badge badge-red">Inactif</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-users"></i></div>
+        <h3>Aucun utilisateur</h3>
+        <p>Invitez votre première équipe.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Entrepôts -->
+    <div class="card au au-3">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Entrepôts actifs</div>
+          <div class="card-subtitle">Répartition du stock</div>
+        </div>
+        <a
+          href="{% url 'admin_entreprise:entrepot_list' %}"
+          class="btn btn-ghost btn-sm"
+        >
+          Gérer <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+      <div style="padding: 16px 20px">
+        {% for e in entrepots %}
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+          "
+        >
+          <div
+            style="
+              width: 38px;
+              height: 38px;
+              border-radius: 10px;
+              background: var(--blue-dim);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 16px;
+              color: var(--blue);
+              flex-shrink: 0;
+            "
+          >
+            <i class="fas fa-warehouse"></i>
+          </div>
+          <div style="flex: 1">
+            <div style="font-weight: 600; font-size: 13px">{{ e.nom }}</div>
+            <div style="font-size: 11px; color: var(--text-muted)">
+              {{ e.ville|default:e.pays }}
+            </div>
+          </div>
+          <span
+            class="badge {% if e.est_actif %}badge-green{% else %}badge-gray{% endif %}"
+          >
+            {% if e.est_actif %}Actif{% else %}Inactif{% endif %}
+          </span>
+        </div>
+        {% empty %}
+        <div class="empty-state" style="padding: 28px 0">
+          <div class="empty-icon" style="font-size: 30px">
+            <i class="fas fa-warehouse"></i>
+          </div>
+          <p>
+            Aucun entrepôt créé.
+            <a
+              href="{% url 'admin_entreprise:entrepot_ajouter' %}"
+              style="color: var(--orange)"
+              >Ajouter</a
+            >
+          </p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonne droite -->
+  <div style="display: flex; flex-direction: column; gap: 18px">
+    <!-- Bloc IA -->
+    <div
+      class="card au au-2"
+      style="
+        border: 1.5px solid #bbf7d0;
+        background: linear-gradient(145deg, #f0fdf4, #ffffff);
+      "
+    >
+      <div class="card-header" style="border-color: #bbf7d0">
+        <div>
+          <div
+            class="card-title"
+            style="display: flex; align-items: center; gap: 8px"
+          >
+            <i class="fas fa-brain" style="color: #16a34a"></i> Intelligence IA
+          </div>
+          <div class="card-subtitle">Prédictions & recommandations</div>
+        </div>
+        <span class="ai-badge"><span class="ai-dot"></span> Actif</span>
+      </div>
+      <div style="padding: 16px 20px">
+        {% if predictions_ia %} {% for p in predictions_ia|slice:":3" %}
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #d1fae5;
+          "
+        >
+          <div
+            style="width:8px;height:8px;border-radius:50%;background:{% if p.confiance >= 0.8 %}var(--green){% elif p.confiance >= 0.5 %}var(--yellow){% else %}var(--red){% endif %};margin-top:5px;flex-shrink:0;"
+          ></div>
+          <div>
+            <div style="font-size: 13px; font-weight: 600">
+              {{ p.produit.nom }}
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted)">
+              Prévision {{ p.date_cible|date:"d/m" }} :
+              <span class="mono" style="font-size: 11px"
+                >{{ p.quantite_prevue }}</span
+              >
+              unités
+            </div>
+            {% if p.quantite_recommandee_commande %}
+            <div style="font-size: 11px; color: var(--green); margin-top: 2px">
+              <i class="fas fa-cart-plus"></i> 
+              Commander {{ p.quantite_recommandee_commande }} unités
+            </div>
+            {% endif %}
+          </div>
+          <div
+            style="
+              margin-left: auto;
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 11px;
+              color: var(--text-muted);
+            "
+          >
+            {{ p.confiance|floatformat:0 }}%
+          </div>
+        </div>
+        {% endfor %} {% else %}
+        <div
+          style="text-align: center; padding: 16px 0; color: var(--text-muted)"
+        >
+          <i
+            class="fas fa-robot"
+            style="
+              font-size: 28px;
+              opacity: 0.3;
+              display: block;
+              margin-bottom: 10px;
+            "
+          ></i>
+          <p style="font-size: 12px">Pas encore de prédictions générées.</p>
+          <a
+            href="{% url 'admin_entreprise:ia_dashboard' %}"
+            class="btn btn-success btn-sm"
+            style="margin-top: 10px"
+          >
+            <i class="fas fa-play"></i> Lancer l'analyse
+          </a>
+        </div>
+        {% endif %}
+        <a
+          href="{% url 'admin_entreprise:ia_dashboard' %}"
+          class="btn btn-success"
+          style="width: 100%; justify-content: center; margin-top: 14px"
+        >
+          <i class="fas fa-brain"></i> Tableau de bord IA
+        </a>
+      </div>
+    </div>
+
+    <!-- Alertes stock -->
+    <div class="card au au-3">
+      <div class="card-header">
+        <div class="card-title">
+          <i
+            class="fas fa-bell"
+            style="color: var(--red); margin-right: 6px"
+          ></i>
+          Alertes stock {% if alertes_count %}
+          <span
+            style="
+              background: var(--red);
+              color: white;
+              font-size: 10px;
+              padding: 1px 7px;
+              border-radius: 20px;
+              margin-left: 6px;
+            "
+            >{{ alertes_count }}</span
+          >
+          {% endif %}
+        </div>
+      </div>
+      <div style="padding: 12px 20px">
+        {% for alerte in alertes_recentes %}
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+          "
+        >
+          <div
+            style="width:28px;height:28px;border-radius:8px;background:{% if alerte.priorite == 'critique' %}var(--red-dim){% elif alerte.priorite == 'haute' %}#fff7ed{% else %}var(--blue-dim){% endif %};display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;color:{% if alerte.priorite == 'critique' %}var(--red){% elif alerte.priorite == 'haute' %}var(--orange){% else %}var(--blue){% endif %};"
+          >
+            <i
+              class="fas fa-{% if alerte.type_alerte == 'rupture' %}circle-xmark{% elif alerte.type_alerte == 'seuil_bas' %}triangle-exclamation{% else %}brain{% endif %}"
+            ></i>
+          </div>
+          <div>
+            <div style="font-size: 12.5px; font-weight: 600">
+              {{ alerte.produit.nom }}
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted)">
+              {{ alerte.message|truncatechars:50 }}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div
+          style="
+            text-align: center;
+            padding: 16px;
+            color: var(--text-muted);
+            font-size: 12px;
+          "
+        >
+          <i
+            class="fas fa-check-circle"
+            style="
+              color: var(--green);
+              font-size: 20px;
+              display: block;
+              margin-bottom: 6px;
+            "
+          ></i>
+          Aucune alerte active
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Accès rapides -->
+    <div class="card au au-4" style="padding: 18px 20px">
+      <div class="card-title" style="margin-bottom: 14px">Accès rapides</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+        <a
+          href="{% url 'admin_entreprise:ajouter_utilisateur' %}"
+          class="btn btn-ghost btn-sm"
+          style="
+            justify-content: center;
+            flex-direction: column;
+            height: 56px;
+            gap: 4px;
+          "
+        >
+          <i
+            class="fas fa-user-plus"
+            style="font-size: 16px; color: var(--orange)"
+          ></i>
+          <span style="font-size: 11px">Inviter</span>
+        </a>
+        <a
+          href="{% url 'admin_entreprise:entrepot_ajouter' %}"
+          class="btn btn-ghost btn-sm"
+          style="
+            justify-content: center;
+            flex-direction: column;
+            height: 56px;
+            gap: 4px;
+          "
+        >
+          <i
+            class="fas fa-plus-circle"
+            style="font-size: 16px; color: var(--blue)"
+          ></i>
+          <span style="font-size: 11px">Entrepôt</span>
+        </a>
+        <a
+          href="{% url 'admin_entreprise:exports' %}"
+          class="btn btn-ghost btn-sm"
+          style="
+            justify-content: center;
+            flex-direction: column;
+            height: 56px;
+            gap: 4px;
+          "
+        >
+          <i
+            class="fas fa-file-csv"
+            style="font-size: 16px; color: var(--green)"
+          ></i>
+          <span style="font-size: 11px">Exporter</span>
+        </a>
+        <a
+          href="{% url 'admin_entreprise:parametres' %}"
+          class="btn btn-ghost btn-sm"
+          style="
+            justify-content: center;
+            flex-direction: column;
+            height: 56px;
+            gap: 4px;
+          "
+        >
+          <i
+            class="fas fa-gear"
+            style="font-size: 16px; color: var(--purple)"
+          ></i>
+          <span style="font-size: 11px">Paramètres</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

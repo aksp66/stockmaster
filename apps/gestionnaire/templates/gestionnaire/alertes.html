@@ -1,0 +1,167 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+{% block title %}Alertes{% endblock %}
+{% block page_title %}Alertes de stock{% endblock %}
+{% block page_sub %}Surveillance · {{ user.entreprise.nom }}{% endblock %}
+{% block n_alert %}active{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;" class="au a1">
+  <div style="display:flex;gap:10px;">
+    <div style="background:white;border:1.5px solid var(--red-dim);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--red);"></span>
+      <span style="font-size:13px;color:var(--text-m);">Ruptures : <strong style="color:var(--red);">{{ nb_rupture }}</strong></span>
+    </div>
+    <div style="background:white;border:1.5px solid var(--or-border);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--or);"></span>
+      <span style="font-size:13px;color:var(--text-m);">Seuil d'alerte : <strong style="color:var(--or);">{{ nb_seuil }}</strong></span>
+    </div>
+    <div style="background:white;border:1.5px solid var(--green-dim);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--green);"></span>
+      <span style="font-size:13px;color:var(--text-m);">Acquittées : <strong style="color:var(--green);">{{ nb_acquittees }}</strong></span>
+    </div>
+  </div>
+  {% if alertes_actives %}
+  <form method="post" action="{% url 'gestionnaire:alertes_acquitter_toutes' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn b-gh"><i class="fas fa-check-double"></i> Tout acquitter</button>
+  </form>
+  {% endif %}
+</div>
+
+{# Tabs #}
+<div style="display:flex;gap:8px;margin-bottom:16px;" class="au a1">
+  <a href="?statut=actives" class="btn b-sm {% if request.GET.statut != 'acquittees' %}b-or{% else %}b-gh{% endif %}">
+    <i class="fas fa-bell"></i> Actives {% if nb_rupture or nb_seuil %}<span style="background:white;color:var(--or);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:2px;">{{ nb_rupture|add:nb_seuil }}</span>{% endif %}
+  </a>
+  <a href="?statut=acquittees" class="btn b-sm {% if request.GET.statut == 'acquittees' %}b-or{% else %}b-gh{% endif %}">
+    <i class="fas fa-check"></i> Acquittées
+  </a>
+</div>
+
+{# ── Ruptures ── #}
+{% if request.GET.statut != 'acquittees' and produits_rupture %}
+<div class="card au a2" style="margin-bottom:16px;border-color:#fecaca;">
+  <div class="card-h" style="background:var(--red-dim);border-color:#fecaca;">
+    <div>
+      <div class="card-t" style="color:var(--red);"><i class="fas fa-circle-xmark" style="margin-right:7px;"></i>Ruptures de stock</div>
+      <div class="card-sub" style="color:#ef4444;">{{ nb_rupture }} produit{{ nb_rupture|pluralize }} en rupture totale</div>
+    </div>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr><th>Produit</th><th>Catégorie</th><th>Entrepôt</th><th>Seuil</th><th>Dernière sortie</th><th style="text-align:right;padding-right:20px;">Action</th></tr>
+    </thead>
+    <tbody>
+      {% for p in produits_rupture %}
+      <tr>
+        <td>
+          <div style="font-weight:700;font-size:13px;color:var(--red);">{{ p.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--text-m);">{{ p.sku }}</div>
+        </td>
+        <td><span class="badge bg-gy">{{ p.categorie.nom|default:"—" }}</span></td>
+        <td style="font-size:13px;color:var(--text-m);">{{ p.entrepot_principal|default:"—" }}</td>
+        <td><span class="mono" style="font-weight:700;color:var(--red);">0 / {{ p.seuil_alerte }}</span></td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ p.derniere_sortie|date:"d/m/Y"|default:"—" }}</td>
+        <td style="text-align:right;padding-right:16px;">
+          <div style="display:flex;gap:5px;justify-content:flex-end;">
+            <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ p.id }}&type=entree" class="btn b-or b-sm"><i class="fas fa-plus"></i> Entrée</a>
+            <form method="post" action="{% url 'gestionnaire:alerte_acquitter' p.alerte_id %}">{% csrf_token %}
+              <button type="submit" class="btn b-gh b-sm"><i class="fas fa-check"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{# ── Seuils d'alerte ── #}
+{% if request.GET.statut != 'acquittees' and produits_seuil %}
+<div class="card au a3" style="margin-bottom:16px;border-color:var(--or-border);">
+  <div class="card-h" style="background:var(--or-dim);border-color:var(--or-border);">
+    <div>
+      <div class="card-t" style="color:var(--or-d);"><i class="fas fa-triangle-exclamation" style="margin-right:7px;"></i>Seuil d'alerte atteint</div>
+      <div class="card-sub" style="color:var(--or-d);">{{ nb_seuil }} produit{{ nb_seuil|pluralize }} sous le seuil minimum</div>
+    </div>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr><th>Produit</th><th>Catégorie</th><th>Stock actuel</th><th>Seuil</th><th>Manquant</th><th style="text-align:right;padding-right:20px;">Action</th></tr>
+    </thead>
+    <tbody>
+      {% for p in produits_seuil %}
+      <tr>
+        <td>
+          <div style="font-weight:700;font-size:13px;">{{ p.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--or);">{{ p.sku }}</div>
+        </td>
+        <td><span class="badge bg-gy">{{ p.categorie.nom|default:"—" }}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:60px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="width:{{ p.pct_stock }}%;height:100%;background:var(--or);border-radius:3px;"></div>
+            </div>
+            <span class="mono" style="font-weight:800;color:var(--or);">{{ p.quantite_totale }}</span>
+          </div>
+        </td>
+        <td><span class="mono" style="color:var(--text-m);">{{ p.seuil_alerte }}</span></td>
+        <td><span class="mono" style="font-weight:700;color:var(--red);">−{{ p.manquant }}</span></td>
+        <td style="text-align:right;padding-right:16px;">
+          <div style="display:flex;gap:5px;justify-content:flex-end;">
+            <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ p.id }}&type=entree" class="btn b-or b-sm"><i class="fas fa-plus"></i> Entrée</a>
+            <form method="post" action="{% url 'gestionnaire:alerte_acquitter' p.alerte_id %}">{% csrf_token %}
+              <button type="submit" class="btn b-gh b-sm"><i class="fas fa-check"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{# ── Acquittées ── #}
+{% if request.GET.statut == 'acquittees' %}
+<div class="card au a2">
+  <div class="card-h">
+    <div class="card-t"><i class="fas fa-check-circle" style="color:var(--green);margin-right:7px;"></i>Alertes acquittées</div>
+  </div>
+  {% if alertes_acquittees %}
+  <table class="tbl">
+    <thead><tr><th>Produit</th><th>Type</th><th>Acquittée le</th><th>Par</th></tr></thead>
+    <tbody>
+      {% for a in alertes_acquittees %}
+      <tr>
+        <td>
+          <div style="font-weight:600;font-size:13px;">{{ a.produit.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--text-m);">{{ a.produit.sku }}</div>
+        </td>
+        <td><span class="badge {% if a.type == 'rupture' %}bg-re{% else %}bg-or{% endif %}">{{ a.get_type_display }}</span></td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ a.date_acquittement|date:"d/m/Y H:i" }}</td>
+        <td style="font-size:13px;">{{ a.acquitte_par.get_full_name|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><i class="fas fa-check-circle"></i><h3>Aucune alerte acquittée</h3></div>
+  {% endif %}
+</div>
+{% endif %}
+
+{# État OK #}
+{% if request.GET.statut != 'acquittees' and not produits_rupture and not produits_seuil %}
+<div class="card au a2" style="padding:48px;text-align:center;">
+  <div style="width:64px;height:64px;border-radius:18px;background:var(--green-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+    <i class="fas fa-shield-check" style="color:var(--green);font-size:26px;"></i>
+  </div>
+  <h3 style="font-size:18px;font-weight:800;color:var(--text-p);margin-bottom:8px;">Tout est sous contrôle !</h3>
+  <p style="font-size:14px;color:var(--text-m);">Aucune alerte active pour le moment. Vos stocks sont dans les limites définies.</p>
+</div>
+{% endif %}
+
+{% endblock %}

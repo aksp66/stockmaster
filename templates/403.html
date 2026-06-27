@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>403 – Accès refusé | StockMaster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <style>
+      body {
+        font-family: "Sora", sans-serif;
+        background: #f8f7f4;
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .code {
+        font-family: "JetBrains Mono", monospace;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .pulse-anim {
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .au {
+        animation: fadeUp 0.4s ease forwards;
+      }
+      .au-1 {
+        animation-delay: 0.08s;
+        opacity: 0;
+      }
+      .au-2 {
+        animation-delay: 0.16s;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="text-align: center; padding: 40px 24px; max-width: 520px">
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-bottom: 48px;
+        "
+        class="au"
+      >
+        <div
+          style="
+            width: 34px;
+            height: 34px;
+            background: #f97316;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          <i
+            class="fas fa-layer-group"
+            style="color: white; font-size: 14px"
+          ></i>
+        </div>
+        <span style="font-size: 18px; font-weight: 800"
+          >Stock<span style="color: #f97316">Master</span></span
+        >
+      </div>
+      <div style="margin-bottom: 32px">
+        <div
+          style="
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fffbeb, #fde68a);
+            border: 2px solid #fcd34d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            position: relative;
+          "
+        >
+          <i class="fas fa-lock" style="font-size: 48px; color: #d97706"></i>
+          <div
+            class="pulse-anim"
+            style="
+              position: absolute;
+              inset: -8px;
+              border-radius: 50%;
+              border: 2px solid rgba(217, 119, 6, 0.2);
+            "
+          ></div>
+        </div>
+      </div>
+      <div
+        class="code au"
+        style="
+          font-size: 64px;
+          font-weight: 800;
+          color: #d97706;
+          line-height: 1;
+          margin-bottom: 12px;
+        "
+      >
+        403
+      </div>
+      <h1
+        class="au au-1"
+        style="
+          font-size: 22px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 10px;
+        "
+      >
+        Accès refusé
+      </h1>
+      <p
+        class="au au-1"
+        style="
+          font-size: 14px;
+          color: #6b7280;
+          line-height: 1.7;
+          margin-bottom: 32px;
+        "
+      >
+        Vous n'avez pas les permissions nécessaires pour accéder à cette
+        page.<br />
+        Contactez votre administrateur si vous pensez que c'est une erreur.
+      </p>
+      <div
+        class="au au-2"
+        style="
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+          flex-wrap: wrap;
+        "
+      >
+        <a
+          href="javascript:history.back()"
+          style="
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 20px;
+            border-radius: 9px;
+            border: 1.5px solid #e5e7eb;
+            background: white;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+          "
+        >
+          <i class="fas fa-arrow-left"></i> Retour
+        </a>
+        <a
+          href="{% url 'pages:accueil' %}"
+          style="
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 20px;
+            border-radius: 9px;
+            background: #f97316;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+          "
+        >
+          <i class="fas fa-house"></i> Accueil
+        </a>
+      </div>
+    </div>
+  </body>
+</html>

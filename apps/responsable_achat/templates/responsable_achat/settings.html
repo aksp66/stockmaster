@@ -1,0 +1,66 @@
+{% extends 'responsable_achat/base_achat.html' %}
+{% block title %}Paramètres{% endblock %}
+{% block page_title %}Paramètres{% endblock %}
+{% block page_sub %}Configuration · {{ user.entreprise.nom }}{% endblock %}
+{% block n_set %}active{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;" class="au a1">
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h"><div class="card-t"><i class="fas fa-bell" style="color:var(--or);margin-right:7px;"></i>Notifications</div></div>
+      <div style="padding:20px 22px;">
+        {% for label, name, checked in notif_settings %}
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text-p);">{{ label }}</div>
+          </div>
+          <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} style="width:18px;height:18px;accent-color:var(--or);cursor:pointer;">
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h"><div class="card-t"><i class="fas fa-sliders" style="color:var(--or);margin-right:7px;"></i>Préférences achats</div></div>
+      <div style="padding:20px 22px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Devise par défaut</label>
+            <select name="devise_defaut" class="fin">
+              <option value="EUR" {% if prefs.devise_defaut == 'EUR' %}selected{% endif %}>EUR — Euro</option>
+              <option value="USD" {% if prefs.devise_defaut == 'USD' %}selected{% endif %}>USD — Dollar</option>
+              <option value="XOF" {% if prefs.devise_defaut == 'XOF' %}selected{% endif %}>XOF — Franc CFA</option>
+            </select>
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Entrepôt de réception par défaut</label>
+            <select name="entrepot_defaut" class="fin">
+              <option value="">— Aucun —</option>
+              {% for e in entrepots %}
+              <option value="{{ e.id }}" {% if prefs.entrepot_defaut_id == e.id %}selected{% endif %}>{{ e.nom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Délai d'alerte rupture (jours)</label>
+            <input type="number" name="seuil_alerte_jours" value="{{ prefs.seuil_alerte_jours|default:7 }}" class="fin" min="1" max="90">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Budget mensuel maximal (FCFA)</label>
+            <input type="number" name="budget_mensuel" value="{{ prefs.budget_mensuel|default:'' }}" class="fin" step="100" min="0" placeholder="Illimité">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button type="submit" class="btn b-or"><i class="fas fa-check"></i> Enregistrer les paramètres</button>
+      <a href="{% url 'responsable_achat:dashboard' %}" class="btn b-gh"><i class="fas fa-xmark"></i> Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

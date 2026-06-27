@@ -1,0 +1,67 @@
+
+{% extends 'comptable/base_comptable.html' %}
+{% block title %}Valorisation FIFO/CUMP{% endblock %}
+{% block page_title %}Valorisation du stock{% endblock %}
+{% block page_sub %}FIFO · CUMP · {{ user.entreprise.nom }}{% endblock %}
+{% block n_val %}active{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;" class="au a1">
+  <div style="display:flex;gap:8px;">
+    <a href="?methode=cump" class="btn {% if request.GET.methode != 'fifo' %}b-or{% else %}b-gh{% endif %}"><i class="fas fa-calculator"></i> CUMP</a>
+    <a href="?methode=fifo" class="btn {% if request.GET.methode == 'fifo' %}b-or{% else %}b-gh{% endif %}"><i class="fas fa-layer-group"></i> FIFO</a>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <select onchange="location='?methode={{ request.GET.methode|default:'cump' }}&categorie='+this.value" class="fin" style="width:170px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Toutes catégories</option>
+      {% for c in categories %}
+      <option value="{{ c.id }}" {% if request.GET.categorie == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nom }}</option>
+      {% endfor %}
+    </select>
+    <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm"><i class="fas fa-download"></i> CSV</a>
+    <a href="?{{ request.GET.urlencode }}&export=pdf" class="btn b-gh b-sm"><i class="fas fa-file-pdf"></i> PDF</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;" class="au a1">
+  <div class="stat s-or"><div class="si"><i class="fas fa-coins"></i></div><div class="sv" style="font-size:20px;">{{ valeur_totale|floatformat:2 }} FCFA</div><div class="sl">Valeur totale {{ methode_affichee }}</div><i class="fas fa-coins sc"></i></div>
+  <div class="stat s-bl"><div class="si"><i class="fas fa-boxes-stacked"></i></div><div class="sv">{{ nb_produits }}</div><div class="sl">Produits valorisés</div><i class="fas fa-boxes-stacked sc"></i></div>
+  <div class="stat s-gr"><div class="si"><i class="fas fa-arrow-trend-up"></i></div><div class="sv">{{ variation_mois|floatformat:1 }}%</div><div class="sl">Variation mensuelle</div><i class="fas fa-percent sc"></i></div>
+  <div class="stat s-pu"><div class="si"><i class="fas fa-calculator"></i></div><div class="sv" style="font-size:20px;">{{ methode_affichee }}</div><div class="sl">Méthode</div><i class="fas fa-calculator sc"></i></div>
+</div>
+
+<div class="card au a2">
+  <div class="card-h"><div class="card-t"><i class="fas fa-coins" style="color:var(--or);margin-right:7px;"></i>Valorisation {{ methode_affichee }} par produit</div></div>
+  <table class="tbl">
+    <thead><tr>
+      <th>Produit / SKU</th><th>Catégorie</th><th>Qté stock</th>
+      <th>PU {{ methode_affichee }}</th><th>Valeur totale</th>
+      <th>N° compte</th><th>% total</th><th>Variation</th>
+    </tr></thead>
+    <tbody>
+      {% for p in valorisations %}
+      <tr>
+        <td><div style="font-weight:700;font-size:13px;">{{ p.nom }}</div><div class="mono" style="font-size:11px;color:var(--or);">{{ p.sku }}</div></td>
+        <td><span class="badge bg-gy">{{ p.categorie__nom|default:"—" }}</span></td>
+        <td class="mono" style="font-weight:700;">{{ p.quantite_totale }}</td>
+        <td class="mono" style="font-weight:600;">{{ p.prix_unitaire_calcule|floatformat:4 }} FCFA</td>
+        <td><span class="mono" style="font-size:15px;font-weight:800;color:var(--or);">{{ p.valeur_totale|floatformat:2 }} FCFA</span></td>
+        <td class="mono" style="font-size:12px;color:var(--purple);">370000</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:50px;height:4px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:{{ p.pct_total|floatformat:0 }}%;max-width:100%;height:100%;background:var(--or);border-radius:3px;"></div></div>
+            <span class="mono" style="font-size:11px;">{{ p.pct_total|floatformat:1 }}%</span>
+          </div>
+        </td>
+        <td>{% if p.variation > 0 %}<span style="color:var(--green);font-weight:700;font-size:12px;">+{{ p.variation|floatformat:1 }}%</span>
+        {% elif p.variation < 0 %}<span style="color:var(--red);font-weight:700;font-size:12px;">{{ p.variation|floatformat:1 }}%</span>
+        {% else %}<span style="color:var(--text-m);font-size:12px;">—</span>{% endif %}</td>
+      </tr>
+      {% empty %}<tr><td colspan="8"><div class="empty"><i class="fas fa-coins"></i><h3>Aucune valorisation</h3></div></td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr style="background:var(--bg);"><td colspan="4" style="text-align:right;padding:14px;font-size:13px;font-weight:800;color:var(--text-p);">TOTAL</td><td style="padding:14px;"><span class="mono" style="font-size:18px;font-weight:800;color:var(--or);">{{ valeur_totale|floatformat:2 }} FCFA</span></td><td colspan="3"></td></tr></tfoot>
+  </table>
+  {% if valorisations.has_other_pages %}<div class="pager">{% if valorisations.has_previous %}<a href="?page={{ valorisations.previous_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-left" style="font-size:11px;"></i></a>{% endif %}{% for num in valorisations.paginator.page_range %}{% if valorisations.number == num %}<span class="cur">{{ num }}</span>{% elif num > valorisations.number|add:'-3' and num < valorisations.number|add:'3' %}<a href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>{% endif %}{% endfor %}{% if valorisations.has_next %}<a href="?page={{ valorisations.next_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-right" style="font-size:11px;"></i></a>{% endif %}<span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">{{ nb_produits }} produits</span></div>{% endif %}
+</div>
+{% endblock %}

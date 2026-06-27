@@ -1,0 +1,131 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+
+{% block title %}Catégories{% endblock %}
+{% block page_title %}Gestion des catégories{% endblock %}
+{% block page_sub %}Organisation du catalogue produits{% endblock %}
+{% block n_cat %}active{% endblock %}
+
+{% block content %}
+<div class="grid md:grid-cols-2 gap-6">
+  <!-- Formulaire d'ajout -->
+  <div class="card p-6">
+    <h3 class="font-bold mb-4">Ajouter une catégorie</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="ajouter" />
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Nom *</label>
+        <input type="text" name="nom" class="form-input w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Catégorie parente</label>
+        <select name="parent" class="form-input w-full">
+          <option value="">-- Aucune --</option>
+          {% for cat, level in tree %}
+          <option value="{{ cat.id }}">{{ cat.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Ajouter</button>
+    </form>
+  </div>
+
+  <!-- Liste des catégories -->
+  <div class="card p-6">
+    <h3 class="font-bold mb-4">Liste des catégories</h3>
+    {% if tree %}
+    <ul class="divide-y">
+      {% for cat, level in tree %}
+      <li class="py-2 flex justify-between items-center" style="margin-left: {{ level|add:1 }}rem;">
+        <div>
+          <span class="font-medium">{{ cat.nom }}</span>
+          <span class="text-xs text-gray-400 ml-2">({{ cat.produits.count }} produit{{ cat.produits.count|pluralize }})</span>
+        </div>
+        <div>
+          <button onclick="openEditModal('{{ cat.id }}', '{{ cat.nom|escapejs }}', '{{ cat.parent.id|default:'' }}')" class="text-blue-500 mr-2">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button onclick="openDeleteModal('{{ cat.id }}', '{{ cat.nom|escapejs }}')" class="text-red-500">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-500">Aucune catégorie. Créez la première ci-contre.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal modification -->
+<div class="modal-o" id="editModal">
+  <div class="modal">
+    <h3 class="text-lg font-bold mb-4">Modifier la catégorie</h3>
+    <form method="post" id="editForm">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="modifier" />
+      <input type="hidden" name="categorie_id" id="edit_id" />
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Nom</label>
+        <input type="text" name="nom" id="edit_nom" class="form-input w-full" required />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Catégorie parente</label>
+        <select name="parent" id="edit_parent" class="form-input w-full">
+          <option value="">-- Aucune --</option>
+          {% for cat, level in tree %}
+          <option value="{{ cat.id }}">{{ cat.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeModal('editModal')" class="btn btn-ghost">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal suppression -->
+<div class="modal-o" id="deleteModal">
+  <div class="modal">
+    <div class="text-center mb-4">
+      <i class="fas fa-exclamation-triangle text-red-500 text-4xl"></i>
+      <h3 class="text-lg font-bold mt-2">Confirmer la suppression</h3>
+      <p id="deleteMessage" class="text-gray-500 mt-1"></p>
+    </div>
+    <form method="post" id="deleteForm">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="supprimer" />
+      <input type="hidden" name="categorie_id" id="delete_id" />
+      <div class="flex justify-center gap-4">
+        <button type="button" onclick="closeModal('deleteModal')" class="btn btn-ghost">Annuler</button>
+        <button type="submit" class="btn btn-danger">Supprimer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEditModal(id, nom, parentId) {
+    document.getElementById("edit_id").value = id;
+    document.getElementById("edit_nom").value = nom;
+    document.getElementById("edit_parent").value = parentId;
+    document.getElementById("editModal").classList.add("open");
+  }
+  function openDeleteModal(id, nom) {
+    document.getElementById("delete_id").value = id;
+    document.getElementById("deleteMessage").innerText = `Supprimer la catégorie « ${nom} » ?`;
+    document.getElementById("deleteModal").classList.add("open");
+  }
+  function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove("open");
+  }
+  document.querySelectorAll(".modal-o").forEach((modal) => {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.classList.remove("open");
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends 'magasinier/base_magasinier.html' %}
+{% block title %}Inventaire · {{ session.entrepot.nom }}{% endblock %}
+{% block n_inv %}active{% endblock %}
+
+{% block content %}
+
+{# En-tête #}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;" class="au a1">
+  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-m);">
+    <a href="{% url 'magasinier:inventaire_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-arrow-left" style="margin-right:4px;"></i>Inventaires</a>
+  </div>
+  <span class="badge {% if session.statut == 'en_cours' %}bg-or{% else %}bg-gr{% endif %}">{{ session.get_statut_display }}</span>
+</div>
+
+<div style="margin-bottom:16px;" class="au a1">
+  <h2 style="font-size:18px;font-weight:800;color:var(--text-p);">{{ session.entrepot.nom }}</h2>
+  <p style="font-size:12px;color:var(--text-m);margin-top:3px;">Créé le {{ session.date_creation|date:"d/m/Y H:i" }} par {{ session.createur.get_full_name }}</p>
+</div>
+
+{# Progression #}
+<div class="au a1" style="margin-bottom:14px;">
+  <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px;">
+    <span style="color:var(--text-m);">{{ session.lignes_comptees }} / {{ session.total_lignes }} produits</span>
+    <span style="color:var(--or);">{{ session.progression }}%</span>
+  </div>
+  <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+    <div style="width:{{ session.progression }}%;height:100%;background:{% if session.progression==100 %}var(--green){% elif session.progression>60 %}var(--or){% else %}var(--red){% endif %};border-radius:4px;transition:width .5s;"></div>
+  </div>
+</div>
+
+{# Avertissement validation #}
+{% if session.statut == 'en_cours' %}
+<div style="padding:12px 14px;background:var(--yellow-dim);border:1.5px solid #fde68a;border-radius:11px;margin-bottom:14px;font-size:12.5px;color:var(--yellow);display:flex;gap:8px;align-items:flex-start;" class="au a2">
+  <i class="fas fa-circle-info" style="flex-shrink:0;margin-top:2px;"></i>
+  <span>La validation finale sera effectuée par le <strong>gestionnaire de stock</strong>. Saisissez vos comptages et sauvegardez.</span>
+</div>
+{% endif %}
+
+{# Filtre rapide #}
+<div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;" class="au a2">
+  <button onclick="filtrer('all')" id="f-all" class="btn b-or b-sm" style="white-space:nowrap;">Tous</button>
+  <button onclick="filtrer('restant')" id="f-restant" class="btn b-gh b-sm" style="white-space:nowrap;"><i class="fas fa-clock"></i> À compter</button>
+  <button onclick="filtrer('ecart')" id="f-ecart" class="btn b-gh b-sm" style="white-space:nowrap;"><i class="fas fa-triangle-exclamation"></i> Écarts</button>
+  <div class="search-w" style="min-width:180px;flex:1;">
+    <i class="fas fa-search"></i>
+    <input type="text" id="search-inv" placeholder="Chercher…" class="fin" style="height:34px;font-size:12px;">
+  </div>
+</div>
+
+{# Formulaire saisie #}
+<form method="post" action="{% url 'magasinier:inventaire_sauvegarder' session.pk %}" id="inv-form" class="au a3">
+{% csrf_token %}
+
+<div id="lignes-container">
+  {% for ligne in lignes %}
+  <div class="inv-ligne card" style="margin-bottom:10px;padding:0;overflow:hidden;"
+       data-statut="{% if ligne.quantite_comptee is None %}restant{% elif ligne.quantite_comptee == ligne.quantite_theorique %}ok{% else %}ecart{% endif %}"
+       data-nom="{{ ligne.produit.nom|lower }}">
+
+    <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;color:var(--text-p);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ ligne.produit.nom }}</div>
+        <div class="mono" style="font-size:11px;color:var(--or);">{{ ligne.produit.sku }}</div>
+        {% if not session.masquer_stock %}
+        <div style="font-size:11.5px;color:var(--text-m);margin-top:3px;">Attendu : <strong class="mono">{{ ligne.quantite_theorique }}</strong></div>
+        {% endif %}
+      </div>
+
+      {# Saisie quantité #}
+      {% if session.statut == 'en_cours' %}
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <button type="button" onclick="chgQte(this,-1)" style="width:36px;height:36px;border:1.5px solid var(--border);border-radius:9px;background:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-m);">−</button>
+        <input type="number" name="qte_{{ ligne.pk }}"
+               class="fin mono qte-inp" min="0"
+               value="{{ ligne.quantite_comptee|default:'' }}"
+               data-theorique="{{ ligne.quantite_theorique }}"
+               data-pk="{{ ligne.pk }}"
+               placeholder="—"
+               oninput="majEcart(this)"
+               style="width:72px;text-align:center;font-size:18px;font-weight:800;height:42px;padding:0 6px;">
+        <button type="button" onclick="chgQte(this,1)"  style="width:36px;height:36px;border:1.5px solid var(--or);border-radius:9px;background:var(--or);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;">+</button>
+      </div>
+      {% else %}
+      <span class="mono" style="font-size:20px;font-weight:800;color:var(--text-p);flex-shrink:0;">{{ ligne.quantite_comptee|default:"—" }}</span>
+      {% endif %}
+
+      {# Écart #}
+      <div class="ecart-badge" id="ecart-{{ ligne.pk }}" style="width:48px;text-align:center;flex-shrink:0;">
+        {% if ligne.quantite_comptee is not None %}
+        <span style="font-size:15px;font-weight:800;color:{% if ligne.ecart > 0 %}var(--green){% elif ligne.ecart < 0 %}var(--red){% else %}var(--text-m){% endif %};">
+          {% if ligne.ecart > 0 %}+{% endif %}{{ ligne.ecart }}
+        </span>
+        {% else %}
+        <span style="font-size:12px;color:var(--text-m);">—</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty card" style="padding:36px 20px;">
+    <i class="fas fa-box"></i>
+    <h3>Aucun produit dans cet entrepôt</h3>
+  </div>
+  {% endfor %}
+</div>
+
+{% if session.statut == 'en_cours' %}
+<div style="margin-top:16px;display:flex;gap:10px;">
+  <button type="submit" name="action" value="sauvegarder" class="btn b-or b-lg" style="flex:1;height:54px;font-size:15px;">
+    <i class="fas fa-floppy-disk"></i> Sauvegarder
+  </button>
+  <button type="submit" name="action" value="suspendre" class="btn b-gh" style="height:54px;">
+    <i class="fas fa-pause"></i>
+  </button>
+</div>
+{% endif %}
+</form>
+
+{% endblock %}
+
+{% block xjs %}
+<script>
+function chgQte(btn, delta) {
+  const row = btn.closest('.inv-ligne');
+  const inp = row.querySelector('.qte-inp');
+  const cur = inp.value === '' ? 0 : parseInt(inp.value);
+  inp.value = Math.max(0, cur + delta);
+  majEcart(inp);
+}
+
+function majEcart(inp) {
+  const th = parseInt(inp.dataset.theorique) || 0;
+  const v = inp.value === '' ? null : parseInt(inp.value);
+  const el = document.getElementById('ecart-' + inp.dataset.pk);
+  const row = inp.closest('.inv-ligne');
+  if (v === null) { el.innerHTML = '<span style="font-size:12px;color:var(--text-m);">—</span>'; row.dataset.statut = 'restant'; return; }
+  const e = v - th;
+  el.innerHTML = `<span style="font-size:15px;font-weight:800;color:${e>0?'var(--green)':e<0?'var(--red)':'var(--text-m)'};">${e>0?'+':''}${e}</span>`;
+  row.dataset.statut = e !== 0 ? 'ecart' : 'ok';
+}
+
+function filtrer(type) {
+  document.querySelectorAll('.inv-ligne').forEach(r => {
+    r.style.display = (type==='all' || r.dataset.statut===type) ? '' : 'none';
+  });
+  ['all','restant','ecart'].forEach(t => {
+    const b = document.getElementById('f-'+t);
+    b.className = 'btn b-sm ' + (t===type ? 'b-or' : 'b-gh');
+    b.style.whiteSpace = 'nowrap';
+  });
+}
+
+document.getElementById('search-inv').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('.inv-ligne').forEach(r => { r.style.display = r.dataset.nom.includes(q) ? '' : 'none'; });
+});
+
+// Tab entre champs
+document.querySelectorAll('.qte-inp').forEach((inp, i, arr) => {
+  inp.addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();if(arr[i+1])arr[i+1].focus();} });
+});
+</script>
+{% endblock %}

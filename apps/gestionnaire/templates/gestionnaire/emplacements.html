@@ -1,0 +1,141 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+<!---->
+{% block title %}Emplacements{% endblock %}
+<!---->
+{% block page_title %}Gestion des emplacements{% endblock %}
+<!---->
+{% block page_sub %}Organisation physique des entrepôts{% endblock %}
+<!---->
+{% block n_empl %}active{% endblock %}
+<!---->
+{% block content %}
+<div class="grid md:grid-cols-2 gap-6">
+  <!-- Formulaire d'ajout -->
+  <div class="card p-6">
+    <h3 class="font-bold mb-4">Ajouter un emplacement</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="creer" />
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Entrepôt *</label>
+        <select name="entrepot" class="form-input w-full" required>
+          <option value="">-- Sélectionner --</option>
+          {% for e in entrepots %}
+          <option value="{{ e.id }}">{{ e.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1"
+          >Code de l'emplacement *</label
+        >
+        <input
+          type="text"
+          name="code"
+          class="form-input w-full"
+          placeholder="Ex: A-01, RACK-3, ALLEE-4"
+          required
+        />
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1"
+          >Description (optionnel)</label
+        >
+        <textarea
+          name="description"
+          class="form-input w-full"
+          rows="2"
+          placeholder="Emplacement près de la zone de réception..."
+        ></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Créer</button>
+    </form>
+  </div>
+
+  <!-- Liste des emplacements par entrepôt -->
+  <div class="card p-6">
+    <h3 class="font-bold mb-4">Emplacements existants</h3>
+    {% if entrepots %} {% for e in entrepots %}
+    <div class="mb-6 border-b border-gray-200 pb-4 last:border-0">
+      <h4 class="font-semibold text-orange-600 mb-2">{{ e.nom }}</h4>
+      {% if e.emplacements.all %}
+      <ul class="space-y-1">
+        {% for empl in e.emplacements.all %}
+        <li class="flex justify-between items-center py-1">
+          <div>
+            <span class="font-mono text-sm font-medium">{{ empl.code }}</span>
+            {% if empl.description %}
+            <span class="text-xs text-gray-400 ml-2"
+              >— {{ empl.description }}</span
+            >
+            {% endif %}
+          </div>
+          <div>
+            <button
+              onclick="openDeleteModal('{{ empl.id }}', '{{ empl.code }}', '{{ e.nom }}')"
+              class="text-red-500 hover:text-red-700 text-sm"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-gray-400 text-sm italic">
+        Aucun emplacement dans cet entrepôt.
+      </p>
+      {% endif %}
+    </div>
+    {% endfor %} {% else %}
+    <p class="text-gray-500">
+      Aucun entrepôt créé. Veuillez d'abord créer un entrepôt dans l'admin
+      entreprise.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal suppression -->
+<div class="modal-o" id="deleteModal">
+  <div class="modal">
+    <div class="text-center mb-4">
+      <i class="fas fa-exclamation-triangle text-red-500 text-4xl"></i>
+      <h3 class="text-lg font-bold mt-2">Supprimer l'emplacement</h3>
+      <p id="deleteMessage" class="text-gray-500 mt-1"></p>
+    </div>
+    <form method="post" id="deleteForm">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="supprimer" />
+      <input type="hidden" name="emplacement_id" id="delete_id" />
+      <div class="flex justify-center gap-4">
+        <button
+          type="button"
+          onclick="closeModal('deleteModal')"
+          class="btn btn-ghost"
+        >
+          Annuler
+        </button>
+        <button type="submit" class="btn btn-danger">Supprimer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openDeleteModal(id, code, entrepot) {
+    document.getElementById("delete_id").value = id;
+    document.getElementById("deleteMessage").innerText =
+      `Supprimer l'emplacement "${code}" de l'entrepôt "${entrepot}" ?`;
+    document.getElementById("deleteModal").classList.add("open");
+  }
+  function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove("open");
+  }
+  document.querySelectorAll(".modal-o").forEach((modal) => {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.classList.remove("open");
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends 'auditeur/base_auditeur.html' %}
+{% block title %}Mouvements{% endblock %}
+{% block page_title %}Mouvements de stock{% endblock %}
+{% block page_sub %}Audit complet · {{ user.entreprise.nom }}{% endblock %}
+{% block n_mouv %}active{% endblock %}
+
+{% block content %}
+
+{# Filtres complets #}
+<div class="card au a1" style="padding:16px 20px;margin-bottom:18px;">
+  <form method="get" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+    <div class="search-w" style="width:210px;">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Produit, SKU, référence…" class="fin" style="height:36px;font-size:13px;">
+    </div>
+    <select name="type" class="fin" style="width:145px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous types</option>
+      <option value="entree"     {% if request.GET.type == 'entree' %}selected{% endif %}>Entrée</option>
+      <option value="sortie"     {% if request.GET.type == 'sortie' %}selected{% endif %}>Sortie</option>
+      <option value="transfert"  {% if request.GET.type == 'transfert' %}selected{% endif %}>Transfert</option>
+      <option value="ajustement" {% if request.GET.type == 'ajustement' %}selected{% endif %}>Ajustement</option>
+    </select>
+    <select name="entrepot" class="fin" style="width:160px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous entrepôts</option>
+      {% for e in entrepots %}
+      <option value="{{ e.id }}" {% if request.GET.entrepot == e.id|stringformat:"s" %}selected{% endif %}>{{ e.nom }}</option>
+      {% endfor %}
+    </select>
+    <select name="utilisateur" class="fin" style="width:170px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous opérateurs</option>
+      {% for u in utilisateurs %}
+      <option value="{{ u.id }}" {% if request.GET.utilisateur == u.id|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="date_debut" value="{{ request.GET.date_debut }}" class="fin" style="width:145px;height:36px;font-size:13px;">
+    <input type="date" name="date_fin"   value="{{ request.GET.date_fin }}"   class="fin" style="width:145px;height:36px;font-size:13px;">
+    <button type="submit" class="btn b-or b-sm"><i class="fas fa-filter"></i> Filtrer</button>
+    {% if request.GET.q or request.GET.type or request.GET.entrepot or request.GET.date_debut %}
+    <a href="{% url 'auditeur:mouvements' %}" class="btn b-gh b-sm"><i class="fas fa-xmark"></i></a>
+    {% endif %}
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm"><i class="fas fa-file-csv"></i> CSV</a>
+      <a href="?{{ request.GET.urlencode }}&export=pdf" class="btn b-gh b-sm"><i class="fas fa-file-pdf"></i> PDF</a>
+    </div>
+  </form>
+</div>
+
+{# Résumé chiffres #}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;" class="au a1">
+  <div style="background:white;border:1.5px solid var(--green-dim);border-radius:11px;padding:13px 16px;">
+    <div style="font-size:11px;color:var(--text-m);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Entrées</div>
+    <div class="mono" style="font-size:22px;font-weight:800;color:var(--green);">+{{ total_entrees }}</div>
+    <div style="font-size:11px;color:var(--text-m);">{{ montant_entrees|floatformat:0 }} FCFA</div>
+  </div>
+  <div style="background:white;border:1.5px solid var(--red-dim);border-radius:11px;padding:13px 16px;">
+    <div style="font-size:11px;color:var(--text-m);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Sorties</div>
+    <div class="mono" style="font-size:22px;font-weight:800;color:var(--red);">−{{ total_sorties }}</div>
+    <div style="font-size:11px;color:var(--text-m);">{{ montant_sorties|floatformat:0 }} FCFA</div>
+  </div>
+  <div style="background:white;border:1.5px solid var(--blue-dim);border-radius:11px;padding:13px 16px;">
+    <div style="font-size:11px;color:var(--text-m);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Transferts</div>
+    <div class="mono" style="font-size:22px;font-weight:800;color:var(--blue);">{{ total_transferts }}</div>
+  </div>
+  <div style="background:white;border:1.5px solid var(--yellow-dim);border-radius:11px;padding:13px 16px;">
+    <div style="font-size:11px;color:var(--text-m);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Ajustements</div>
+    <div class="mono" style="font-size:22px;font-weight:800;color:var(--yellow);">{{ total_ajustements }}</div>
+  </div>
+</div>
+
+<div class="card au a2">
+  <div class="card-h">
+    <div><div class="card-t"><i class="fas fa-arrows-rotate" style="color:var(--or);margin-right:7px;"></i>Historique complet</div><div class="card-sub">{{ total_mouvements }} mouvement{{ total_mouvements|pluralize }}</div></div>
+  </div>
+  {% if mouvements %}
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Date</th><th>Produit</th><th>Type</th><th>Quantité</th>
+        <th>Valeur unitaire</th><th>Valeur totale</th><th>Entrepôt</th>
+        <th>Opérateur</th><th>Référence</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in mouvements %}
+      <tr>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ m.date_mouvement|date:"d/m/Y H:i" }}</td>
+        <td>
+          <div style="font-weight:600;font-size:13px;">{{ m.produit.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--or);">{{ m.produit.sku }}</div>
+        </td>
+        <td>
+          {% if m.type_mouvement == 'entree' %}<span class="badge bg-gr">Entrée</span>
+          {% elif m.type_mouvement == 'sortie' %}<span class="badge bg-re">Sortie</span>
+          {% elif m.type_mouvement == 'transfert' %}<span class="badge bg-bl">Transfert</span>
+          {% else %}<span class="badge bg-ye">{{ m.get_type_mouvement_display }}</span>{% endif %}
+        </td>
+        <td class="mono" style="font-weight:800;font-size:15px;color:{% if m.type_mouvement == 'sortie' %}var(--red){% elif m.type_mouvement == 'entree' %}var(--green){% else %}var(--or){% endif %};">
+          {% if m.type_mouvement == 'entree' %}+{% elif m.type_mouvement == 'sortie' %}−{% endif %}{{ m.quantite }}
+        </td>
+        <td class="mono" style="font-size:12px;">{{ m.produit.prix_unitaire|floatformat:2 }} FCFA</td>
+        <td class="mono" style="font-weight:700;color:var(--or);">{{ m.valeur_totale|floatformat:2 }} FCFA</td>
+        <td style="font-size:12px;color:var(--text-m);">{{ m.entrepot.nom|default:"—" }}</td>
+        <td style="font-size:12px;">{{ m.utilisateur.get_full_name }}</td>
+        <td class="mono" style="font-size:11px;color:var(--blue);">{{ m.reference_document|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if mouvements.has_other_pages %}
+  <div class="pager">
+    {% if mouvements.has_previous %}<a href="?page={{ mouvements.previous_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-left" style="font-size:11px;"></i></a>{% endif %}
+    {% for num in mouvements.paginator.page_range %}
+      {% if mouvements.number == num %}<span class="cur">{{ num }}</span>
+      {% elif num > mouvements.number|add:'-3' and num < mouvements.number|add:'3' %}<a href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>{% endif %}
+    {% endfor %}
+    {% if mouvements.has_next %}<a href="?page={{ mouvements.next_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-right" style="font-size:11px;"></i></a>{% endif %}
+    <span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">{{ mouvements.paginator.count }} résultats</span>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty"><i class="fas fa-arrows-rotate"></i><h3>Aucun mouvement</h3></div>
+  {% endif %}
+</div>
+{% endblock %}

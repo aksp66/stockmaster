@@ -1,0 +1,99 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Inscription –
+Compte administrateur{% endblock %} {% block content %}
+<div class="wrap">
+  <div class="stepper">
+    <div class="step">
+      <div class="step-dot done">✓</div>
+      <div class="step-label">Type</div>
+    </div>
+    <div class="step">
+      <div class="step-dot done">✓</div>
+      <div class="step-label">Entreprise</div>
+    </div>
+    <div class="step">
+      <div class="step-dot active">3</div>
+      <div class="step-label active">Admin</div>
+    </div>
+    <div class="step">
+      <div class="step-dot">4</div>
+      <div class="step-label">Confirmation</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      <h2>Votre compte administrateur</h2>
+      <p class="sub">
+        Vous serez l'Admin Entreprise — vous pourrez inviter votre équipe
+        ensuite.
+      </p>
+
+      <div class="row">
+        <div class="field">
+          <label>{{ form.first_name.label }}</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}
+            <div class="field-error">{{ form.first_name.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="field">
+          <label>{{ form.last_name.label }}</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}
+            <div class="field-error">{{ form.last_name.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>{{ form.email.label }}</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <div class="field-error">{{ form.email.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label>{{ form.password1.label }}</label>
+        {{ form.password1 }}
+        <div style="font-size: 11px; color: #6b7280">8 caractères minimum</div>
+        {% if form.password1.errors %}
+          <div class="field-error">{{ form.password1.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label>{{ form.password2.label }}</label>
+        {{ form.password2 }}
+        {% if form.password2.errors %}
+          <div class="field-error">{{ form.password2.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="error" style="color: #ef4444; font-size: 12px; margin-bottom: 1rem">
+          {{ form.non_field_errors|join:", " }}
+        </div>
+      {% endif %}
+
+      <div style="font-size: 12px; color: #6b7280; margin-top: -6px; margin-bottom: 1rem;">
+        Application sécurisée — vos données sont chiffrées (TLS + AES-256)
+      </div>
+
+      <div class="btn-row">
+        <a href="?step=2" class="btn-secondary">← Retour</a>
+        <button type="submit" class="btn-primary">Créer mon compte →</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .field-error {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'comptable/base_comptable.html' %}
+{% block title %}Marges{% endblock %}
+{% block page_title %}Analyse des marges{% endblock %}
+{% block page_sub %}Prix achat vs vente · {{ user.entreprise.nom }}{% endblock %}
+{% block n_mar %}active{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;" class="au a1">
+  <div class="stat s-gr"><div class="si"><i class="fas fa-chart-line"></i></div><div class="sv" style="font-size:22px;">{{ marge_brute_globale|floatformat:1 }}%</div><div class="sl">Marge brute globale</div><i class="fas fa-percent sc"></i></div>
+  <div class="stat s-or"><div class="si"><i class="fas fa-arrow-trend-up"></i></div><div class="sv" style="font-size:20px;">{{ ca_total|floatformat:0 }} FCFA</div><div class="sl">CA estimé</div><i class="fas fa-coins sc"></i></div>
+  <div class="stat s-bl"><div class="si"><i class="fas fa-minus"></i></div><div class="sv" style="font-size:20px;">{{ cout_total|floatformat:0 }} FCFA</div><div class="sl">Coût total achat</div><i class="fas fa-minus sc"></i></div>
+  <div class="stat s-pu"><div class="si"><i class="fas fa-equals"></i></div><div class="sv" style="font-size:20px;">{{ marge_nette_total|floatformat:0 }} FCFA</div><div class="sl">Marge nette (FCFA)</div><i class="fas fa-calculator sc"></i></div>
+</div>
+
+{# Filtres #}
+<div class="card au a1" style="padding:12px 16px;margin-bottom:16px;">
+  <form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <select name="categorie" class="fin" style="width:170px;height:34px;font-size:13px;padding:0 10px;">
+      <option value="">Toutes catégories</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if request.GET.categorie == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nom }}</option>{% endfor %}
+    </select>
+    <select name="tri" class="fin" style="width:170px;height:34px;font-size:13px;padding:0 10px;">
+      <option value="marge_desc" {% if request.GET.tri == 'marge_desc' %}selected{% endif %}>Marge ↓</option>
+      <option value="marge_asc"  {% if request.GET.tri == 'marge_asc' %}selected{% endif %}>Marge ↑</option>
+      <option value="ca_desc"    {% if request.GET.tri == 'ca_desc' %}selected{% endif %}>CA ↓</option>
+    </select>
+    <button type="submit" class="btn b-or b-sm"><i class="fas fa-filter"></i> Filtrer</button>
+    <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm" style="margin-left:auto;"><i class="fas fa-download"></i> CSV</a>
+  </form>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 300px;gap:18px;" class="au a2">
+  <div class="card">
+    <div class="card-h"><div class="card-t"><i class="fas fa-chart-line" style="color:var(--or);margin-right:7px;"></i>Marges par produit</div></div>
+    <table class="tbl">
+      <thead><tr><th>Produit</th><th>PU achat (CUMP)</th><th>PU vente</th><th>Marge unitaire</th><th>Marge %</th><th>Qté vendue</th><th>Marge totale</th></tr></thead>
+      <tbody>
+        {% for p in marges %}
+        <tr>
+          <td><div style="font-weight:700;font-size:13px;">{{ p.nom }}</div><div class="mono" style="font-size:11px;color:var(--or);">{{ p.sku }}</div></td>
+          <td class="mono" style="font-size:13px;">{{ p.prix_achat_cump|floatformat:2 }} FCFA</td>
+          <td class="mono" style="font-size:13px;font-weight:600;">{{ p.prix_vente|floatformat:2 }} FCFA</td>
+          <td class="mono" style="font-weight:800;color:{% if p.marge_unitaire > 0 %}var(--green){% else %}var(--red){% endif %};">{{ p.marge_unitaire|floatformat:2 }} FCFA</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:7px;">
+              <div style="width:50px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:{% if p.marge_pct > 0 %}{{ p.marge_pct|floatformat:0|default:0 }}{% else %}0{% endif %}%;max-width:100%;height:100%;background:{% if p.marge_pct > 20 %}var(--green){% elif p.marge_pct > 10 %}var(--or){% else %}var(--red){% endif %};border-radius:3px;"></div></div>
+              <span class="mono" style="font-size:12px;font-weight:700;color:{% if p.marge_pct > 20 %}var(--green){% elif p.marge_pct > 10 %}var(--or){% else %}var(--red){% endif %};">{{ p.marge_pct|floatformat:1 }}%</span>
+            </div>
+          </td>
+          <td class="mono">{{ p.qte_vendue }}</td>
+          <td class="mono" style="font-weight:800;color:{% if p.marge_totale > 0 %}var(--green){% else %}var(--red){% endif %};">{{ p.marge_totale|floatformat:2 }} FCFA</td>
+        </tr>
+        {% empty %}<tr><td colspan="7"><div class="empty"><i class="fas fa-chart-line"></i><h3>Aucune donnée de marge</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card" style="padding:18px;height:fit-content;">
+    <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-chart-pie" style="color:var(--or);margin-right:6px;"></i>Répartition marges</div>
+    <canvas id="chart-marges" height="220"></canvas>
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;"><span style="color:var(--text-m);">Produits > 20%</span><span class="mono" style="font-weight:700;color:var(--green);">{{ nb_marge_haute }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;"><span style="color:var(--text-m);">Produits 10-20%</span><span class="mono" style="font-weight:700;color:var(--or);">{{ nb_marge_med }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;"><span style="color:var(--text-m);">Produits < 10%</span><span class="mono" style="font-weight:700;color:var(--red);">{{ nb_marge_basse }}</span></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block xjs %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('chart-marges').getContext('2d'), {
+  type:'doughnut', data:{ labels:['> 20%','10–20%','< 10%'],
+    datasets:[{ data:[{{ nb_marge_haute }},{{ nb_marge_med }},{{ nb_marge_basse }}], backgroundColor:['#059669','#f97316','#dc2626'], borderWidth:2, borderColor:'white' }]},
+  options:{ responsive:true, plugins:{ legend:{ display:false } }, cutout:'62%' }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockMaster — Livrables UML & Introduction</title>
+<style>
+/* ── Design Tokens ──────────────────────────────────────────────────── */
+:root {
+  --or:      #F97316;
+  --or-d:    #C2410C;
+  --or-xl:   #FFF7ED;
+  --white:   #FFFFFF;
+  --bg:      #F8F8F7;
+  --border:  #E7E5E0;
+  --txt:     #1C1917;
+  --txt-m:   #78716C;
+  --txt-s:   #A8A29E;
+  --green:   #15803D;
+  --green-l: #DCFCE7;
+  --blue:    #1D4ED8;
+  --blue-l:  #DBEAFE;
+  --red:     #DC2626;
+  --red-l:   #FEE2E2;
+  --amber:   #D97706;
+  --amber-l: #FEF3C7;
+  --r:       12px;
+  --sh:      0 2px 12px rgba(0,0,0,.07);
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+.page{ max-width:1200px; margin:0 auto; padding:32px 24px 60px; display:flex; flex-direction:column; gap:40px; }
+
+/* ── Cover ──────────────────────────────────────────────────────────── */
+.cover{
+  background:linear-gradient(135deg,#1C1917 0%,#292524 60%,#1C1917 100%);
+  border-radius:var(--r); padding:48px 40px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.cover::before{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 70% 20%, rgba(249,115,22,.18) 0%, transparent 60%);
+}
+.cover-badge{
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(249,115,22,.15); border:1px solid rgba(249,115,22,.3);
+  color:var(--or); border-radius:20px; padding:6px 16px; font-size:.8rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em; margin-bottom:24px;
+}
+.cover h1{ font-size:2.8rem; font-weight:900; color:var(--white); margin-bottom:8px; line-height:1.1; position:relative; }
+.cover h1 span{ color:var(--or); }
+.cover-sub{ font-size:1.1rem; color:rgba(255,255,255,.55); margin-bottom:32px; position:relative; }
+.cover-pills{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; position:relative; }
+.pill{
+  padding:6px 14px; border-radius:8px; font-size:.8rem; font-weight:600;
+  background:rgba(255,255,255,.08); color:rgba(255,255,255,.7); border:1px solid rgba(255,255,255,.12);
+}
+
+/* ── Section card ───────────────────────────────────────────────────── */
+.section{
+  background:var(--white); border:1px solid var(--border);
+  border-radius:var(--r); box-shadow:var(--sh); overflow:hidden;
+}
+.section-header{
+  padding:20px 28px 16px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:12px;
+}
+.section-num{
+  width:36px; height:36px; border-radius:10px;
+  background:linear-gradient(135deg,var(--or),var(--or-d));
+  display:flex; align-items:center; justify-content:center;
+  font-size:.875rem; font-weight:900; color:white; flex-shrink:0;
+}
+.section-title{ font-size:1.1rem; font-weight:800; color:var(--txt); }
+.section-sub  { font-size:.8125rem; color:var(--txt-m); margin-top:2px; }
+.section-body { padding:28px; }
+
+/* ── Introduction ───────────────────────────────────────────────────── */
+.intro-text p{
+  font-size:.9375rem; line-height:1.8; color:var(--txt);
+  margin-bottom:14px; text-align:justify;
+}
+.intro-text p strong{ color:var(--or-d); }
+.intro-highlight{
+  background:var(--or-xl); border:1px solid rgba(249,115,22,.2);
+  border-left:4px solid var(--or); border-radius:0 8px 8px 0;
+  padding:14px 18px; margin:18px 0; font-size:.9rem; color:var(--txt-m); line-height:1.7;
+}
+.intro-highlight strong{ color:var(--or-d); }
+
+/* ── Diagramme de contexte ──────────────────────────────────────────── */
+.ctx-wrap{ position:relative; width:100%; min-height:520px; display:flex; align-items:center; justify-content:center; }
+.ctx-svg{ width:100%; max-width:900px; height:auto; }
+
+/* ── Tableau acteurs/cas d'utilisation ──────────────────────────────── */
+.tbl-wrapper{ overflow-x:auto; }
+table.uc-tbl{ width:100%; border-collapse:collapse; font-size:.875rem; }
+table.uc-tbl thead tr{ background:linear-gradient(135deg,var(--or),var(--or-d)); }
+table.uc-tbl thead th{
+  padding:12px 16px; text-align:left; font-weight:700; color:white;
+  font-size:.8rem; letter-spacing:.04em; text-transform:uppercase;
+}
+table.uc-tbl thead th:first-child{ border-radius:var(--r) 0 0 0; }
+table.uc-tbl thead th:last-child{ border-radius:0 var(--r) 0 0; }
+table.uc-tbl tbody tr{ border-bottom:1px solid var(--border); transition:background .12s; }
+table.uc-tbl tbody tr:hover td{ background:#FFFBF7; }
+table.uc-tbl tbody tr:last-child{ border-bottom:none; }
+table.uc-tbl td{ padding:11px 16px; vertical-align:top; }
+table.uc-tbl td:first-child{
+  font-weight:700; white-space:nowrap;
+  border-right:2px solid var(--border);
+}
+.actor-chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 10px; border-radius:8px; font-size:.8rem; font-weight:700;
+  margin-bottom:2px;
+}
+.ac-sa { background:#1E2940; color:#93C5FD; }
+.ac-ae { background:var(--or-xl); color:var(--or-d); }
+.ac-ge { background:var(--green-l); color:var(--green); }
+.ac-ra { background:var(--blue-l); color:var(--blue); }
+.ac-ma { background:#FEF9C3; color:#A16207; }
+.ac-au { background:#F3E8FF; color:#7E22CE; }
+.ac-co { background:var(--red-l); color:var(--red); }
+.uc-list{ list-style:none; padding:0; margin:0; }
+.uc-list li{
+  padding:3px 0 3px 14px; position:relative; font-size:.82rem;
+  color:var(--txt-m); line-height:1.5; border-bottom:none;
+}
+.uc-list li::before{ content:"→"; position:absolute; left:0; color:var(--or); font-weight:700; }
+
+/* ── Diagramme cas d'utilisation ────────────────────────────────────── */
+.ucd-svg{ width:100%; height:auto; font-family:'Segoe UI',system-ui,sans-serif; }
+
+/* ── Diagramme de séquence ──────────────────────────────────────────── */
+.seq-svg{ width:100%; height:auto; }
+
+/* ── Print ──────────────────────────────────────────────────────────── */
+@media print{
+  body{ background:white; }
+  .cover{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .section{ box-shadow:none; border:1px solid #ddd; page-break-inside:avoid; }
+  .page{ padding:16px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ COUVERTURE ══════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-badge">📦 Groupe B · Projet de fin de licence</div>
+  <h1>Stock<span>Master</span></h1>
+  <p class="cover-sub">Système de Gestion de Stock Intelligent · Livrables UML & Analyse</p>
+  <div class="cover-pills">
+    <span class="pill">Introduction générale</span>
+    <span class="pill">Diagramme de contexte</span>
+    <span class="pill">Tableau acteurs/CU</span>
+    <span class="pill">Diagramme cas d'utilisation</span>
+    <span class="pill">Diagramme de séquence</span>
+  </div>
+</div>
+
+
+<!-- ══ 1. INTRODUCTION GÉNÉRALE ════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <div>
+      <div class="section-title">Introduction générale</div>
+      <div class="section-sub">Contexte, problématique, objectifs et organisation du projet</div>
+    </div>
+  </div>
+  <div class="section-body">
+    <div class="intro-text">
+
+      <p><strong>Contexte général.</strong> Dans un environnement économique de plus en plus compétitif, la maîtrise des stocks constitue un avantage concurrentiel décisif pour les entreprises commerciales et industrielles. En Afrique de l'Ouest, et plus particulièrement au Togo, la majorité des PME gèrent encore leurs approvisionnements à travers des outils disparates : tableurs Excel, cahiers manuscrits ou logiciels de bureau obsolètes. Ces pratiques, bien qu'ancrées dans les habitudes, exposent les entreprises à des risques opérationnels majeurs.</p>
+
+      <p><strong>Problématique.</strong> La gestion manuelle des stocks engendre plusieurs dysfonctionnements récurrents et coûteux : les ruptures de stock non anticipées provoquent des pertes de ventes et dégradent la satisfaction client ; les sur-stocks immobilisent inutilement du capital et génèrent des coûts d'entreposage injustifiés ; l'absence d'historique centralisé rend impossible toute analyse de tendance ou prévision fiable ; enfin, les opérations terrain — inventaires physiques, réceptions de marchandises — nécessitent une présence informatique fixe, incompatible avec la réalité de nombreux entrepôts. Face à ces contraintes, il devient urgent de proposer une solution numérique intégrée, accessible, et capable d'anticiper les besoins en approvisionnement.</p>
+
+      <div class="intro-highlight">
+        <strong>Question centrale :</strong> Comment concevoir et développer une plateforme web de gestion de stocks multi-entrepôts, accessible sur smartphone, intégrant des mécanismes de prédiction par intelligence artificielle, tout en garantissant la sécurité des données dans un contexte multi-entreprises ?
+      </div>
+
+      <p><strong>Présentation du projet StockMaster.</strong> Pour répondre à cette problématique, nous proposons <strong>StockMaster</strong>, une application web intelligente développée avec le framework Django 5 (Python). StockMaster est conçu comme une solution SaaS multi-tenant permettant à plusieurs entreprises de gérer leurs stocks de façon totalement isolée sur une même infrastructure partagée. L'application couvre l'intégralité de la chaîne logistique interne : de la création des produits et la gestion des fournisseurs jusqu'à la valorisation comptable des stocks, en passant par le suivi en temps réel des mouvements, la gestion des inventaires physiques et la génération automatique d'alertes de réapprovisionnement.</p>
+
+      <p><strong>Apport de l'intelligence artificielle.</strong> L'une des particularités de StockMaster réside dans l'intégration d'un module de prédiction basé sur Prophet (Meta) et RandomForest (scikit-learn). À partir de l'historique des sorties de stock sur 24 mois, le système prédit automatiquement la consommation future sur un horizon de 30 jours, calcule un score de confiance, et génère des suggestions d'achat avec les quantités recommandées. Ces analyses sont déclenchées automatiquement chaque nuit par le planificateur Celery Beat, ou manuellement par l'administrateur depuis l'interface.</p>
+
+      <p><strong>Application mobile progressive (PWA).</strong> Pour les opérations terrain, StockMaster propose une Progressive Web App installable sur smartphone Android et iOS. Cette application permet aux magasiniers de scanner des codes-barres via la caméra du téléphone, d'enregistrer des entrées et sorties rapides, et de participer aux inventaires physiques — le tout en mode hors ligne si la connexion est instable, grâce à un Service Worker qui synchronise les données dès le retour de la connectivité.</p>
+
+      <p><strong>Architecture technique.</strong> StockMaster repose sur une stack technique moderne et éprouvée : Django 5 pour le backend, PostgreSQL pour la persistance, Redis et Celery pour l'asynchronisme, Django REST Framework et SimpleJWT pour l'API mobile. Le frontend utilise un design system cohérent blanc/orange décliné en interfaces distinctes pour chacun des sept rôles utilisateurs. L'architecture modulaire — une application Django par domaine fonctionnel — facilite la maintenabilité et l'évolution du projet.</p>
+
+      <p><strong>Objectifs du projet.</strong> Ce projet de fin de licence vise plusieurs objectifs complémentaires : démontrer notre capacité à concevoir et développer une application web de niveau professionnel ; mettre en œuvre les bonnes pratiques du génie logiciel (modélisation UML, tests, code review, gestion de version) ; appliquer des techniques d'intelligence artificielle à un problème métier concret ; et produire une solution fonctionnelle, documentée, et potentiellement déployable en contexte réel.</p>
+
+      <p><strong>Organisation du document.</strong> Ce document présente les principaux livrables d'analyse et de conception du projet. Il comprend : le diagramme de contexte statique du système, un tableau de répartition des cas d'utilisation par acteur, le diagramme de cas d'utilisation général, le diagramme de séquence général illustrant les interactions dynamiques entre composants, et la présente introduction. L'ensemble constitue la base de la phase de conception préalable au développement.</p>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ 2. DIAGRAMME DE CONTEXTE STATIQUE ═══════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <div>
+      <div class="section-title">Diagramme de contexte statique</div>
+      <div class="section-sub">Acteurs externes et frontières du système StockMaster</div>
+    </div>
+  </div>
+  <div class="section-body">
+    <p style="font-size:.875rem;color:var(--txt-m);margin-bottom:20px;line-height:1.6;">
+      Le diagramme de contexte positionne StockMaster au centre de son écosystème et identifie l'ensemble des entités externes qui interagissent avec le système, leurs flux d'information et les frontières du périmètre applicatif.
+    </p>
+
+    <svg class="ctx-svg" viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Gradients -->
+        <radialGradient id="gCenter" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF7ED"/>
+          <stop offset="100%" stop-color="#FFEDD5"/>
+        </radialGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#00000018"/>
+        </filter>
+        <filter id="shadowSm" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000012"/>
+        </filter>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#94A3B8"/>
+        </marker>
+        <marker id="arrowOr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#F97316"/>
+        </marker>
+      </defs>
+
+      <!-- ── Centre : Système StockMaster ────────────────────────────── -->
+      <ellipse cx="450" cy="280" rx="130" ry="80" fill="url(#gCenter)" stroke="#F97316" stroke-width="3" filter="url(#shadow)"/>
+      <ellipse cx="450" cy="280" rx="124" ry="74" fill="none" stroke="#FDBA74" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="450" y="268" text-anchor="middle" font-family="Segoe UI,system-ui" font-size="15" font-weight="900" fill="#C2410C">STOCKMASTER</text>
+      <text x="450" y="285" text-anchor="middle" font-family="Segoe UI,system-ui" font-size="10" fill="#92400E">Système de gestion</text>
+      <text x="450" y="298" text-anchor="middle" font-family="Segoe UI,system-ui" font-size="10" fill="#92400E">de stock intelligent</text>
+
+      <!-- ── Acteurs humains (stickmen stylisés) ─────────────────────── -->
+
+      <!-- Super Admin — haut centre -->
+      <g transform="translate(450,38)" filter="url(#shadowSm)">
+        <rect x="-52" y="-2" width="104" height="56" rx="8" fill="#1E2940" stroke="#3B5BDB" stroke-width="1.5"/>
+        <text x="0" y="14" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="700" fill="#93C5FD">Super Admin</text>
+        <text x="0" y="27" text-anchor="middle" font-family="Segoe UI" font-size="9" fill="#93C5FD" opacity=".7">Plateforme globale</text>
+        <text x="0" y="40" text-anchor="middle" font-family="Segoe UI" font-size="16"></text>
+      </g>
+      <!-- flèche Super Admin ↕ -->
+      <line x1="450" y1="94" x2="450" y2="198" stroke="#3B5BDB" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+      <line x1="450" y1="198" x2="450" y2="94" stroke="#3B5BDB" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+      <!-- Admin Entreprise — haut gauche -->
+      <g transform="translate(160,80)" filter="url(#shadowSm)">
+        <rect x="-58" y="-2" width="116" height="56" rx="8" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
+        <text x="0" y="14" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="700" fill="#C2410C">Admin Entreprise</text>
+        <text x="0" y="27" text-anchor="middle" font-family="Segoe UI" font-size="9" fill="#92400E" opacity=".8">Config & pilotage</text>
+        <text x="0" y="40" text-anchor="middle" font-family="Segoe UI" font-size="16"></text>
+      </g>
+      <line x1="218" y1="108" x2="322" y2="240" stroke="#F97316" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrowOr)"/>
+      <line x1="322" y1="240" x2="218" y2="108" stroke="#F97316" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrowOr)"/>
+
+      <!-- Gestionnaire — gauche -->
+      <g transform="translate(60,270)" filter="url(#shadowSm)">
+        <rect x="-55" y="-2" width="110" height="56" rx="8" fill="#DCFCE7" stroke="#15803D" stroke-width="1.5"/>
+        <text x="0" y="14" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="700" fill="#14532D">Gestionnaire</text>
+        <text x="0" y="27" text-anchor="middle" font-family="Segoe UI" font-size="9" fill="#166534" opacity=".8">CRUD stock</text>
+        <text x="0" y="40" text-anchor="middle" font-family="Segoe UI" font-size="16"></text>
+      </g>
+      <line x1="115" y1="297" x2="320" y2="280" stroke="#15803D" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+      <line x1="320" y1="280" x2="115" y2="297" stroke="#15803D" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+      <!-- Resp. Achat — bas gauche -->
+      <g transform="translate(145,440)" filter="url(#shadowSm)">
+        <rect x="-58" y="-2" width="116" height="56" rx="8" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.5"/>
+        <text x="0" y="14" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="700" fill="#1E3A8A">Resp. Achat</text>
+        <text x="0" y="27" text-anchor="middle" font-family="Segoe UI" font-size="9" fill="#1E40AF" opacity=".8">Commandes & IA</text>
+        <text x="0" y="40" text-anchor="middle" font-family="Segoe UI" font-size="16"></text>
+      </g>
+      <line x1="261" y1="440" x2="350" y2="335" stroke="#1D4ED8" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+      <line x1="350" y1="335" x2="261" y2="440" stroke="#1D4ED8" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+      <!-- Magasinier — bas centre -->
+      <g transform="translate(450,480)" filter="url(#shadowSm)">
+        <rect x="-55" y="-2" width="110" height="56" rx="8" fill="#FEF9C3" stroke="#A16207" stroke-width="1.5"/>
+        <text x="0" y="14" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="700" fill="#78350F">Magasinier</text>
+        <text x="0" y="27" text-anchor="middle" font-family="Segoe UI" font-size="9" fill="#92400E" opacity=".8">Scan mobile</text>
+        <text x="0" y="40" text-anchor="middle" font-family="Segoe UI" font-size="16"></text>
+      </g>
+      <line x1="450" y1="478" x2="450" y2="360" stroke="#A16207" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+      <line x1="450" y1="360" x2="450" y2="478" stroke="#A16207" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+      <!-- Auditeur — bas droit -->
+      <g transform="translate(740,440)" filter="url(#shadowSm)">
+        <rect x="-52" y="-2" width="104" height="56" rx="8" fill="#F3E8FF" stroke="#7E22CE" stroke-width="1.5"/>
+        <text x="0" y="14" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="700" fill="#581C87">Auditeur</text>
+        <text x="0" y="27" text-anchor="middle" font-family="Segoe UI" font-size="9" fill="#6B21A8" opacity=".8">Lecture / logs</text>
+        <text x="0" y="40" text-anchor="middle" font-family="Segoe UI" font-size="16"></text>
+      </g>
+      <line x1="688" y1="440" x2="562" y2="335" stroke="#7E22CE" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+      <line x1="562" y1="335" x2="688" y2="440" stroke="#7E22CE" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+      <!-- Comptable — droite -->
+      <g transform="translate(840,270)" filter="url(#shadowSm)">
+        <rect x="-55" y="-2" width="110" height="56" rx="8" fill="#FEE2E2" stroke="#DC2626" stroke-width="1.5"/>
+        <text x="0" y="14" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="700" fill="#7F1D1D">Comptable</text>
+        <text x="0" y="27" text-anchor="middle" font-family="Segoe UI" font-size="9" fill="#991B1B" opacity=".8">Valorisation</text>
+        <text x="0" y="40" text-anchor="middle" font-family="Segoe UI" font-size="16"></text>
+      </g>
+      <line x1="785" y1="297" x2="580" y2="280" stroke="#DC2626" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+      <line x1="580" y1="280" x2="785" y2="297" stroke="#DC2626" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+      <!-- Resp. Achat haut droit -->
+      <g transform="translate(740,80)" filter="url(#shadowSm)">
+        <rect x="-52" y="-2" width="104" height="56" rx="8" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.5"/>
+        <text x="0" y="14" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="700" fill="#1E3A8A">Fournisseur</text>
+        <text x="0" y="27" text-anchor="middle" font-family="Segoe UI" font-size="9" fill="#1E40AF" opacity=".8">Externe</text>
+        <text x="0" y="40" text-anchor="middle" font-family="Segoe UI" font-size="16"></text>
+      </g>
+      <line x1="688" y1="108" x2="572" y2="218" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+      <!-- ── Systèmes externes ────────────────────────────────────────── -->
+      <!-- Email -->
+      <g transform="translate(60,130)">
+        <rect x="-48" y="-2" width="96" height="44" rx="6" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.2"/>
+        <text x="0" y="13" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#14532D">Serveur Email</text>
+        <text x="0" y="26" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#166534" opacity=".7">SMTP / Notifs</text>
+        <text x="0" y="38" text-anchor="middle" font-family="Segoe UI" font-size="13"></text>
+      </g>
+      <line x1="112" y1="155" x2="324" y2="245" stroke="#16A34A" stroke-width="1.2" stroke-dasharray="3,4" marker-end="url(#arrow)"/>
+
+      <!-- Redis -->
+      <g transform="translate(60,390)">
+        <rect x="-44" y="-2" width="88" height="44" rx="6" fill="#FFF1F2" stroke="#DC2626" stroke-width="1.2"/>
+        <text x="0" y="13" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#7F1D1D">Redis</text>
+        <text x="0" y="26" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#991B1B" opacity=".7">Cache / Broker</text>
+        <text x="0" y="38" text-anchor="middle" font-family="Segoe UI" font-size="13"></text>
+      </g>
+      <line x1="104" y1="390" x2="320" y2="320" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="3,4" marker-end="url(#arrow)"/>
+
+      <!-- PostgreSQL -->
+      <g transform="translate(840,130)">
+        <rect x="-48" y="-2" width="96" height="44" rx="6" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.2"/>
+        <text x="0" y="13" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#1E3A8A">PostgreSQL</text>
+        <text x="0" y="26" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1E40AF" opacity=".7">Base de données</text>
+        <text x="0" y="38" text-anchor="middle" font-family="Segoe UI" font-size="13"></text>
+      </g>
+      <line x1="792" y1="152" x2="578" y2="218" stroke="#3B82F6" stroke-width="1.2" stroke-dasharray="3,4" marker-end="url(#arrow)"/>
+
+      <!-- Celery Worker -->
+      <g transform="translate(840,390)">
+        <rect x="-50" y="-2" width="100" height="44" rx="6" fill="#FFFBEB" stroke="#D97706" stroke-width="1.2"/>
+        <text x="0" y="13" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#78350F">Celery Worker</text>
+        <text x="0" y="26" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#92400E" opacity=".7">Tâches IA async</text>
+        <text x="0" y="38" text-anchor="middle" font-family="Segoe UI" font-size="13"></text>
+      </g>
+      <line x1="790" y1="412" x2="578" y2="340" stroke="#D97706" stroke-width="1.2" stroke-dasharray="3,4" marker-end="url(#arrow)"/>
+
+      <!-- ── Légende ────────────────────────────────────────────────── -->
+      <rect x="10" y="510" width="880" style="margin-top: 10px ;" height="40" rx="6" fill="#F8F8F7" stroke="#E7E5E0"/>
+      <line x1="30" y1="530" x2="60" y2="530" stroke="#94A3B8" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <polygon points="60,527 68,530 60,533" fill="#94A3B8"/>
+      <text x="72" y="534" font-family="Segoe UI" font-size="9" fill="#78716C">Interaction bidirectionnelle (acteur ↔ système)</text>
+      <line x1="260" y1="530" x2="290" y2="530" stroke="#16A34A" stroke-width="1.5" stroke-dasharray="3,4"/>
+      <text x="296" y="534" font-family="Segoe UI" font-size="9" fill="#78716C">Flux vers système externe</text>
+      <rect x="460" y="522" width="12" height="16" rx="3" fill="#FFF7ED" stroke="#F97316"/>
+      <text x="478" y="534" font-family="Segoe UI" font-size="9" fill="#78716C">Acteur humain</text>
+      <rect x="560" y="522" width="12" height="16" rx="3" fill="#EFF6FF" stroke="#3B82F6"/>
+      <text x="578" y="534" font-family="Segoe UI" font-size="9" fill="#78716C">Système externe</text>
+      <ellipse cx="680" cy="530" rx="14" ry="9" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
+      <text x="700" y="534" font-family="Segoe UI" font-size="9" fill="#78716C">Système central</text>
+    </svg>
+  </div>
+</div>
+
+
+<!-- ══ 3. TABLEAU RÉPARTITION CAS D'UTILISATION ════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <div>
+      <div class="section-title">Tableau de répartition des cas d'utilisation par acteur</div>
+      <div class="section-sub">Correspondance entre les 7 rôles et leurs cas d'utilisation associés</div>
+    </div>
+  </div>
+  <div class="section-body">
+    <div class="tbl-wrapper">
+      <table class="uc-tbl">
+        <thead>
+          <tr>
+            <th style="width:170px">Acteur</th>
+            <th>Cas d'utilisation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="actor-chip ac-sa">Super Admin</span></td>
+            <td>
+              <ul class="uc-list">
+                <li>Créer / activer / désactiver une entreprise</li>
+                <li>Consulter toutes les entreprises et leurs statistiques</li>
+                <li>Gérer les utilisateurs de toutes les entreprises</li>
+                <li>Modifier le rôle d'un utilisateur</li>
+                <li>Consulter les logs d'audit globaux</li>
+                <li>Accéder au tableau de bord global (KPIs multi-entreprises)</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="actor-chip ac-ae">Admin Entreprise</span></td>
+            <td>
+              <ul class="uc-list">
+                <li>Inviter et gérer les utilisateurs de son entreprise</li>
+                <li>Créer / modifier les entrepôts de l'entreprise</li>
+                <li>Gérer les catégories de produits</li>
+                <li>Configurer les informations de l'entreprise</li>
+                <li>Lancer une analyse IA manuelle</li>
+                <li>Consulter les rapports et exports CSV</li>
+                <li>Voir le tableau de bord IA (prédictions, suggestions)</li>
+                <li>Consulter les alertes de stock</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="actor-chip ac-ge">Gestionnaire</span></td>
+            <td>
+              <ul class="uc-list">
+                <li>Créer / modifier / désactiver un produit</li>
+                <li>Importer / exporter les produits en CSV</li>
+                <li>Enregistrer un mouvement de stock (entrée, sortie, transfert, ajustement)</li>
+                <li>Créer et gérer les sessions d'inventaire</li>
+                <li>Valider un inventaire et générer les ajustements</li>
+                <li>Acquitter une alerte de stock</li>
+                <li>Gérer les emplacements dans les entrepôts (CRUD)</li>
+                <li>Consulter l'historique des mouvements avec filtres</li>
+                <li>Scanner un code-barres pour recherche rapide</li>
+                <li>Consulter la valorisation du stock</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="actor-chip ac-ra">Resp. Achat</span></td>
+            <td>
+              <ul class="uc-list">
+                <li>Créer / modifier / supprimer un fournisseur</li>
+                <li>Créer un bon de commande (saisie produits, quantités, prix)</li>
+                <li>Changer le statut d'un bon de commande (workflow 5 étapes)</li>
+                <li>Réceptionner une commande (partielle ou totale)</li>
+                <li>Consulter les suggestions d'achat générées par l'IA</li>
+                <li>Valider une suggestion d'achat (création BC automatique)</li>
+                <li>Consulter les prédictions de consommation</li>
+                <li>Voir les statistiques fournisseurs (délais, volumes)</li>
+                <li>Exporter les commandes et fournisseurs en CSV</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="actor-chip ac-ma">Magasinier</span></td>
+            <td>
+              <ul class="uc-list">
+                <li>Scanner un code-barres pour identifier un produit</li>
+                <li>Enregistrer une entrée rapide via scan mobile</li>
+                <li>Enregistrer une sortie rapide via scan mobile</li>
+                <li>Consulter le stock actuel par produit / entrepôt</li>
+                <li>Participer à un inventaire (saisir les quantités comptées)</li>
+                <li>Consulter l'historique de ses scans (session courante)</li>
+                <li>Travailler en mode hors ligne (sync différée)</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="actor-chip ac-au">Auditeur</span></td>
+            <td>
+              <ul class="uc-list">
+                <li>Consulter tous les mouvements de stock (filtres, périodes)</li>
+                <li>Voir les écarts d'inventaire et les ajustements</li>
+                <li>Consulter les logs d'audit de l'entreprise</li>
+                <li>Générer des rapports de valorisation</li>
+                <li>Exporter les données en CSV</li>
+                <li>Calculer les indicateurs de conformité</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="actor-chip ac-co">Comptable</span></td>
+            <td>
+              <ul class="uc-list">
+                <li>Consulter la valorisation du stock (CUMP et FIFO)</li>
+                <li>Suivre les marges produit (si prix de vente renseigné)</li>
+                <li>Consulter l'historique des prix d'achat</li>
+                <li>Calculer la dépréciation des stocks inactifs</li>
+                <li>Générer des rapports périodiques (stock début / entrées / sorties / stock fin)</li>
+                <li>Exporter les données comptables en CSV</li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ 4. DIAGRAMME DE CAS D'UTILISATION ══════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <div>
+      <div class="section-title">Diagramme de cas d'utilisation général</div>
+      <div class="section-sub">Vue synthétique des interactions acteurs ↔ système (notation UML)</div>
+    </div>
+  </div>
+  <div class="section-body">
+    <p style="font-size:.875rem;color:var(--txt-m);margin-bottom:20px;line-height:1.6;">
+      Le diagramme ci-dessous présente les cas d'utilisation principaux regroupés par domaine fonctionnel. Les acteurs sont représentés en notation UML (stickman) et reliés à leurs cas d'utilisation respectifs.
+    </p>
+    <svg class="ucd-svg" viewBox="0 0 1000 780" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="sh2"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/></filter>
+      </defs>
+
+      <!-- ── Frontière du système ─────────────────────────────────────── -->
+      <rect x="170" y="10" width="660" height="760" rx="12" fill="#FAFAF9" stroke="#E7E5E0" stroke-width="2"/>
+      <text x="500" y="30" text-anchor="middle" font-family="Segoe UI" font-size="12" font-weight="800" fill="#78716C" letter-spacing="2">SYSTÈME STOCKMASTER</text>
+
+      <!-- ── Domaines (zones colorées) ──────────────────────────────────── -->
+      <!-- Authentification -->
+      <rect x="185" y="40" width="200" height="80" rx="8" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1.2"/>
+      <text x="285" y="56" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#C2410C" text-decoration="underline">Authentification</text>
+      <!-- CU auth -->
+      <ellipse cx="232" cy="82" rx="43" ry="14" fill="white" stroke="#F97316" stroke-width="1.2"/>
+      <text x="232" y="86" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">S'authentifier</text>
+      <ellipse cx="338" cy="82" rx="43" ry="14" fill="white" stroke="#F97316" stroke-width="1.2"/>
+      <text x="338" y="86" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Gérer son profil</text>
+
+      <!-- Stock & Produits -->
+      <rect x="185" y="135" width="300" height="180" rx="8" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.2"/>
+      <text x="335" y="151" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#14532D" text-decoration="underline">Gestion des Stocks</text>
+      <ellipse cx="232" cy="178" rx="43" ry="14" fill="white" stroke="#15803D" stroke-width="1.2"/>
+      <text x="232" y="182" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Gérer produits</text>
+      <ellipse cx="335" cy="178" rx="43" ry="14" fill="white" stroke="#15803D" stroke-width="1.2"/>
+      <text x="335" y="182" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Enregistrer mvt</text>
+      <ellipse cx="440" cy="178" rx="43" ry="14" fill="white" stroke="#15803D" stroke-width="1.2"/>
+      <text x="440" y="182" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Scanner code</text>
+      <ellipse cx="232" cy="222" rx="43" ry="14" fill="white" stroke="#15803D" stroke-width="1.2"/>
+      <text x="232" y="226" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Faire inventaire</text>
+      <ellipse cx="335" cy="222" rx="43" ry="14" fill="white" stroke="#15803D" stroke-width="1.2"/>
+      <text x="335" y="226" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Gérer alertes</text>
+      <ellipse cx="440" cy="222" rx="43" ry="14" fill="white" stroke="#15803D" stroke-width="1.2"/>
+      <text x="440" y="226" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Gérer emplacements</text>
+      <ellipse cx="285" cy="268" rx="60" ry="14" fill="white" stroke="#15803D" stroke-width="1.2"/>
+      <text x="285" y="272" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Importer / Exporter CSV</text>
+
+      <!-- Achats -->
+      <rect x="500" y="135" width="310" height="180" rx="8" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1.2"/>
+      <text x="655" y="151" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#1E3A8A" text-decoration="underline">Gestion des Achats</text>
+      <ellipse cx="555" cy="178" rx="43" ry="14" fill="white" stroke="#1D4ED8" stroke-width="1.2"/>
+      <text x="555" y="182" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Gérer fournisseurs</text>
+      <ellipse cx="660" cy="178" rx="43" ry="14" fill="white" stroke="#1D4ED8" stroke-width="1.2"/>
+      <text x="660" y="182" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Créer bon commande</text>
+      <ellipse cx="765" cy="178" rx="43" ry="14" fill="white" stroke="#1D4ED8" stroke-width="1.2"/>
+      <text x="765" y="182" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Réceptionner cmd</text>
+      <ellipse cx="555" cy="222" rx="43" ry="14" fill="white" stroke="#1D4ED8" stroke-width="1.2"/>
+      <text x="555" y="226" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Valider suggestion</text>
+      <ellipse cx="660" cy="222" rx="43" ry="14" fill="white" stroke="#1D4ED8" stroke-width="1.2"/>
+      <text x="660" y="226" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Suivre commandes</text>
+      <ellipse cx="765" cy="222" rx="43" ry="14" fill="white" stroke="#1D4ED8" stroke-width="1.2"/>
+      <text x="765" y="226" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Stats fournisseurs</text>
+      <ellipse cx="610" cy="268" rx="60" ry="14" fill="white" stroke="#1D4ED8" stroke-width="1.2"/>
+      <text x="610" y="272" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Exporter commandes CSV</text>
+
+      <!-- Module IA -->
+      <rect x="185" y="330" width="300" height="130" rx="8" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1.2"/>
+      <text x="335" y="346" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#92400E" text-decoration="underline">Module IA</text>
+      <ellipse cx="255" cy="375" rx="58" ry="14" fill="white" stroke="#D97706" stroke-width="1.2"/>
+      <text x="255" y="379" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Prédire consommation</text>
+      <ellipse cx="420" cy="375" rx="55" ry="14" fill="white" stroke="#D97706" stroke-width="1.2"/>
+      <text x="420" y="379" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Suggestions d'achat</text>
+      <ellipse cx="255" cy="418" rx="58" ry="14" fill="white" stroke="#D97706" stroke-width="1.2"/>
+      <text x="255" y="422" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Lancer analyse IA</text>
+      <ellipse cx="420" cy="418" rx="55" ry="14" fill="white" stroke="#D97706" stroke-width="1.2"/>
+      <text x="420" y="422" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Tableau de bord IA</text>
+
+      <!-- Rapports & Audit -->
+      <rect x="500" y="330" width="310" height="130" rx="8" fill="#F3E8FF" stroke="#D8B4FE" stroke-width="1.2"/>
+      <text x="655" y="346" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#581C87" text-decoration="underline">Rapports & Audit</text>
+      <ellipse cx="570" cy="375" rx="55" ry="14" fill="white" stroke="#7E22CE" stroke-width="1.2"/>
+      <text x="570" y="379" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Consulter mouvements</text>
+      <ellipse cx="735" cy="375" rx="55" ry="14" fill="white" stroke="#7E22CE" stroke-width="1.2"/>
+      <text x="735" y="379" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Logs d'audit</text>
+      <ellipse cx="570" cy="418" rx="55" ry="14" fill="white" stroke="#7E22CE" stroke-width="1.2"/>
+      <text x="570" y="422" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Rapport valorisation</text>
+      <ellipse cx="735" cy="418" rx="55" ry="14" fill="white" stroke="#7E22CE" stroke-width="1.2"/>
+      <text x="735" y="422" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Exporter rapports</text>
+
+      <!-- Administration -->
+      <rect x="185" y="475" width="625" height="130" rx="8" fill="#FEE2E2" stroke="#FCA5A5" stroke-width="1.2"/>
+      <text x="497" y="491" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#7F1D1D" text-decoration="underline">Administration & Comptabilité</text>
+      <ellipse cx="265" cy="520" rx="65" ry="14" fill="white" stroke="#DC2626" stroke-width="1.2"/>
+      <text x="265" y="524" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Valorisation CUMP/FIFO</text>
+      <ellipse cx="410" cy="520" rx="55" ry="14" fill="white" stroke="#DC2626" stroke-width="1.2"/>
+      <text x="410" y="524" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Dépréciation stocks</text>
+      <ellipse cx="565" cy="520" rx="55" ry="14" fill="white" stroke="#DC2626" stroke-width="1.2"/>
+      <text x="565" y="524" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Gérer entreprise</text>
+      <ellipse cx="720" cy="520" rx="55" ry="14" fill="white" stroke="#DC2626" stroke-width="1.2"/>
+      <text x="720" y="524" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Gérer utilisateurs</text>
+      <ellipse cx="335" cy="563" rx="55" ry="14" fill="white" stroke="#DC2626" stroke-width="1.2"/>
+      <text x="335" y="567" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Export comptable CSV</text>
+      <ellipse cx="510" cy="563" rx="55" ry="14" fill="white" stroke="#DC2626" stroke-width="1.2"/>
+      <text x="510" y="567" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Rapport périodique</text>
+      <ellipse cx="690" cy="563" rx="55" ry="14" fill="white" stroke="#DC2626" stroke-width="1.2"/>
+      <text x="690" y="567" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1C1917">Gérer entrepôts</text>
+
+      <!-- ── Acteurs (UML stickman) ──────────────────────────────────── -->
+      <!-- Gestionnaire -->
+      <g transform="translate(60,190)">
+        <circle cx="0" cy="-28" r="10" fill="none" stroke="#15803D" stroke-width="2"/>
+        <line x1="0" y1="-18" x2="0" y2="10" stroke="#15803D" stroke-width="2"/>
+        <line x1="-14" y1="-6" x2="14" y2="-6" stroke="#15803D" stroke-width="2"/>
+        <line x1="0" y1="10" x2="-10" y2="28" stroke="#15803D" stroke-width="2"/>
+        <line x1="0" y1="10" x2="10" y2="28" stroke="#15803D" stroke-width="2"/>
+        <text x="0" y="44" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#15803D">Gestionnaire</text>
+      </g>
+      <line x1="110" y1="176" x2="175" y2="178" stroke="#15803D" stroke-width="1.2"/>
+      <line x1="110" y1="180" x2="175" y2="222" stroke="#15803D" stroke-width="1.2"/>
+      <line x1="110" y1="182" x2="175" y2="268" stroke="#15803D" stroke-width="1.2"/>
+
+      <!-- Magasinier -->
+      <g transform="translate(60,330)">
+        <circle cx="0" cy="-28" r="10" fill="none" stroke="#A16207" stroke-width="2"/>
+        <line x1="0" y1="-18" x2="0" y2="10" stroke="#A16207" stroke-width="2"/>
+        <line x1="-14" y1="-6" x2="14" y2="-6" stroke="#A16207" stroke-width="2"/>
+        <line x1="0" y1="10" x2="-10" y2="28" stroke="#A16207" stroke-width="2"/>
+        <line x1="0" y1="10" x2="10" y2="28" stroke="#A16207" stroke-width="2"/>
+        <text x="0" y="44" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#A16207">Magasinier</text>
+      </g>
+      <line x1="110" y1="316" x2="175" y2="222" stroke="#A16207" stroke-width="1.2"/>
+      <line x1="110" y1="318" x2="175" y2="178" stroke="#A16207" stroke-width="1.2"/>
+
+      <!-- Resp. Achat -->
+      <g transform="translate(960,190)">
+        <circle cx="0" cy="-28" r="10" fill="none" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="0" y1="-18" x2="0" y2="10" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="-14" y1="-6" x2="14" y2="-6" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="0" y1="10" x2="-10" y2="28" stroke="#1D4ED8" stroke-width="2"/>
+        <line x1="0" y1="10" x2="10" y2="28" stroke="#1D4ED8" stroke-width="2"/>
+        <text x="0" y="44" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#1D4ED8">Resp. Achat</text>
+      </g>
+      <line x1="910" y1="178" x2="828" y2="178" stroke="#1D4ED8" stroke-width="1.2"/>
+      <line x1="910" y1="182" x2="828" y2="222" stroke="#1D4ED8" stroke-width="1.2"/>
+      <line x1="910" y1="184" x2="828" y2="268" stroke="#1D4ED8" stroke-width="1.2"/>
+
+      <!-- Admin Entreprise -->
+      <g transform="translate(960,400)">
+        <circle cx="0" cy="-28" r="10" fill="none" stroke="#C2410C" stroke-width="2"/>
+        <line x1="0" y1="-18" x2="0" y2="10" stroke="#C2410C" stroke-width="2"/>
+        <line x1="-14" y1="-6" x2="14" y2="-6" stroke="#C2410C" stroke-width="2"/>
+        <line x1="0" y1="10" x2="-10" y2="28" stroke="#C2410C" stroke-width="2"/>
+        <line x1="0" y1="10" x2="10" y2="28" stroke="#C2410C" stroke-width="2"/>
+        <text x="0" y="44" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#C2410C">Admin Entr.</text>
+      </g>
+      <line x1="910" y1="382" x2="828" y2="418" stroke="#C2410C" stroke-width="1.2"/>
+      <line x1="910" y1="380" x2="828" y2="375" stroke="#C2410C" stroke-width="1.2"/>
+      <line x1="910" y1="388" x2="810" y2="520" stroke="#C2410C" stroke-width="1.2"/>
+
+      <!-- Auditeur -->
+      <g transform="translate(60,430)">
+        <circle cx="0" cy="-28" r="10" fill="none" stroke="#7E22CE" stroke-width="2"/>
+        <line x1="0" y1="-18" x2="0" y2="10" stroke="#7E22CE" stroke-width="2"/>
+        <line x1="-14" y1="-6" x2="14" y2="-6" stroke="#7E22CE" stroke-width="2"/>
+        <line x1="0" y1="10" x2="-10" y2="28" stroke="#7E22CE" stroke-width="2"/>
+        <line x1="0" y1="10" x2="10" y2="28" stroke="#7E22CE" stroke-width="2"/>
+        <text x="0" y="44" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#7E22CE">Auditeur</text>
+      </g>
+      <line x1="110" y1="418" x2="515" y2="375" stroke="#7E22CE" stroke-width="1.2"/>
+      <line x1="110" y1="420" x2="515" y2="418" stroke="#7E22CE" stroke-width="1.2"/>
+
+      <!-- Comptable -->
+      <g transform="translate(60,570)">
+        <circle cx="0" cy="-28" r="10" fill="none" stroke="#DC2626" stroke-width="2"/>
+        <line x1="0" y1="-18" x2="0" y2="10" stroke="#DC2626" stroke-width="2"/>
+        <line x1="-14" y1="-6" x2="14" y2="-6" stroke="#DC2626" stroke-width="2"/>
+        <line x1="0" y1="10" x2="-10" y2="28" stroke="#DC2626" stroke-width="2"/>
+        <line x1="0" y1="10" x2="10" y2="28" stroke="#DC2626" stroke-width="2"/>
+        <text x="0" y="44" text-anchor="middle" font-family="Segoe UI" font-size="9" font-weight="700" fill="#DC2626">Comptable</text>
+      </g>
+      <line x1="110" y1="556" x2="200" y2="520" stroke="#DC2626" stroke-width="1.2"/>
+      <line x1="110" y1="560" x2="345" y2="563" stroke="#DC2626" stroke-width="1.2"/>
+      <line x1="110" y1="558" x2="280" y2="563" stroke="#DC2626" stroke-width="1.2"/>
+
+      <!-- Tous acteurs → S'authentifier -->
+      <line x1="110" y1="60" x2="175" y2="82" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3"/>
+    </svg>
+  </div>
+</div>
+
+
+<!-- ══ 5. DIAGRAMME DE SÉQUENCE GÉNÉRAL ═══════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <div>
+      <div class="section-title">Diagramme de séquence général</div>
+      <div class="section-sub">Scénario principal : scan mobile → mouvement → alerte → prédiction IA</div>
+    </div>
+  </div>
+  <div class="section-body">
+    <p style="font-size:.875rem;color:var(--txt-m);margin-bottom:20px;line-height:1.6;">
+      Ce diagramme illustre le flux de messages entre les principaux composants du système lors du scénario d'usage le plus représentatif : un magasinier scanne un produit via la PWA mobile, enregistre un mouvement de sortie, le système met à jour le stock, crée une alerte si nécessaire, et Celery déclenche la mise à jour des prédictions IA.
+    </p>
+    <svg class="seq-svg" viewBox="0 0 960 780" xmlns="http://www.w3.org/2000/svg" style="border:1px solid #E7E5E0;border-radius:10px;background:#FAFAF9;">
+      <defs>
+        <marker id="seqArr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
+        </marker>
+        <marker id="seqArrOr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#F97316"/>
+        </marker>
+        <marker id="seqArrGr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#15803D"/>
+        </marker>
+        <marker id="seqArrRet" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+          <polygon points="8 0, 0 3, 8 6" fill="#94A3B8"/>
+        </marker>
+        <marker id="seqArrBl" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#1D4ED8"/>
+        </marker>
+        <marker id="seqArrRe" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#DC2626"/>
+        </marker>
+      </defs>
+
+      <!-- ── Lignes de vie (lifelines) ──────────────────────────────── -->
+      <!-- Positions X: Magasinier=90, PWA=230, API=380, Django=500, DB=630, Celery=760, Email=890 -->
+
+      <!-- Headers -->
+      <rect x="20" y="14" width="140" height="44" rx="8" fill="#FEF9C3" stroke="#A16207" stroke-width="1.5"/>
+      <text x="90" y="32" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="800" fill="#78350F">Magasinier</text>
+      <text x="90" y="46" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#92400E">PWA mobile</text>
+
+      <rect x="160" y="14" width="140" height="44" rx="8" fill="#FFF7ED" stroke="#F97316" stroke-width="1.5"/>
+      <text x="230" y="32" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="800" fill="#C2410C">Service Worker</text>
+      <text x="230" y="46" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#92400E">Cache / Sync</text>
+
+      <rect x="310" y="14" width="140" height="44" rx="8" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.5"/>
+      <text x="380" y="32" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="800" fill="#1E3A8A">API REST</text>
+      <text x="380" y="46" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1E40AF">DRF + SimpleJWT</text>
+
+      <rect x="430" y="14" width="140" height="44" rx="8" fill="#F0FDF4" stroke="#15803D" stroke-width="1.5"/>
+      <text x="500" y="32" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="800" fill="#14532D">Django Views</text>
+      <text x="500" y="46" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#166534">Logique métier</text>
+
+      <rect x="575" y="14" width="110" height="44" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
+      <text x="630" y="32" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="800" fill="#1E3A8A">PostgreSQL</text>
+      <text x="630" y="46" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1E40AF">ORM Django</text>
+
+      <rect x="700" y="14" width="120" height="44" rx="8" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
+      <text x="760" y="32" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="800" fill="#78350F">Celery</text>
+      <text x="760" y="46" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#92400E">Worker IA</text>
+
+      <rect x="835" y="14" width="110" height="44" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
+      <text x="890" y="32" text-anchor="middle" font-family="Segoe UI" font-size="10" font-weight="800" fill="#14532D">Email</text>
+      <text x="890" y="46" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#166534">Notifications</text>
+
+      <!-- Lignes de vie verticales -->
+      <line x1="90"  y1="58" x2="90"  y2="760" stroke="#A16207" stroke-width="1.2" stroke-dasharray="4,3" opacity=".5"/>
+      <line x1="230" y1="58" x2="230" y2="760" stroke="#F97316" stroke-width="1.2" stroke-dasharray="4,3" opacity=".5"/>
+      <line x1="380" y1="58" x2="380" y2="760" stroke="#1D4ED8" stroke-width="1.2" stroke-dasharray="4,3" opacity=".5"/>
+      <line x1="500" y1="58" x2="500" y2="760" stroke="#15803D" stroke-width="1.2" stroke-dasharray="4,3" opacity=".5"/>
+      <line x1="630" y1="58" x2="630" y2="760" stroke="#3B82F6" stroke-width="1.2" stroke-dasharray="4,3" opacity=".5"/>
+      <line x1="760" y1="58" x2="760" y2="760" stroke="#D97706" stroke-width="1.2" stroke-dasharray="4,3" opacity=".5"/>
+      <line x1="890" y1="58" x2="890" y2="760" stroke="#16A34A" stroke-width="1.2" stroke-dasharray="4,3" opacity=".5"/>
+
+      <!-- ── Fragments / groupes ─────────────────────────────────────── -->
+      <!-- Groupe 1 : Scan -->
+      <rect x="14" y="70" width="580" height="120" rx="6" fill="none" stroke="#F97316" stroke-width="1.2" stroke-dasharray="5,3"/>
+      <rect x="14" y="70" width="80" height="18" rx="3" fill="#F97316"/>
+      <text x="54" y="82" text-anchor="middle" font-family="Segoe UI" font-size="8" font-weight="700" fill="white">SCAN CODE-BARRES</text>
+
+      <!-- Groupe 2 : Vérification JWT -->
+      <rect x="14" y="200" width="580" height="70" rx="6" fill="none" stroke="#1D4ED8" stroke-width="1.2" stroke-dasharray="5,3"/>
+      <rect x="14" y="200" width="100" height="18" rx="3" fill="#1D4ED8"/>
+      <text x="64" y="212" text-anchor="middle" font-family="Segoe UI" font-size="8" font-weight="700" fill="white">AUTH JWT</text>
+
+      <!-- Groupe 3 : Transaction stock -->
+      <rect x="14" y="280" width="736" height="170" rx="6" fill="none" stroke="#15803D" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <rect x="14" y="280" width="140" height="18" rx="3" fill="#15803D"/>
+      <text x="84" y="292" text-anchor="middle" font-family="Segoe UI" font-size="8" font-weight="700" fill="white">TRANSACTION ATOMIQUE</text>
+
+      <!-- Groupe 4 : Alerte conditionnelle -->
+      <rect x="14" y="460" width="860" height="130" rx="6" fill="none" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="5,3"/>
+      <rect x="14" y="460" width="180" height="18" rx="3" fill="#DC2626"/>
+      <text x="104" y="472" text-anchor="middle" font-family="Segoe UI" font-size="8" font-weight="700" fill="white">ALT [stock &lt; seuil] → ALERTE</text>
+
+      <!-- Groupe 5 : IA async -->
+      <rect x="14" y="600" width="896" height="140" rx="6" fill="none" stroke="#D97706" stroke-width="1.2" stroke-dasharray="5,3"/>
+      <rect x="14" y="600" width="150" height="18" rx="3" fill="#D97706"/>
+      <text x="89" y="612" text-anchor="middle" font-family="Segoe UI" font-size="8" font-weight="700" fill="white">ASYNC (Celery task)</text>
+
+      <!-- ── Messages séquentiels ────────────────────────────────────── -->
+
+      <!-- 1. Magasinier ouvre le scanner -->
+      <rect x="74" y="86" width="32" height="50" rx="2" fill="white" stroke="#A16207" stroke-width="1.5" opacity=".8"/>
+      <line x1="90" y1="100" x2="230" y2="100" stroke="#475569" stroke-width="1.5" marker-end="url(#seqArr)"/>
+      <text x="158" y="96" text-anchor="middle" font-family="Segoe UI" font-size="8.5" fill="#1C1917" font-style="italic">1. openCamera()</text>
+
+      <!-- 2. SW vérifie cache token -->
+      <line x1="230" y1="116" x2="380" y2="116" stroke="#F97316" stroke-width="1.5" marker-end="url(#seqArrOr)"/>
+      <text x="303" y="112" text-anchor="middle" font-family="Segoe UI" font-size="8.5" fill="#C2410C" font-style="italic">2. checkToken(JWT)</text>
+
+      <!-- 3. GET /api/produits/scan/?code=X -->
+      <line x1="380" y1="134" x2="500" y2="134" stroke="#1D4ED8" stroke-width="1.5" marker-end="url(#seqArrBl)"/>
+      <text x="438" y="130" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1E3A8A">3. GET /scan/?code=X</text>
+
+      <!-- 4. Requête ORM produit -->
+      <line x1="500" y1="154" x2="630" y2="154" stroke="#15803D" stroke-width="1.5" marker-end="url(#seqArrGr)"/>
+      <text x="563" y="150" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#14532D">4. SELECT Produit WHERE ref=X</text>
+
+      <!-- 5. Retour produit -->
+      <line x1="630" y1="172" x2="500" y2="172" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#seqArrRet)"/>
+      <text x="563" y="168" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#64748B">5. {produit, stock, statut}</text>
+
+      <!-- Retour API → SW → Magasinier -->
+      <line x1="500" y1="186" x2="380" y2="186" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#seqArrRet)"/>
+      <line x1="380" y1="192" x2="230" y2="192" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#seqArrRet)"/>
+      <line x1="230" y1="198" x2="90"  y2="198" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#seqArrRet)"/>
+      <text x="158" y="195" text-anchor="middle" font-family="Segoe UI" font-size="7.5" fill="#64748B">→ Affiche fiche produit</text>
+
+      <!-- Auth JWT -->
+      <line x1="90" y1="220" x2="230" y2="220" stroke="#475569" stroke-width="1.5" marker-end="url(#seqArr)"/>
+      <text x="158" y="216" text-anchor="middle" font-family="Segoe UI" font-size="8.5" fill="#1C1917" font-style="italic">6. POST /mouvements/rapide/</text>
+      <line x1="230" y1="236" x2="380" y2="236" stroke="#F97316" stroke-width="1.5" marker-end="url(#seqArrOr)"/>
+      <text x="303" y="232" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#C2410C">+ Bearer JWT token</text>
+      <line x1="380" y1="252" x2="500" y2="252" stroke="#1D4ED8" stroke-width="1.2" stroke-dasharray="2,2" marker-end="url(#seqArrBl)"/>
+      <text x="438" y="248" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#1E3A8A">7. verifyJWT()</text>
+      <line x1="500" y1="264" x2="380" y2="264" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#seqArrRet)"/>
+      <text x="438" y="260" text-anchor="middle" font-family="Segoe UI" font-size="7.5" fill="#64748B">✓ user_id, role</text>
+
+      <!-- Transaction atomique -->
+      <line x1="500" y1="300" x2="630" y2="300" stroke="#15803D" stroke-width="1.5" marker-end="url(#seqArrGr)"/>
+      <text x="563" y="296" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#14532D">8. SELECT FOR UPDATE Stock</text>
+
+      <line x1="500" y1="322" x2="630" y2="322" stroke="#15803D" stroke-width="1.5" marker-end="url(#seqArrGr)"/>
+      <text x="563" y="318" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#14532D">9. vérifier stock disponible</text>
+
+      <line x1="500" y1="344" x2="630" y2="344" stroke="#15803D" stroke-width="1.5" marker-end="url(#seqArrGr)"/>
+      <text x="563" y="340" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#14532D">10. UPDATE Stock SET qte = qte - N</text>
+
+      <line x1="500" y1="366" x2="630" y2="366" stroke="#15803D" stroke-width="1.5" marker-end="url(#seqArrGr)"/>
+      <text x="563" y="362" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#14532D">11. INSERT Mouvement (prix snapshot)</text>
+
+      <line x1="500" y1="388" x2="630" y2="388" stroke="#15803D" stroke-width="1.5" marker-end="url(#seqArrGr)"/>
+      <text x="563" y="384" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#14532D">12. INSERT AuditLog</text>
+
+      <!-- Retour 201 -->
+      <line x1="630" y1="440" x2="500" y2="440" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#seqArrRet)"/>
+      <line x1="500" y1="446" x2="380" y2="446" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#seqArrRet)"/>
+      <line x1="380" y1="452" x2="230" y2="452" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#seqArrRet)"/>
+      <line x1="230" y1="458" x2="90"  y2="458" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#seqArrRet)"/>
+      <text x="300" y="450" text-anchor="middle" font-family="Segoe UI" font-size="7.5" fill="#64748B">← 201 {nouveau_stock, en_alerte}</text>
+
+      <!-- Alerte conditionnelle -->
+      <line x1="500" y1="480" x2="630" y2="480" stroke="#DC2626" stroke-width="1.5" marker-end="url(#seqArrRe)"/>
+      <text x="563" y="476" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#DC2626">13. INSERT Alerte (type=seuil_bas)</text>
+
+      <line x1="630" y1="500" x2="760" y2="500" stroke="#D97706" stroke-width="1.2" stroke-dasharray="2,2" marker-end="url(#seqArr)"/>
+      <text x="693" y="496" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#D97706">14. send_alert.delay()</text>
+
+      <line x1="760" y1="516" x2="890" y2="516" stroke="#D97706" stroke-width="1.5" marker-end="url(#seqArr)"/>
+      <text x="823" y="512" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#78350F">15. envoi_email_alerte()</text>
+
+      <line x1="890" y1="532" x2="760" y2="532" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#seqArrRet)"/>
+      <text x="823" y="528" text-anchor="middle" font-family="Segoe UI" font-size="7.5" fill="#64748B">✓ email envoyé</text>
+
+      <line x1="760" y1="548" x2="90" y2="548" stroke="#94A3B8" stroke-width="1" stroke-dasharray="2,4" opacity=".5"/>
+      <text x="400" y="558" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#DC2626" font-style="italic">→ Notification push sur mobile (badge alerte)</text>
+
+      <!-- Async IA -->
+      <line x1="500" y1="618" x2="760" y2="618" stroke="#D97706" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#seqArr)"/>
+      <text x="628" y="614" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#78350F">16. update_prediction.delay(produit_id)</text>
+
+      <line x1="760" y1="636" x2="630" y2="636" stroke="#D97706" stroke-width="1.5" marker-end="url(#seqArrGr)"/>
+      <text x="693" y="632" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#78350F">17. récupère historique sorties (2 ans)</text>
+
+      <line x1="630" y1="656" x2="760" y2="656" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#seqArr)"/>
+      <text x="693" y="652" text-anchor="middle" font-family="Segoe UI" font-size="7.5" fill="#64748B">séries temporelles</text>
+
+      <rect x="730" y="668" width="60" height="20" rx="4" fill="#FFFBEB" stroke="#D97706"/>
+      <text x="760" y="682" text-anchor="middle" font-family="Segoe UI" font-size="8" font-weight="700" fill="#78350F">Prophet()</text>
+
+      <line x1="760" y1="690" x2="630" y2="690" stroke="#D97706" stroke-width="1.5" marker-end="url(#seqArrGr)"/>
+      <text x="693" y="686" text-anchor="middle" font-family="Segoe UI" font-size="8" fill="#78350F">18. UPDATE PredictionStock</text>
+
+      <line x1="630" y1="710" x2="760" y2="710" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#seqArr)"/>
+      <text x="693" y="726" text-anchor="middle" font-family="Segoe UI" font-size="7.5" fill="#64748B">19. génère SuggestionAchat si stock_prevu &lt; seuil</text>
+
+      <!-- Retour final affiché mobile -->
+      <rect x="36" y="742" width="136" height="18" rx="4" fill="#DCFCE7" stroke="#16A34A"/>
+      <text x="104" y="755" text-anchor="middle" font-family="Segoe UI" font-size="8" font-weight="700" fill="#14532D">Bip OK + stock affiché</text>
+    </svg>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<script>
+// Impression propre
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+    window.print();
+  }
+});
+</script>
+</body>
+</html>

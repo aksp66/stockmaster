@@ -1,0 +1,35 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Exports{%endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_exports %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}Exports de données{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_subtitle %}Téléchargez les données clés de votre entreprise au
+format CSV{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<div class="grid md:grid-cols-3 gap-6">
+  <div class="card p-6 text-center">
+    <i class="fas fa-users text-4xl text-orange-500 mb-3"></i>
+    <h3 class="font-bold">Utilisateurs</h3>
+    <p class="text-sm text-gray-500 mb-4">
+      Export CSV de la liste des utilisateurs
+    </p>
+    <a href="?type=utilisateurs" class="btn btn-primary">Exporter CSV</a>
+  </div>
+  <div class="card p-6 text-center">
+    <i class="fas fa-warehouse text-4xl text-orange-500 mb-3"></i>
+    <h3 class="font-bold">Entrepôts</h3>
+    <p class="text-sm text-gray-500 mb-4">Export CSV des entrepôts</p>
+    <a href="?type=entrepots" class="btn btn-primary">Exporter CSV</a>
+  </div>
+  <div class="card p-6 text-center">
+    <i class="fas fa-brain text-4xl text-orange-500 mb-3"></i>
+    <h3 class="font-bold">Prédictions IA</h3>
+    <p class="text-sm text-gray-500 mb-4">Export CSV des prévisions</p>
+    <a href="?type=ia" class="btn btn-primary">Exporter CSV</a>
+  </div>
+</div>
+{% endblock %}

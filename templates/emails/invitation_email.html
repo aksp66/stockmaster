@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Invitation StockMaster</title>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        max-width: 560px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        background: #f97316;
+        padding: 24px;
+        text-align: center;
+        color: white;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .content {
+        padding: 32px;
+      }
+      .button {
+        display: inline-block;
+        background: #f97316;
+        color: white;
+        text-decoration: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-top: 16px;
+      }
+      .footer {
+        background: #f9fafb;
+        padding: 16px;
+        text-align: center;
+        font-size: 12px;
+        color: #6b7280;
+        border-top: 1px solid #e5e7eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Stock<span style="font-weight: 400">Master</span></h1>
+      </div>
+      <div class="content">
+        <h2>Bonjour {{ first_name }},</h2>
+        <p>
+          Vous avez été invité(e) à rejoindre la plateforme
+          <strong>StockMaster</strong> par {{ inviter_nom }}.
+        </p>
+        <p>
+          Cliquez sur le bouton ci-dessous pour définir votre mot de passe et
+          activer votre compte :
+        </p>
+        <div style="text-align: center">
+          <a href="{{ lien }}" class="button">Activer mon compte</a>
+        </div>
+        <p style="margin-top: 24px">
+          Ce lien est valable 24 heures. Si vous n'êtes pas à l'origine de cette
+          demande, ignorez cet email.
+        </p>
+      </div>
+      <div class="footer">
+        &copy; 2026 StockMaster – Gestion de stock intelligente
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,167 @@
+{% extends 'auditeur/base_auditeur.html' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord Audit{% endblock %}
+{% block page_sub %}Contrôle & surveillance · {{ user.entreprise.nom }}{% endblock %}
+{% block n_dash %}active{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;" class="au a1">
+  <div>
+    <h2 style="font-size:20px;font-weight:800;color:var(--text-p);letter-spacing:-.4px;">Bonjour, {{ user.first_name }} 👋</h2>
+    <p style="font-size:13px;color:var(--text-m);margin-top:3px;">Période analysée : {{ periode_debut|date:"d/m/Y" }} – {{ periode_fin|date:"d/m/Y" }}</p>
+  </div>
+  <a href="{% url 'auditeur:exports' %}" class="btn b-or"><i class="fas fa-download"></i> Exporter le rapport</a>
+</div>
+
+{# ── KPIs ── #}
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;">
+  <div class="stat s-or au a1">
+    <div class="si"><i class="fas fa-arrows-rotate"></i></div>
+    <div class="sv">{{ total_mouvements }}</div>
+    <div class="sl">Mouvements</div>
+    <i class="fas fa-arrows-rotate sc"></i>
+  </div>
+  <div class="stat s-re au a2">
+    <div class="si"><i class="fas fa-scale-unbalanced"></i></div>
+    <div class="sv">{{ total_ecarts }}</div>
+    <div class="sl">Écarts inventaire</div>
+    <i class="fas fa-scale-unbalanced sc"></i>
+  </div>
+  <div class="stat s-ye au a3">
+    <div class="si"><i class="fas fa-euro-sign"></i></div>
+    <div class="sv" style="font-size:{% if valeur_stock > 999999 %}18px{% else %}24px{% endif %};">{{ valeur_stock|floatformat:0 }}</div>
+    <div class="sl">Valeur stock (FCFA)</div>
+    <i class="fas fa-coins sc"></i>
+  </div>
+  <div class="stat s-bl au a4">
+    <div class="si"><i class="fas fa-list-check"></i></div>
+    <div class="sv">{{ nb_logs }}</div>
+    <div class="sl">Actions auditées</div>
+    <i class="fas fa-list-check sc"></i>
+  </div>
+  <div class="stat s-gr au a5">
+    <div class="si"><i class="fas fa-shield-check"></i></div>
+    <div class="sv">{{ taux_conformite }}%</div>
+    <div class="sl">Taux conformité</div>
+    <i class="fas fa-shield-check sc"></i>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:18px;">
+
+  {# ── Graphique valeur stock ── #}
+  <div class="card au a2">
+    <div class="card-h">
+      <div><div class="card-t"><i class="fas fa-chart-line" style="color:var(--or);margin-right:7px;"></i>Évolution de la valeur du stock</div><div class="card-sub">12 dernières semaines</div></div>
+      <div style="display:flex;gap:6px;">
+        <a href="?periode=7j"  class="btn b-sm {% if request.GET.periode == '7j' %}b-or{% else %}b-gh{% endif %}">7j</a>
+        <a href="?periode=30j" class="btn b-sm {% if request.GET.periode != '7j' and request.GET.periode != '90j' %}b-or{% else %}b-gh{% endif %}">30j</a>
+        <a href="?periode=90j" class="btn b-sm {% if request.GET.periode == '90j' %}b-or{% else %}b-gh{% endif %}">90j</a>
+      </div>
+    </div>
+    <div style="padding:20px;">
+      <canvas id="chart-valeur" height="200"></canvas>
+    </div>
+  </div>
+
+  {# ── Panneau droit ── #}
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    {# Alertes de conformité #}
+    <div class="card au a3" {% if alertes_conformite %}style="border-color:#fecaca;"{% endif %}>
+      <div class="card-h" {% if alertes_conformite %}style="background:var(--red-dim);border-color:#fecaca;"{% endif %}>
+        <div class="card-t" style="color:{% if alertes_conformite %}var(--red){% else %}var(--text-p){% endif %};"><i class="fas fa-triangle-exclamation" style="margin-right:6px;"></i>Alertes conformité</div>
+        <a href="{% url 'auditeur:conformite' %}" class="btn b-sm {% if alertes_conformite %}b-re{% else %}b-gh{% endif %}">Voir</a>
+      </div>
+      <div style="padding:10px 16px;">
+        {% for a in alertes_conformite|slice:":4" %}
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.description }}</div>
+            <div style="font-size:11px;color:var(--text-m);" class="mono">{{ a.date|date:"d/m H:i" }}</div>
+          </div>
+          <span class="badge bg-re" style="font-size:10px;flex-shrink:0;">{{ a.niveau }}</span>
+        </div>
+        {% empty %}
+        <div style="text-align:center;padding:18px;color:var(--text-m);">
+          <i class="fas fa-check-circle" style="color:var(--green);font-size:22px;display:block;margin-bottom:6px;"></i>
+          <span style="font-size:13px;">Aucune alerte active</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Derniers logs #}
+    <div class="card au a4">
+      <div class="card-h">
+        <div class="card-t"><i class="fas fa-list-check" style="color:var(--or);margin-right:6px;"></i>Dernières actions</div>
+        <a href="{% url 'auditeur:logs' %}" class="btn b-gh b-sm">Tous <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div style="padding:4px 0;">
+        {% for log in derniers_logs %}
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--or-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas fa-{{ log.icone|default:'circle' }}" style="font-size:12px;color:var(--or);"></i>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ log.description }}</div>
+            <div style="font-size:11px;color:var(--text-m);">{{ log.utilisateur.get_full_name }} · {{ log.date|date:"d/m H:i" }}</div>
+          </div>
+        </div>
+        {% empty %}
+        <div style="padding:18px;text-align:center;font-size:13px;color:var(--text-m);">Aucun log récent</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Résumé par type de mouvement ── #}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px;" class="au a4">
+  {% for r in resume_mouvements %}
+  <div style="background:white;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center;">
+    <div style="width:40px;height:40px;border-radius:10px;background:{{ r.bg }};display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+      <i class="{{ r.icon }}" style="color:{{ r.color }};font-size:16px;"></i>
+    </div>
+    <div class="mono" style="font-size:24px;font-weight:800;color:{{ r.color }};">{{ r.total }}</div>
+    <div style="font-size:11.5px;color:var(--text-m);margin-top:3px;">{{ r.label }}</div>
+    <div class="mono" style="font-size:12px;font-weight:600;color:var(--or);margin-top:4px;">{{ r.montant|floatformat:0 }} FCFA</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block xjs %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const ctx = document.getElementById('chart-valeur').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: {{ labels_valeur|safe }},
+    datasets: [{
+      label: 'Valeur stock (FCFA)',
+      data: {{ data_valeur|safe }},
+      borderColor: '#f97316',
+      backgroundColor: 'rgba(249,115,22,.08)',
+      borderWidth: 2.5,
+      pointBackgroundColor: '#f97316',
+      pointRadius: 4,
+      tension: 0.4,
+      fill: true
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#f3f4f6' }, ticks: { font: { family: 'Fira Code', size: 11 } } },
+      y: { grid: { color: '#f3f4f6' }, ticks: { font: { family: 'Fira Code', size: 11 }, callback: v => v.toLocaleString('fr') + ' FCFA' } }
+    }
+  }
+});
+</script>
+{% endblock %}

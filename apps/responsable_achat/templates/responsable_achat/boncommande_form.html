@@ -1,0 +1,224 @@
+{% extends 'responsable_achat/base_achat.html' %}
+{% block title %}{% if bc %}Modifier BC {{ bc.reference }}{% else %}Nouveau bon de commande{% endif %}{% endblock %}
+{% block page_title %}{% if bc %}Modifier le bon de commande{% else %}Nouveau bon de commande{% endif %}{% endblock %}
+{% block page_sub %}Achats · {{ user.entreprise.nom }}{% endblock %}
+{% block n_bc %}active{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--text-m);" class="au a1">
+  <a href="{% url 'responsable_achat:boncommande_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>Bons de commande</a>
+  <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+  <span>{% if bc %}{{ bc.reference }}{% else %}Nouveau{% endif %}</span>
+</div>
+
+<form method="post" id="bc-form">
+{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 300px;gap:20px;" class="au a2">
+
+  <div>
+    {# Entête du BC #}
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h"><div class="card-t"><i class="fas fa-info-circle" style="color:var(--or);margin-right:7px;"></i>Entête du bon de commande</div></div>
+      <div style="padding:22px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Fournisseur <span style="color:var(--red);">*</span></label>
+            <select name="fournisseur" class="fin" required id="sel-fourn" onchange="majFournisseur(this)">
+              <option value="">— Sélectionner —</option>
+              {% for f in fournisseurs %}
+              <option value="{{ f.id }}"
+                data-delai="{{ f.delai_livraison|default:7 }}"
+                data-remise="{{ f.remise|default:0 }}"
+                {% if bc.fournisseur_id == f.id or request.GET.fournisseur == f.id|stringformat:"s" %}selected{% endif %}>
+                {{ f.nom }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Date de livraison prévue</label>
+            <input type="date" name="date_livraison_prevue" class="fin" value="{{ bc.date_livraison_prevue|date:'Y-m-d'|default:'' }}" id="date-livr">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Référence interne</label>
+            <input type="text" name="reference_interne" class="fin" value="{{ bc.reference_interne|default:'' }}" placeholder="Optionnel">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Adresse de livraison</label>
+            <select name="entrepot_destination" class="fin">
+              <option value="">— Entrepôt —</option>
+              {% for e in entrepots %}
+              <option value="{{ e.id }}" {% if bc.entrepot_destination_id == e.id %}selected{% endif %}>{{ e.nom }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="fi" style="margin-top:14px;margin-bottom:0;">
+          <label class="fl">Commentaire / Conditions particulières</label>
+          <textarea name="commentaire" class="fin" rows="2" placeholder="Conditions de livraison, urgence, etc.">{{ bc.commentaire|default:'' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    {# Lignes de commande #}
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h">
+        <div>
+          <div class="card-t"><i class="fas fa-list" style="color:var(--or);margin-right:7px;"></i>Lignes de commande</div>
+          <div class="card-sub">Ajoutez les produits à commander</div>
+        </div>
+        <button type="button" onclick="ajouterLigne()" class="btn b-or b-sm"><i class="fas fa-plus"></i> Ajouter une ligne</button>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="tbl" id="lignes-table">
+          <thead>
+            <tr>
+              <th style="width:35%;">Produit</th>
+              <th>Qté commandée</th>
+              <th>Prix unitaire (FCFA)</th>
+              <th>Remise (%)</th>
+              <th>Total HT</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="lignes-body">
+            {% for l in bc.lignes.all %}
+            <tr class="ligne-row" data-idx="{{ forloop.counter0 }}">
+              <td>
+                <select name="lignes[{{ forloop.counter0 }}][produit]" class="fin sel-produit" style="font-size:13px;padding:7px 10px;" onchange="majLigne(this)" required>
+                  <option value="">— Sélectionner —</option>
+                  {% for p in produits %}
+                  <option value="{{ p.id }}" data-prix="{{ p.prix_unitaire }}" {% if l.produit_id == p.id %}selected{% endif %}>{{ p.nom }} ({{ p.sku }})</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td><input type="number" name="lignes[{{ forloop.counter0 }}][quantite]" class="fin inp-qte" value="{{ l.quantite }}" min="1" style="text-align:center;font-size:14px;font-weight:700;width:90px;" oninput="calcTotal(this)" required></td>
+              <td><input type="number" name="lignes[{{ forloop.counter0 }}][prix_unitaire]" class="fin inp-prix" value="{{ l.prix_unitaire }}" step="0.01" min="0" style="width:110px;" oninput="calcTotal(this)" required></td>
+              <td><input type="number" name="lignes[{{ forloop.counter0 }}][remise]" class="fin inp-remise" value="{{ l.remise|default:0 }}" min="0" max="100" step="0.1" style="width:80px;" oninput="calcTotal(this)"></td>
+              <td><span class="mono total-ht" style="font-weight:800;font-size:14px;color:var(--or);">{{ l.total_ht|floatformat:2 }} FCFA</span></td>
+              <td><button type="button" onclick="this.closest('tr').remove(); majTotalGlobal();" class="btn b-re b-sm"><i class="fas fa-trash"></i></button></td>
+            </tr>
+            {% empty %}
+            <tr id="tr-vide"><td colspan="6"><div style="text-align:center;padding:24px;color:var(--text-m);font-size:13px;"><i class="fas fa-plus-circle" style="color:var(--or);margin-right:6px;"></i>Cliquez sur « Ajouter une ligne » pour commencer</div></td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--bg);">
+              <td colspan="4" style="text-align:right;padding:14px 14px;font-size:13px;font-weight:700;color:var(--text-p);">Total HT :</td>
+              <td style="padding:14px;"><span class="mono" id="total-global" style="font-size:18px;font-weight:800;color:var(--or);">{{ bc.montant_total|floatformat:2|default:"0.00" }} FCFA</span></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button type="submit" name="action" value="brouillon" class="btn b-gh"><i class="fas fa-floppy-disk"></i> Sauvegarder brouillon</button>
+      <button type="submit" name="action" value="envoyer" class="btn b-or"><i class="fas fa-paper-plane"></i> Enregistrer & envoyer</button>
+      <a href="{% url 'responsable_achat:boncommande_list' %}" class="btn b-gh"><i class="fas fa-xmark"></i> Annuler</a>
+    </div>
+  </div>
+
+  {# Panneau droit #}
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div class="card" style="padding:18px;" id="info-fourn" {% if not bc.fournisseur %}style="display:none;"{% endif %}>
+      <div class="card-t" style="margin-bottom:12px;"><i class="fas fa-truck" style="color:var(--or);margin-right:6px;"></i>Fournisseur</div>
+      <div id="fourn-detail" style="font-size:13px;color:var(--text-m);line-height:1.8;">
+        {% if bc.fournisseur %}
+        <div><strong>{{ bc.fournisseur.nom }}</strong></div>
+        <div>{{ bc.fournisseur.email }}</div>
+        <div>Délai : {{ bc.fournisseur.delai_livraison }}j · Remise : {{ bc.fournisseur.remise }}%</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card" style="padding:18px;border-color:var(--or-border);background:var(--or-dim);">
+      <div class="card-t" style="color:var(--or-d);margin-bottom:10px;"><i class="fas fa-circle-info" style="margin-right:6px;"></i>Workflow</div>
+      <div style="font-size:13px;color:var(--or-d);line-height:1.9;">
+        <div style="padding:5px 0;border-bottom:1px solid var(--or-border);display:flex;align-items:center;gap:8px;"><span style="width:22px;height:22px;border-radius:50%;background:var(--or);color:white;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>Créer en brouillon</div>
+        <div style="padding:5px 0;border-bottom:1px solid var(--or-border);display:flex;align-items:center;gap:8px;"><span style="width:22px;height:22px;border-radius:50%;background:var(--blue);color:white;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>Envoyer au fournisseur</div>
+        <div style="padding:5px 0;border-bottom:1px solid var(--or-border);display:flex;align-items:center;gap:8px;"><span style="width:22px;height:22px;border-radius:50%;background:var(--yellow);color:white;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</span>Réceptionner la livraison</div>
+        <div style="padding:5px 0;display:flex;align-items:center;gap:8px;"><span style="width:22px;height:22px;border-radius:50%;background:var(--green);color:white;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</span>Clôturer</div>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+
+{# Template ligne caché #}
+<template id="tpl-ligne">
+  <tr class="ligne-row">
+    <td>
+      <select name="lignes[IDX][produit]" class="fin sel-produit" style="font-size:13px;padding:7px 10px;" onchange="majLigne(this)" required>
+        <option value="">— Sélectionner un produit —</option>
+        {% for p in produits %}
+        <option value="{{ p.id }}" data-prix="{{ p.prix_unitaire }}">{{ p.nom }} ({{ p.sku }})</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td><input type="number" name="lignes[IDX][quantite]" class="fin inp-qte" value="1" min="1" style="text-align:center;font-size:14px;font-weight:700;width:90px;" oninput="calcTotal(this)" required></td>
+    <td><input type="number" name="lignes[IDX][prix_unitaire]" class="fin inp-prix" value="0" step="0.01" min="0" style="width:110px;" oninput="calcTotal(this)" required></td>
+    <td><input type="number" name="lignes[IDX][remise]" class="fin inp-remise" value="0" min="0" max="100" step="0.1" style="width:80px;" oninput="calcTotal(this)"></td>
+    <td><span class="mono total-ht" style="font-weight:800;font-size:14px;color:var(--or);">0.00 FCFA</span></td>
+    <td><button type="button" onclick="this.closest('tr').remove(); majTotalGlobal();" class="btn b-re b-sm"><i class="fas fa-trash"></i></button></td>
+  </tr>
+</template>
+
+{% endblock %}
+
+{% block xjs %}
+<script>
+let idx = {{ bc.lignes.count|default:0 }};
+
+function ajouterLigne() {
+  document.getElementById('tr-vide')?.remove();
+  const tpl = document.getElementById('tpl-ligne').innerHTML.replaceAll('IDX', idx++);
+  document.getElementById('lignes-body').insertAdjacentHTML('beforeend', tpl);
+}
+
+function majLigne(sel) {
+  const opt = sel.selectedOptions[0];
+  const prix = parseFloat(opt?.dataset.prix || 0);
+  const row = sel.closest('tr');
+  row.querySelector('.inp-prix').value = prix.toFixed(2);
+  calcTotal(row.querySelector('.inp-prix'));
+}
+
+function calcTotal(inp) {
+  const row = inp.closest('tr');
+  const qte = parseFloat(row.querySelector('.inp-qte').value) || 0;
+  const prix = parseFloat(row.querySelector('.inp-prix').value) || 0;
+  const remise = parseFloat(row.querySelector('.inp-remise').value) || 0;
+  const total = qte * prix * (1 - remise / 100);
+  row.querySelector('.total-ht').textContent = total.toFixed(2) + ' FCFA';
+  majTotalGlobal();
+}
+
+function majTotalGlobal() {
+  let total = 0;
+  document.querySelectorAll('.total-ht').forEach(el => {
+    total += parseFloat(el.textContent) || 0;
+  });
+  document.getElementById('total-global').textContent = total.toFixed(2) + ' FCFA';
+}
+
+function majFournisseur(sel) {
+  const opt = sel.selectedOptions[0];
+  if (!opt || !opt.value) return;
+  const delai = parseInt(opt.dataset.delai) || 7;
+  const remise = parseFloat(opt.dataset.remise) || 0;
+  // Auto-calcul date livraison
+  const d = new Date(); d.setDate(d.getDate() + delai);
+  const dateStr = d.toISOString().split('T')[0];
+  document.getElementById('date-livr').value = dateStr;
+  // Appliquer remise sur toutes les lignes
+  document.querySelectorAll('.inp-remise').forEach(inp => { inp.value = remise; });
+  majTotalGlobal();
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') document.getElementById('bc-form').submit();
+});
+</script>
+{% endblock %}

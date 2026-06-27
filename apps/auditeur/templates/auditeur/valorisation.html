@@ -1,0 +1,145 @@
+{% extends 'auditeur/base_auditeur.html' %}
+{% block title %}Valorisation{% endblock %}
+{% block page_title %}Valorisation du stock{% endblock %}
+{% block page_sub %}Méthodes FIFO / CUMP · {{ user.entreprise.nom }}{% endblock %}
+{% block n_val %}active{% endblock %}
+
+{% block content %}
+
+{# Sélecteur méthode #}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;" class="au a1">
+  <div style="display:flex;gap:8px;">
+    <a href="?methode=cump{% if request.GET.categorie %}&categorie={{ request.GET.categorie }}{% endif %}" class="btn {% if request.GET.methode != 'fifo' %}b-or{% else %}b-gh{% endif %}">
+      <i class="fas fa-calculator"></i> Méthode CUMP
+    </a>
+    <a href="?methode=fifo{% if request.GET.categorie %}&categorie={{ request.GET.categorie }}{% endif %}" class="btn {% if request.GET.methode == 'fifo' %}b-or{% else %}b-gh{% endif %}">
+      <i class="fas fa-layer-group"></i> Méthode FIFO
+    </a>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <select name="categorie" onchange="location='?methode={{ request.GET.methode|default:'cump' }}&categorie='+this.value" class="fin" style="width:170px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Toutes catégories</option>
+      {% for c in categories %}
+      <option value="{{ c.id }}" {% if request.GET.categorie == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nom }}</option>
+      {% endfor %}
+    </select>
+    <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm"><i class="fas fa-download"></i> CSV</a>
+    <a href="?{{ request.GET.urlencode }}&export=pdf" class="btn b-gh b-sm"><i class="fas fa-file-pdf"></i> PDF</a>
+  </div>
+</div>
+
+{# KPIs valorisation #}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;" class="au a1">
+  <div class="stat s-or">
+    <div class="si"><i class="fas fa-coins"></i></div>
+    <div class="sv" style="font-size:{% if valeur_totale > 999999 %}18px{% else %}24px{% endif %};">{{ valeur_totale|floatformat:0 }}</div>
+    <div class="sl">Valeur totale (FCFA)</div>
+    <i class="fas fa-coins sc"></i>
+  </div>
+  <div class="stat s-bl">
+    <div class="si"><i class="fas fa-boxes-stacked"></i></div>
+    <div class="sv">{{ nb_produits_valorises }}</div>
+    <div class="sl">Produits valorisés</div>
+    <i class="fas fa-boxes-stacked sc"></i>
+  </div>
+  <div class="stat s-gr">
+    <div class="si"><i class="fas fa-arrow-trend-up"></i></div>
+    <div class="sv" style="font-size:22px;">{{ variation_mois|floatformat:1 }}%</div>
+    <div class="sl">Variation ce mois</div>
+    <i class="fas fa-arrow-trend-up sc"></i>
+  </div>
+  <div class="stat s-pu">
+    <div class="si"><i class="fas fa-calculator"></i></div>
+    <div class="sv" style="font-size:18px;">{{ methode_affichee }}</div>
+    <div class="sl">Méthode active</div>
+    <i class="fas fa-calculator sc"></i>
+  </div>
+</div>
+
+{# Graphique répartition par catégorie #}
+<div style="display:grid;grid-template-columns:1fr 320px;gap:18px;margin-bottom:18px;" class="au a2">
+  <div class="card">
+    <div class="card-h"><div class="card-t"><i class="fas fa-chart-bar" style="color:var(--or);margin-right:6px;"></i>Valeur par catégorie</div></div>
+    <div style="padding:20px;"><canvas id="chart-cat" height="200"></canvas></div>
+  </div>
+  <div class="card" style="padding:18px;">
+    <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-chart-pie" style="color:var(--or);margin-right:6px;"></i>Répartition</div>
+    <canvas id="chart-pie" height="220"></canvas>
+  </div>
+</div>
+
+{# Tableau valorisation #}
+<div class="card au a3">
+  <div class="card-h"><div class="card-t"><i class="fas fa-coins" style="color:var(--or);margin-right:7px;"></i>Valorisation par produit — {{ methode_affichee }}</div></div>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Produit</th><th>Catégorie</th><th>Qté en stock</th>
+        <th>PU {{ methode_affichee }}</th><th>Valeur totale</th>
+        <th>% du total</th><th>Variation</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in valorisations %}
+      <tr>
+        <td>
+          <div style="font-weight:600;font-size:13px;">{{ p.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--or);">{{ p.sku }}</div>
+        </td>
+        <td><span class="badge bg-gy">{{ p.categorie__nom|default:"—" }}</span></td>
+        <td class="mono" style="font-weight:700;">{{ p.quantite_totale }}</td>
+        <td class="mono" style="font-weight:600;">{{ p.prix_unitaire_calcule|floatformat:4 }} FCFA</td>
+        <td>
+          <span class="mono" style="font-size:15px;font-weight:800;color:var(--or);">{{ p.valeur_totale|floatformat:2 }} FCFA</span>
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <div style="width:60px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="width:{{ p.pct_total|floatformat:0 }}%;max-width:100%;height:100%;background:var(--or);border-radius:3px;"></div>
+            </div>
+            <span class="mono" style="font-size:12px;">{{ p.pct_total|floatformat:1 }}%</span>
+          </div>
+        </td>
+        <td>
+          {% if p.variation > 0 %}<span style="color:var(--green);font-weight:700;font-size:12px;"><i class="fas fa-arrow-up" style="font-size:10px;"></i> +{{ p.variation|floatformat:1 }}%</span>
+          {% elif p.variation < 0 %}<span style="color:var(--red);font-weight:700;font-size:12px;"><i class="fas fa-arrow-down" style="font-size:10px;"></i> {{ p.variation|floatformat:1 }}%</span>
+          {% else %}<span style="color:var(--text-m);font-size:12px;">—</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7"><div class="empty"><i class="fas fa-coins"></i><h3>Aucune donnée</h3></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if valorisations.has_other_pages %}
+  <div class="pager">
+    {% if valorisations.has_previous %}<a href="?page={{ valorisations.previous_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-left" style="font-size:11px;"></i></a>{% endif %}
+    {% for num in valorisations.paginator.page_range %}
+      {% if valorisations.number == num %}<span class="cur">{{ num }}</span>
+      {% elif num > valorisations.number|add:'-3' and num < valorisations.number|add:'3' %}<a href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>{% endif %}
+    {% endfor %}
+    {% if valorisations.has_next %}<a href="?page={{ valorisations.next_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-right" style="font-size:11px;"></i></a>{% endif %}
+    <span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">{{ nb_produits_valorises }} produits · Total : {{ valeur_totale|floatformat:2 }} FCFA</span>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block xjs %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const palette = ['#f97316','#fb923c','#fdba74','#fde68a','#d97706','#ea580c','#c2410c','#9a3412'];
+
+new Chart(document.getElementById('chart-cat').getContext('2d'), {
+  type:'bar',
+  data:{ labels:{{ labels_cat|safe }}, datasets:[{ data:{{ data_cat|safe }}, backgroundColor:palette, borderRadius:6 }] },
+  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>v.toLocaleString('fr')+'FCFA' } } } }
+});
+new Chart(document.getElementById('chart-pie').getContext('2d'), {
+  type:'doughnut',
+  data:{ labels:{{ labels_cat|safe }}, datasets:[{ data:{{ data_cat|safe }}, backgroundColor:palette, borderWidth:2, borderColor:'white' }] },
+  options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } }, cutout:'65%' }
+});
+</script>
+{% endblock %}

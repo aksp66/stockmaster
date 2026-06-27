@@ -1,0 +1,108 @@
+{% extends 'comptable/base_comptable.html' %}
+{% block title %}Vue financière{% endblock %}
+{% block page_title %}Vue financière{% endblock %}
+{% block page_sub %}Comptabilité stock · {{ user.entreprise.nom }}{% endblock %}
+{% block n_dash %}active{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;" class="au a1">
+  <div>
+    <h2 style="font-size:20px;font-weight:800;color:var(--text-p);letter-spacing:-.4px;">Bonjour, {{ user.first_name }}</h2>
+    <p style="font-size:13px;color:var(--text-m);margin-top:3px;">Exercice {{ exercice }} · Arrêté au {{ today|date:"d/m/Y" }}</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'comptable:rapports' %}" class="btn b-or"><i class="fas fa-file-chart-column"></i> Rapport comptable</a>
+    <a href="{% url 'comptable:exports' %}" class="btn b-gh"><i class="fas fa-download"></i> Exports</a>
+  </div>
+</div>
+
+{# KPIs financiers #}
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;">
+  <div class="stat s-or au a1">
+    <div class="si"><i class="fas fa-coins"></i></div>
+    <div class="sv" style="font-size:{% if valeur_stock_cump > 999999 %}18px{% else %}22px{% endif %};">{{ valeur_stock_cump|floatformat:0 }}</div>
+    <div class="sl">Valeur CUMP (FCFA)</div>
+    <i class="fas fa-coins sc"></i>
+  </div>
+  <div class="stat s-bl au a2">
+    <div class="si"><i class="fas fa-layer-group"></i></div>
+    <div class="sv" style="font-size:{% if valeur_stock_fifo > 999999 %}18px{% else %}22px{% endif %};">{{ valeur_stock_fifo|floatformat:0 }}</div>
+    <div class="sl">Valeur FIFO (FCFA)</div>
+    <i class="fas fa-layer-group sc"></i>
+  </div>
+  <div class="stat s-gr au a3">
+    <div class="si"><i class="fas fa-arrow-trend-up"></i></div>
+    <div class="sv" style="font-size:22px;">{{ marge_globale|floatformat:1 }}%</div>
+    <div class="sl">Marge brute</div>
+    <i class="fas fa-percent sc"></i>
+  </div>
+  <div class="stat s-ye au a4">
+    <div class="si"><i class="fas fa-arrow-trend-down"></i></div>
+    <div class="sv" style="font-size:22px;">{{ depreciation_totale|floatformat:0 }} FCFA</div>
+    <div class="sl">Dépréciation</div>
+    <i class="fas fa-arrow-trend-down sc"></i>
+  </div>
+  <div class="stat s-pu au a5">
+    <div class="si"><i class="fas fa-boxes-stacked"></i></div>
+    <div class="sv">{{ nb_produits }}</div>
+    <div class="sl">Produits valorisés</div>
+    <i class="fas fa-boxes-stacked sc"></i>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:18px;">
+  {# Graphique évolution mensuelle #}
+  <div class="card au a2">
+    <div class="card-h">
+      <div><div class="card-t"><i class="fas fa-chart-line" style="color:var(--or);margin-right:7px;"></i>Valeur du stock — 12 mois</div></div>
+      <div style="display:flex;gap:6px;">
+        <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--or);"><span style="width:12px;height:3px;background:var(--or);border-radius:2px;display:inline-block;"></span>CUMP</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--blue);"><span style="width:12px;height:3px;background:var(--blue);border-radius:2px;display:inline-block;"></span>FIFO</span>
+      </div>
+    </div>
+    <div style="padding:20px;"><canvas id="chart-valeur" height="200"></canvas></div>
+  </div>
+
+  {# Panneau droit #}
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    {# Top produits par valeur #}
+    <div class="card au a3">
+      <div class="card-h"><div class="card-t"><i class="fas fa-ranking-star" style="color:var(--or);margin-right:6px;"></i>Top valeur en stock</div><a href="{% url 'comptable:valorisation' %}" class="btn b-gh b-sm">Tout <i class="fas fa-arrow-right"></i></a></div>
+      <div style="padding:6px 0;">
+        {% for p in top_valeur %}
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);">
+          <span style="width:22px;height:22px;border-radius:6px;background:var(--or-dim);color:var(--or);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ forloop.counter }}</span>
+          <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.nom }}</div></div>
+          <span class="mono" style="font-size:13px;font-weight:700;color:var(--or);flex-shrink:0;">{{ p.valeur_totale|floatformat:0 }} FCFA</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {# Accès rapides #}
+    <div class="card au a4" style="padding:16px;">
+      <div class="card-t" style="margin-bottom:10px;"><i class="fas fa-bolt" style="color:var(--or);margin-right:6px;"></i>Navigation rapide</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <a href="{% url 'comptable:valorisation' %}" class="btn b-gh b-sm" style="flex-direction:column;height:52px;gap:3px;border-radius:10px;justify-content:center;"><i class="fas fa-coins" style="color:var(--or);font-size:16px;"></i><span style="font-size:11px;">Valorisation</span></a>
+        <a href="{% url 'comptable:marges' %}" class="btn b-gh b-sm" style="flex-direction:column;height:52px;gap:3px;border-radius:10px;justify-content:center;"><i class="fas fa-chart-line" style="color:var(--green);font-size:16px;"></i><span style="font-size:11px;">Marges</span></a>
+        <a href="{% url 'comptable:prix' %}" class="btn b-gh b-sm" style="flex-direction:column;height:52px;gap:3px;border-radius:10px;justify-content:center;"><i class="fas fa-tag" style="color:var(--blue);font-size:16px;"></i><span style="font-size:11px;">Prix d'achat</span></a>
+        <a href="{% url 'comptable:rapports' %}" class="btn b-gh b-sm" style="flex-direction:column;height:52px;gap:3px;border-radius:10px;justify-content:center;"><i class="fas fa-file-chart-column" style="color:var(--purple);font-size:16px;"></i><span style="font-size:11px;">Rapports</span></a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block xjs %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('chart-valeur').getContext('2d'), {
+  type:'line', data:{ labels:{{ labels_mois|safe }},
+    datasets:[
+      { label:'CUMP', data:{{ data_cump|safe }}, borderColor:'#f97316', backgroundColor:'rgba(249,115,22,.07)', borderWidth:2.5, tension:0.4, fill:true, pointRadius:3 },
+      { label:'FIFO', data:{{ data_fifo|safe }}, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.04)', borderWidth:2, tension:0.4, fill:true, borderDash:[4,4], pointRadius:3 }
+    ]},
+  options:{ responsive:true, plugins:{legend:{display:false}},
+    scales:{ x:{grid:{color:'#f3f4f6'},ticks:{font:{family:'Fira Code',size:11}}}, y:{grid:{color:'#f3f4f6'},ticks:{font:{family:'Fira Code',size:11},callback:v=>v.toLocaleString('fr')+'FCFA'}} }
+  }
+});
+</script>
+{% endblock %}

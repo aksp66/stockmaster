@@ -1,0 +1,78 @@
+{% extends 'magasinier/base_magasinier.html' %}
+{% block title %}Historique{% endblock %}
+{% block n_h %}active{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;" class="au a1">
+  <h2 style="font-size:18px;font-weight:800;color:var(--text-p);"><i class="fas fa-clock-rotate-left" style="color:var(--or);margin-right:8px;"></i>Mes mouvements</h2>
+  <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm"><i class="fas fa-download"></i></a>
+</div>
+
+{# Filtres #}
+<div class="card au a1" style="padding:14px;margin-bottom:14px;">
+  <form method="get" style="display:flex;flex-direction:column;gap:8px;">
+    <div class="search-w">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Produit, SKU…" class="fin" style="height:42px;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <select name="type" class="fin" style="height:40px;font-size:13px;padding:0 10px;">
+        <option value="">Tous types</option>
+        <option value="entree"    {% if request.GET.type == 'entree' %}selected{% endif %}>Entrée</option>
+        <option value="sortie"    {% if request.GET.type == 'sortie' %}selected{% endif %}>Sortie</option>
+        <option value="transfert" {% if request.GET.type == 'transfert' %}selected{% endif %}>Transfert</option>
+        <option value="ajustement" {% if request.GET.type == 'ajustement' %}selected{% endif %}>Ajustement</option>
+      </select>
+      <input type="date" name="date" value="{{ request.GET.date }}" class="fin" style="height:40px;font-size:13px;">
+    </div>
+    <button type="submit" class="btn b-or" style="height:42px;"><i class="fas fa-filter"></i> Filtrer</button>
+  </form>
+</div>
+
+{# Liste mouvements #}
+<div class="au a2">
+  {% if mouvements %}
+    {% for m in mouvements %}
+    <div class="card" style="margin-bottom:10px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:{% if m.type_mouvement == 'entree' %}var(--green-dim){% elif m.type_mouvement == 'sortie' %}var(--red-dim){% else %}var(--blue-dim){% endif %};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-{% if m.type_mouvement == 'entree' %}arrow-down{% elif m.type_mouvement == 'sortie' %}arrow-up{% else %}arrows-rotate{% endif %}"
+             style="color:{% if m.type_mouvement == 'entree' %}var(--green){% elif m.type_mouvement == 'sortie' %}var(--red){% else %}var(--blue){% endif %};font-size:17px;"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--text-p);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.produit.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--or);">{{ m.produit.sku }}</div>
+          <div style="font-size:11.5px;color:var(--text-m);margin-top:2px;">{{ m.entrepot.nom|default:"—" }} · {{ m.date_mouvement|date:"d/m H:i" }}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div class="mono" style="font-size:22px;font-weight:800;color:{% if m.type_mouvement == 'entree' %}var(--green){% elif m.type_mouvement == 'sortie' %}var(--red){% else %}var(--or){% endif %};">
+            {% if m.type_mouvement == 'entree' %}+{% elif m.type_mouvement == 'sortie' %}−{% endif %}{{ m.quantite }}
+          </div>
+          <span class="badge {% if m.type_mouvement == 'entree' %}bg-gr{% elif m.type_mouvement == 'sortie' %}bg-re{% else %}bg-bl{% endif %}" style="font-size:10px;">{{ m.get_type_mouvement_display }}</span>
+        </div>
+      </div>
+      {% if m.motif %}
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-m);"><i class="fas fa-comment" style="margin-right:4px;"></i>{{ m.motif }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {# Pagination #}
+    {% if mouvements.has_other_pages %}
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0;">
+      {% if mouvements.has_previous %}<a href="?page={{ mouvements.previous_page_number }}&{{ request.GET.urlencode }}" class="btn b-gh b-sm"><i class="fas fa-chevron-left"></i></a>{% endif %}
+      <span style="font-size:13px;color:var(--text-m);">{{ mouvements.number }} / {{ mouvements.paginator.num_pages }}</span>
+      {% if mouvements.has_next %}<a href="?page={{ mouvements.next_page_number }}&{{ request.GET.urlencode }}" class="btn b-gh b-sm"><i class="fas fa-chevron-right"></i></a>{% endif %}
+    </div>
+    {% endif %}
+
+  {% else %}
+  <div class="empty card" style="padding:40px 20px;">
+    <i class="fas fa-clock-rotate-left"></i>
+    <h3>Aucun mouvement</h3>
+    <p style="font-size:13px;">Aucun résultat pour vos filtres.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

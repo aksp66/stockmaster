@@ -1,0 +1,291 @@
+{% extends 'responsable_achat/base_achat.html' %}
+<!---->
+{% block title %}Exports{% endblock %}
+<!---->
+{% block page_title %}Exports & Rapports{% endblock %}
+<!---->
+{% block page_sub %}Outils · {{ user.entreprise.nom }}{% endblock %}
+<!---->
+{% block n_ex %}active{% endblock %}
+<!---->
+{% block content %}
+
+<div
+  style="
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 22px;
+  "
+  class="au a1"
+>
+  {# ── Bons de commande ── #}
+  <div class="card" style="padding: 0; overflow: hidden">
+    <div
+      style="padding: 20px 22px 16px; border-bottom: 1px solid var(--border)"
+    >
+      <div
+        style="
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: var(--blue-dim);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+        "
+      >
+        <i
+          class="fas fa-file-invoice"
+          style="color: var(--blue); font-size: 18px"
+        ></i>
+      </div>
+      <div style="font-size: 15px; font-weight: 800; color: var(--text-p)">
+        Bons de commande
+      </div>
+      <div style="font-size: 12px; color: var(--text-m); margin-top: 4px">
+        Exportez vos BC par période ou statut
+      </div>
+    </div>
+    <div
+      style="
+        padding: 16px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      "
+    >
+      <form method="get" action="{% url 'responsable_achat:exports' %}">
+        <input type="hidden" name="type" value="bc_csv" />
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+          "
+        >
+          <div>
+            <label class="fl">Début</label
+            ><input
+              type="date"
+              name="date_debut"
+              class="fin"
+              style="height: 34px; font-size: 12px"
+            />
+          </div>
+          <div>
+            <label class="fl">Fin</label
+            ><input
+              type="date"
+              name="date_fin"
+              class="fin"
+              style="height: 34px; font-size: 12px"
+            />
+          </div>
+        </div>
+        <select
+          name="statut"
+          class="fin"
+          style="
+            height: 34px;
+            font-size: 12px;
+            padding: 0 10px;
+            margin-bottom: 10px;
+          "
+        >
+          <option value="">Tous statuts</option>
+          <option value="envoye">Envoyés</option>
+          <option value="recu">Reçus</option>
+          <option value="cloture">Clôturés</option>
+        </select>
+        <button
+          type="submit"
+          class="btn b-or b-sm"
+          style="width: 100%; justify-content: center"
+        >
+          <i class="fas fa-download"></i> Exporter CSV
+        </button>
+      </form>
+      <a
+        href="{% url 'responsable_achat:exports' %}?type=bc_pdf"
+        class="btn b-gh b-sm"
+        style="justify-content: center"
+        ><i class="fas fa-file-pdf"></i> Rapport PDF mensuel</a
+      >
+    </div>
+  </div>
+
+  {# ── Fournisseurs ── #}
+  <div class="card" style="padding: 0; overflow: hidden">
+    <div
+      style="padding: 20px 22px 16px; border-bottom: 1px solid var(--border)"
+    >
+      <div
+        style="
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: var(--or-dim);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+        "
+      >
+        <i class="fas fa-truck" style="color: var(--or); font-size: 18px"></i>
+      </div>
+      <div style="font-size: 15px; font-weight: 800; color: var(--text-p)">
+        Fournisseurs
+      </div>
+      <div style="font-size: 12px; color: var(--text-m); margin-top: 4px">
+        Liste et statistiques fournisseurs
+      </div>
+    </div>
+    <div
+      style="
+        padding: 16px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      "
+    >
+      <a
+        href="{% url 'responsable_achat:exports' %}?type=fournisseurs_csv"
+        class="btn b-or b-sm"
+        style="justify-content: center"
+        ><i class="fas fa-download"></i> Exporter CSV</a
+      >
+      <a
+        href="{% url 'responsable_achat:exports' %}?type=fournisseurs_stats"
+        class="btn b-gh b-sm"
+        style="justify-content: center"
+        ><i class="fas fa-chart-bar"></i> Statistiques fournisseurs</a
+      >
+      <a
+        href="{% url 'responsable_achat:exports' %}?type=delais_livraison"
+        class="btn b-gh b-sm"
+        style="justify-content: center"
+        ><i class="fas fa-clock"></i> Rapport délais livraison</a
+      >
+    </div>
+  </div>
+
+  {# ── Prédictions ── #}
+  <div class="card" style="padding: 0; overflow: hidden">
+    <div
+      style="padding: 20px 22px 16px; border-bottom: 1px solid var(--border)"
+    >
+      <div
+        style="
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: #f5f3ff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+        "
+      >
+        <i
+          class="fas fa-brain"
+          style="color: var(--purple); font-size: 18px"
+        ></i>
+      </div>
+      <div style="font-size: 15px; font-weight: 800; color: var(--text-p)">
+        Prédictions IA
+      </div>
+      <div style="font-size: 12px; color: var(--text-m); margin-top: 4px">
+        Données brutes des modèles Prophet & RF
+      </div>
+    </div>
+    <div
+      style="
+        padding: 16px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      "
+    >
+      <a
+        href="{% url 'responsable_achat:exports' %}?type=predictions_csv"
+        class="btn b-or b-sm"
+        style="justify-content: center"
+        ><i class="fas fa-download"></i> Prédictions CSV</a
+      >
+      <a
+        href="{% url 'responsable_achat:exports' %}?type=suggestions_csv"
+        class="btn b-gh b-sm"
+        style="justify-content: center"
+        ><i class="fas fa-lightbulb"></i> Suggestions achat CSV</a
+      >
+      <a
+        href="{% url 'responsable_achat:exports' %}?type=budget_previsionnel"
+        class="btn b-gh b-sm"
+        style="justify-content: center"
+        ><i class="fas fa-euro-sign"></i> Budget prévisionnel</a
+      >
+    </div>
+  </div>
+</div>
+
+{# Historique des exports #}
+<div class="card au a2">
+  <div class="card-h">
+    <div class="card-t">
+      <i
+        class="fas fa-clock-rotate-left"
+        style="color: var(--or); margin-right: 7px"
+      ></i
+      >Derniers exports générés
+    </div>
+  </div>
+  {% if exports_recents %}
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Fichier</th>
+        <th>Période</th>
+        <th>Généré le</th>
+        <th>Par</th>
+        <th style="text-align: right; padding-right: 20px">Télécharger</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in exports_recents %}
+      <tr>
+        <td>
+          <span
+            class="badge {% if e.type == 'csv' %}bg-gr{% else %}bg-re{% endif %}"
+            >{{ e.type|upper }}</span
+          >
+        </td>
+        <td style="font-size: 13px; font-weight: 500">{{ e.nom_fichier }}</td>
+        <td class="mono" style="font-size: 12px; color: var(--text-m)">
+          {{ e.periode|default:"—" }}
+        </td>
+        <td class="mono" style="font-size: 12px; color: var(--text-m)">
+          {{ e.date_creation|date:"d/m/Y H:i" }}
+        </td>
+        <td style="font-size: 13px">{{ e.utilisateur.get_full_name }}</td>
+        <td style="text-align: right; padding-right: 16px">
+          <a href="{{ e.url }}" class="btn b-or b-sm"
+            ><i class="fas fa-download"></i> Télécharger</a
+          >
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <i class="fas fa-download"></i>
+    <h3>Aucun export récent</h3>
+    <p style="font-size: 13px">Générez votre premier export ci-dessus.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

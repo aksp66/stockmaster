@@ -1,0 +1,3 @@
+**/templates/**/*.html
+**/templates/**/*.dj.html
+**/templates/**/*.django.html

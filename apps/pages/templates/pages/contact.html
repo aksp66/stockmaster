@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Contact – StockMaster{% endblock %}
+{% block nav_contact %}active{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;margin:0 auto;">
+
+  <!-- En-tête -->
+  <div style="text-align:center;margin-bottom:48px;">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:#ea580c;margin-bottom:16px;">
+      <i class="fas fa-headset" style="font-size:11px;"></i> Support réactif 7j/7
+    </div>
+    <h1 style="font-size:2.2rem;font-weight:800;color:#111827;letter-spacing:-.04em;margin-bottom:12px;">Contactez-nous</h1>
+    <p style="color:#6b7280;font-size:1rem;max-width:480px;margin:0 auto;line-height:1.7;">
+      Une question, un projet ou une démo ? Écrivez-nous, nous vous répondons <strong style="color:#111827;">sous 24h ouvrées</strong>.
+    </p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:32px;" class="contact-grid">
+
+    <!-- Formulaire -->
+    <div style="background:white;border:1.5px solid #e5e7eb;border-radius:20px;padding:36px;">
+      <h2 style="font-size:17px;font-weight:800;color:#111827;margin-bottom:24px;">
+        <i class="fas fa-paper-plane" style="color:#f97316;margin-right:8px;"></i>Envoyer un message
+      </h2>
+
+      {% if form_success %}
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:16px;margin-bottom:24px;display:flex;align-items:center;gap:12px;">
+        <i class="fas fa-circle-check" style="color:#059669;font-size:20px;flex-shrink:0;"></i>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#065f46;">Message envoyé !</div>
+          <div style="font-size:13px;color:#047857;margin-top:2px;">Nous vous répondrons sous 24h. Merci !</div>
+        </div>
+      </div>
+      {% endif %}
+
+      <form method="post" id="contact-form">
+        {% csrf_token %}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Prénom <span style="color:#dc2626;">*</span></label>
+            <input type="text" name="prenom" value="{{ form_data.prenom|default:'' }}"
+                   required placeholder="Jean"
+                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
+                   onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+                   onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
+          </div>
+          <div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Nom <span style="color:#dc2626;">*</span></label>
+            <input type="text" name="nom" value="{{ form_data.nom|default:'' }}"
+                   required placeholder="Dupont"
+                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
+                   onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+                   onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Email professionnel <span style="color:#dc2626;">*</span></label>
+          <input type="email" name="email" value="{{ form_data.email|default:'' }}"
+                 required placeholder="jean@entreprise.com"
+                 style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
+                 onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+                 onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Entreprise</label>
+            <input type="text" name="entreprise" value="{{ form_data.entreprise|default:'' }}"
+                   placeholder="Nom de votre société"
+                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
+                   onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+                   onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
+          </div>
+          <div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Sujet</label>
+            <select name="sujet"
+                    style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s;background:white;"
+                    onfocus="this.style.borderColor='#f97316';" onblur="this.style.borderColor='#e5e7eb';">
+              <option value="">— Sélectionner —</option>
+              <option value="demo" {% if form_data.sujet == 'demo' %}selected{% endif %}>Demande de démo</option>
+              <option value="tarif" {% if form_data.sujet == 'tarif' %}selected{% endif %}>Tarifs & forfaits</option>
+              <option value="support" {% if form_data.sujet == 'support' %}selected{% endif %}>Support technique</option>
+              <option value="partenariat" {% if form_data.sujet == 'partenariat' %}selected{% endif %}>Partenariat</option>
+              <option value="autre" {% if form_data.sujet == 'autre' %}selected{% endif %}>Autre</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Message <span style="color:#dc2626;">*</span></label>
+          <textarea name="message" required rows="5"
+                    placeholder="Décrivez votre besoin ou votre question…"
+                    style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;resize:vertical;min-height:120px;transition:border-color .15s,box-shadow .15s;"
+                    onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+                    onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">{{ form_data.message|default:'' }}</textarea>
+        </div>
+
+        <button type="submit" id="submit-btn"
+                style="width:100%;display:flex;align-items:center;justify-content:center;gap:9px;background:#f97316;color:white;padding:13px 24px;border-radius:11px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:background .15s,transform .1s;box-shadow:0 2px 12px rgba(249,115,22,.35);"
+                onmouseover="this.style.background='#ea580c';" onmouseout="this.style.background='#f97316';">
+          <i class="fas fa-paper-plane"></i> Envoyer le message
+        </button>
+        <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:12px;">
+          <i class="fas fa-lock" style="margin-right:4px;"></i>Vos données sont protégées. Jamais revendues.
+        </p>
+      </form>
+    </div>
+
+    <!-- Colonne infos -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Coordonnées -->
+      <div style="background:white;border:1.5px solid #e5e7eb;border-radius:20px;padding:28px;">
+        <h3 style="font-size:15px;font-weight:800;color:#111827;margin-bottom:20px;"><i class="fas fa-address-card" style="color:#f97316;margin-right:8px;"></i>Nos coordonnées</h3>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;align-items:flex-start;gap:13px;">
+            <div style="width:38px;height:38px;background:#fff7ed;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-envelope" style="color:#f97316;font-size:14px;"></i>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Email</div>
+              <a href="mailto:support@stockmaster.io" style="font-size:14px;color:#111827;text-decoration:none;font-weight:600;">support@stockmaster.io</a>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:13px;">
+            <div style="width:38px;height:38px;background:#fff7ed;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-phone" style="color:#f97316;font-size:14px;"></i>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Téléphone / WhatsApp</div>
+              <a href="tel:+22891123080" style="font-size:14px;color:#111827;text-decoration:none;font-weight:600;">+228 91 12 30 80</a>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:13px;">
+            <div style="width:38px;height:38px;background:#fff7ed;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-location-dot" style="color:#f97316;font-size:14px;"></i>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Adresses</div>
+              <div style="font-size:13.5px;color:#374151;font-weight:500;line-height:1.6;">Lomé, Togo<br>& Paris, France (75001)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Horaires -->
+      <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:20px;padding:24px;">
+        <h3 style="font-size:15px;font-weight:800;color:#92400e;margin-bottom:16px;"><i class="fas fa-clock" style="margin-right:8px;"></i>Disponibilité</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:#92400e;">
+          <div style="display:flex;justify-content:space-between;"><span>Lundi – Vendredi</span><strong>8h – 20h</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>Samedi</span><strong>9h – 17h</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>Dimanche</span><strong>Support urgent</strong></div>
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #fed7aa;font-size:12.5px;color:#92400e;">
+          <i class="fas fa-bolt" style="margin-right:4px;"></i>Réponse moyenne : <strong>2h ouvrées</strong>
+        </div>
+      </div>
+
+      <!-- WhatsApp direct -->
+      <a href="https://wa.me/22891123080?text=Bonjour%20StockMaster%2C%20je%20souhaite%20une%20d%C3%A9mo."
+         target="_blank"
+         style="display:flex;align-items:center;gap:13px;background:#25d366;border-radius:16px;padding:20px;text-decoration:none;transition:background .15s;"
+         onmouseover="this.style.background='#20b859';" onmouseout="this.style.background='#25d366';">
+        <div style="width:44px;height:44px;background:rgba(255,255,255,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fab fa-whatsapp" style="color:white;font-size:22px;"></i>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:white;">Écrire sur WhatsApp</div>
+          <div style="font-size:12.5px;color:rgba(255,255,255,.8);margin-top:2px;">Réponse rapide garantie</div>
+        </div>
+        <i class="fas fa-arrow-right" style="color:rgba(255,255,255,.7);margin-left:auto;"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+@media(max-width:768px){
+  .contact-grid { grid-template-columns:1fr !important; }
+}
+</style>
+
+{% endblock %}

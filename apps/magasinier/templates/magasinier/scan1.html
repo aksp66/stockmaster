@@ -1,0 +1,660 @@
+{% extends "magasinier/base_mobile.html" %}
+{% load static %}
+
+{% block title %}Scanner — StockMaster{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --orange: #F97316; --orange-dark: #C2410C; --orange-light: #FFF7ED;
+    --green: #16A34A;  --green-light: #DCFCE7;
+    --red: #DC2626;    --red-light: #FEE2E2;
+    --amber: #D97706;  --amber-light: #FEF3C7;
+    --surface: #FAFAFA; --white: #fff;
+    --border: #E4E4E7; --text-primary: #18181B; --text-muted: #71717A;
+    --radius: 14px; --radius-sm: 10px;
+    --shadow: 0 4px 20px rgba(0,0,0,.10);
+    --nav-h: 68px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: #000; overflow: hidden; font-family: system-ui, sans-serif; }
+
+  /* ── Viewfinder ─────────────────────────────────────────────── */
+  .scan-page {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    background: #000;
+  }
+
+  /* Header flottant ── */
+  .scan-header {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+    padding: env(safe-area-inset-top, 12px) 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(0,0,0,.7) 0%, transparent 100%);
+  }
+  .scan-header-title {
+    color: white; font-size: 1rem; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .scan-header-title .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--orange);
+    animation: pulse-scan 1.5s infinite;
+  }
+  @keyframes pulse-scan {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: .5; transform: scale(1.4); }
+  }
+  .btn-header-icon {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,.15); border: none;
+    display: flex; align-items: center; justify-content: center;
+    color: white; cursor: pointer; backdrop-filter: blur(4px);
+    transition: background .15s;
+  }
+  .btn-header-icon:hover { background: rgba(255,255,255,.25); }
+  .btn-header-icon svg { width: 18px; height: 18px; }
+
+  /* Vidéo ── */
+  #scan-video {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  #scan-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 5;
+  }
+
+  /* Overlay avec découpe ── */
+  .scan-overlay {
+    position: absolute; inset: 0; z-index: 10;
+    pointer-events: none;
+  }
+
+  /* Zone de visée ── */
+  .scan-reticle-wrap {
+    position: absolute; inset: 0; z-index: 11;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; pointer-events: none;
+  }
+  .scan-reticle {
+    width: 280px; height: 180px; position: relative;
+  }
+  .scan-reticle::before,
+  .scan-reticle::after,
+  .scan-corner-br, .scan-corner-bl {
+    content: '';
+    position: absolute; width: 28px; height: 28px;
+    border-color: var(--orange); border-style: solid;
+  }
+  .scan-reticle::before { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+  .scan-reticle::after  { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+  .scan-corner-br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+  .scan-corner-bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+
+  /* Ligne de scan animée ── */
+  .scan-line {
+    position: absolute; left: 4px; right: 4px;
+    height: 2px; background: linear-gradient(90deg, transparent, var(--orange), transparent);
+    border-radius: 1px;
+    animation: scan-sweep 2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--orange);
+  }
+  @keyframes scan-sweep {
+    0%   { top: 8%; opacity: .8; }
+    50%  { top: 90%; opacity: 1; }
+    100% { top: 8%; opacity: .8; }
+  }
+
+  .scan-hint {
+    color: rgba(255,255,255,.8); font-size: .8125rem; text-align: center;
+    padding: 6px 14px; background: rgba(0,0,0,.4);
+    border-radius: 20px; backdrop-filter: blur(4px);
+  }
+
+  /* ── Panel résultat (slide up) ─────────────────────────────── */
+  .result-panel {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 30;
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    padding: 0 0 calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+    transform: translateY(100%);
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
+    max-height: 70vh; overflow-y: auto;
+    box-shadow: 0 -8px 32px rgba(0,0,0,.20);
+  }
+  .result-panel.visible { transform: translateY(0); }
+
+  .result-panel-handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: var(--border); margin: 12px auto 0;
+  }
+  .result-panel-body { padding: 16px 20px 20px; }
+
+  /* Statut badge ── */
+  .statut-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .8125rem; font-weight: 700; padding: 4px 12px;
+    border-radius: 12px; margin-bottom: 12px;
+  }
+  .statut-badge.ok       { background: var(--green-light); color: var(--green); }
+  .statut-badge.critique { background: var(--red-light);   color: var(--red); }
+  .statut-badge.faible   { background: var(--amber-light); color: var(--amber); }
+  .statut-badge.rupture  { background: var(--red-light);   color: var(--red); }
+
+  .produit-titre { font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+  .produit-ref   { font-size: .8125rem; color: var(--text-muted); margin-bottom: 16px; }
+
+  /* Grille stock info ── */
+  .stock-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 18px;
+  }
+  .stock-info-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px;
+    text-align: center;
+  }
+  .stock-info-val { font-size: 1.5rem; font-weight: 800; color: var(--text-primary); }
+  .stock-info-lbl { font-size: .75rem; color: var(--text-muted); margin-top: 2px; }
+  .stock-info-card.alerte .stock-info-val { color: var(--red); }
+  .stock-info-card.ok .stock-info-val     { color: var(--green); }
+
+  /* Mouvement rapide ── */
+  .mvt-section { margin-bottom: 16px; }
+  .mvt-label { font-size: .8125rem; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
+
+  .mvt-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .mvt-type-btn {
+    padding: 12px 10px; border-radius: var(--radius-sm);
+    border: 2px solid var(--border); background: var(--surface);
+    font-size: .875rem; font-weight: 700; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: all .15s;
+  }
+  .mvt-type-btn.selected.entree { border-color: var(--green); background: var(--green-light); color: var(--green); }
+  .mvt-type-btn.selected.sortie { border-color: var(--red);   background: var(--red-light);  color: var(--red); }
+  .mvt-type-btn svg { width: 20px; height: 20px; }
+
+  .mvt-qte-row { display: flex; align-items: center; gap: 10px; }
+  .btn-qte {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--surface);
+    font-size: 1.25rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .btn-qte:active { transform: scale(.92); }
+  .btn-qte.moins { color: var(--red); }
+  .btn-qte.plus  { color: var(--green); }
+
+  .qte-input {
+    flex: 1; text-align: center; font-size: 1.5rem; font-weight: 800;
+    border: 2px solid var(--border); border-radius: var(--radius-sm);
+    padding: 10px; color: var(--text-primary); background: var(--white);
+    outline: none; transition: border-color .15s;
+  }
+  .qte-input:focus { border-color: var(--orange); }
+
+  /* Bouton valider ── */
+  .btn-valider {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+    color: white; border: none; border-radius: var(--radius-sm);
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 16px rgba(249,115,22,.35);
+    transition: transform .15s, opacity .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-valider:active { transform: scale(.97); opacity: .9; }
+  .btn-valider:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-valider .spinner {
+    display: none; width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,.4); border-top-color: white;
+    border-radius: 50%; animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn-nouveau-scan {
+    width: 100%; padding: 12px;
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: .875rem; font-weight: 500; cursor: pointer; margin-top: 8px;
+    transition: background .15s;
+  }
+  .btn-nouveau-scan:active { background: var(--surface); }
+
+  /* ── Saisie manuelle ────────────────────────────────────────── */
+  .saisie-manuelle-bar {
+    position: absolute; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+    left: 0; right: 0; z-index: 25;
+    padding: 10px 16px;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(8px);
+    display: flex; gap: 8px;
+  }
+  .saisie-manuelle-input {
+    flex: 1; padding: 10px 14px;
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 10px; color: white; font-size: .9375rem;
+    outline: none; placeholder-color: rgba(255,255,255,.5);
+  }
+  .saisie-manuelle-input::placeholder { color: rgba(255,255,255,.5); }
+  .saisie-manuelle-input:focus { border-color: var(--orange); background: rgba(255,255,255,.2); }
+  .btn-saisie-ok {
+    padding: 10px 16px; border-radius: 10px;
+    background: var(--orange); border: none; color: white;
+    font-weight: 700; cursor: pointer; font-size: .875rem;
+    transition: opacity .15s;
+  }
+  .btn-saisie-ok:active { opacity: .8; }
+
+  /* ── Error state ────────────────────────────────────────────── */
+  .error-panel {
+    position: absolute; bottom: calc(var(--nav-h) + 60px + env(safe-area-inset-bottom, 0px));
+    left: 16px; right: 16px; z-index: 25;
+    background: var(--red-light); color: var(--red);
+    border: 1px solid #FECACA; border-radius: var(--radius-sm);
+    padding: 12px 16px; font-size: .875rem; font-weight: 600;
+    display: none; align-items: center; gap: 8px;
+    animation: slideUp .3s ease;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Résultat flash ── */
+  .scan-flash {
+    position: absolute; inset: 0; z-index: 15;
+    background: white; opacity: 0; pointer-events: none;
+    transition: opacity .1s;
+  }
+  .scan-flash.active { opacity: .6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scan-page" id="scan-page">
+
+  <!-- Flash effet scan ── -->
+  <div class="scan-flash" id="scan-flash"></div>
+
+  <!-- Header ── -->
+  <div class="scan-header">
+    <div class="scan-header-title">
+      <div class="dot"></div>
+      Scanner
+    </div>
+    <div style="display:flex;gap:8px;">
+      <!-- Torche -->
+      <button class="btn-header-icon" id="btn-torche" title="Torche" onclick="toggleTorche()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      </button>
+      <!-- Retour -->
+      <a href="/magasinier/" class="btn-header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Flux vidéo ── -->
+  <video id="scan-video" autoplay muted playsinline></video>
+  <canvas id="scan-canvas"></canvas>
+
+  <!-- Overlay visée ── -->
+  <div class="scan-overlay">
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <mask id="reticle-mask">
+          <rect width="100%" height="100%" fill="white"/>
+          <rect id="reticle-hole" x="50%" y="50%" width="280" height="180"
+                rx="4" transform="translate(-140,-90)" fill="black"/>
+        </rect>
+      </defs>
+      <rect width="100%" height="100%" fill="rgba(0,0,0,0.55)" mask="url(#reticle-mask)"/>
+    </svg>
+  </div>
+
+  <div class="scan-reticle-wrap">
+    <div class="scan-reticle">
+      <div class="scan-line"></div>
+      <div class="scan-corner-br"></div>
+      <div class="scan-corner-bl"></div>
+    </div>
+    <div class="scan-hint" id="scan-hint">Pointez la caméra vers un code-barres</div>
+  </div>
+
+  <!-- Erreur ── -->
+  <div class="error-panel" id="error-panel">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+    </svg>
+    <span id="error-msg">Produit introuvable.</span>
+  </div>
+
+  <!-- Saisie manuelle ── -->
+  <div class="saisie-manuelle-bar">
+    <input type="text" class="saisie-manuelle-input" id="saisie-ref"
+           placeholder="Saisir une référence…" inputmode="text" autocomplete="off"
+           autocorrect="off" autocapitalize="none">
+    <button class="btn-saisie-ok" onclick="rechercherManuelle()">OK</button>
+  </div>
+
+  <!-- Panel résultat ── -->
+  <div class="result-panel" id="result-panel">
+    <div class="result-panel-handle"></div>
+    <div class="result-panel-body">
+      <div id="result-statut"></div>
+      <div class="produit-titre" id="result-nom">—</div>
+      <div class="produit-ref"   id="result-ref"></div>
+
+      <div class="stock-grid">
+        <div class="stock-info-card" id="card-stock">
+          <div class="stock-info-val" id="result-stock">—</div>
+          <div class="stock-info-lbl">Stock actuel</div>
+        </div>
+        <div class="stock-info-card">
+          <div class="stock-info-val" id="result-seuil">—</div>
+          <div class="stock-info-lbl">Seuil d'alerte</div>
+        </div>
+        <div class="stock-info-card">
+          <div class="stock-info-val" id="result-categorie" style="font-size:1rem;">—</div>
+          <div class="stock-info-lbl">Catégorie</div>
+        </div>
+        <div class="stock-info-card">
+          <div class="stock-info-val" id="result-unite">—</div>
+          <div class="stock-info-lbl">Unité</div>
+        </div>
+      </div>
+
+      <!-- Mouvement rapide ── -->
+      <div class="mvt-section">
+        <div class="mvt-label">Enregistrer un mouvement</div>
+        <div class="mvt-type-grid">
+          <button class="mvt-type-btn entree" id="btn-entree" onclick="selectionnerType('entree', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
+            </svg>
+            Entrée
+          </button>
+          <button class="mvt-type-btn sortie" id="btn-sortie" onclick="selectionnerType('sortie', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+            </svg>
+            Sortie
+          </button>
+        </div>
+
+        <div class="mvt-qte-row">
+          <button class="btn-qte moins" onclick="changerQte(-1)">−</button>
+          <input type="number" class="qte-input" id="qte-input" value="1" min="1" max="9999" inputmode="numeric">
+          <button class="btn-qte plus"  onclick="changerQte(+1)">+</button>
+        </div>
+      </div>
+
+      <button class="btn-valider" id="btn-valider" onclick="validerMouvement()">
+        <div class="spinner" id="valider-spinner"></div>
+        <svg id="valider-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Valider le mouvement
+      </button>
+      <button class="btn-nouveau-scan" onclick="nouveauScan()">
+        ↩ Nouveau scan
+      </button>
+    </div>
+  </div>
+
+</div><!-- /scan-page -->
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="{% static 'pwa/app.js' %}"></script>
+<script>
+/* ────────────────────────────────────────────────────────────────
+   ÉTAT DE LA PAGE SCANNER
+──────────────────────────────────────────────────────────────── */
+const state = {
+  produitId:   null,
+  typeMvt:     "entree",    // "entree" | "sortie"
+  enAttente:   false,
+  torche:      false,
+  streamTrack: null,
+};
+
+/* ────────────────────────────────────────────────────────────────
+   DÉMARRAGE
+──────────────────────────────────────────────────────────────── */
+document.addEventListener("DOMContentLoaded", async () => {
+  const video  = document.getElementById("scan-video");
+  const canvas = document.getElementById("scan-canvas");
+
+  // Adapter canvas à la taille de l'écran
+  const resize = () => {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  };
+  resize();
+  window.addEventListener("resize", resize);
+
+  try {
+    await ScannerModule.demarrer(video, canvas, handleCodeScan);
+    // Récupérer le track pour la torche
+    const stream = video.srcObject;
+    state.streamTrack = stream?.getVideoTracks()?.[0];
+  } catch (err) {
+    document.getElementById("scan-hint").textContent = err.message;
+    afficherToast(err.message, "error", 6000);
+  }
+
+  // Saisie manuelle avec lecteur USB
+  ScannerModule.saisieManuelle(
+    document.getElementById("saisie-ref"),
+    handleCodeScan
+  );
+
+  // Sélectionner "entrée" par défaut
+  selectionnerType("entree", document.getElementById("btn-entree"));
+
+  // Offline manager
+  OfflineManager.init({
+    onOffline: () => document.getElementById("scan-hint").textContent = "⚠️ Hors ligne — scan local uniquement",
+    onOnline:  () => document.getElementById("scan-hint").textContent = "Pointez la caméra vers un code-barres",
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────
+   TRAITEMENT D'UN CODE SCANNÉ
+──────────────────────────────────────────────────────────────── */
+async function handleCodeScan(code) {
+  if (state.enAttente) return;
+
+  // Flash visuel
+  const flash = document.getElementById("scan-flash");
+  flash.classList.add("active");
+  setTimeout(() => flash.classList.remove("active"), 120);
+
+  // Masquer les erreurs précédentes
+  masquerErreur();
+  document.getElementById("scan-hint").textContent = `Recherche de "${code}"…`;
+
+  try {
+    const produit = await StockMasterAPI.produitScan(code);
+    if (produit) {
+      afficherResultat(produit);
+    } else {
+      afficherErreur("Produit introuvable pour ce code.");
+      ScannerModule.jouerSon("erreur");
+    }
+  } catch (err) {
+    if (err.status === 404) {
+      afficherErreur(`Code "${code}" introuvable dans le catalogue.`);
+    } else if (err.status === 0) {
+      // Hors ligne : chercher en local
+      afficherErreur("Hors ligne — impossible de rechercher le produit.");
+    } else {
+      afficherErreur(err.message);
+    }
+    ScannerModule.jouerSon("erreur");
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   AFFICHER LE RÉSULTAT PRODUIT
+──────────────────────────────────────────────────────────────── */
+function afficherResultat(produit) {
+  state.produitId = produit.id;
+
+  // Badge statut
+  const labels = { ok: "✅ En stock", critique: "⚠️ Stock critique", faible: "🔶 Stock faible", rupture: "❌ En rupture" };
+  document.getElementById("result-statut").innerHTML =
+    `<span class="statut-badge ${produit.statut_stock}">${labels[produit.statut_stock] || produit.statut_stock}</span>`;
+
+  document.getElementById("result-nom").textContent   = produit.nom;
+  document.getElementById("result-ref").textContent   = produit.reference || "";
+  document.getElementById("result-stock").textContent = produit.stock_actuel ?? "—";
+  document.getElementById("result-seuil").textContent = produit.seuil_alerte ?? "—";
+  document.getElementById("result-categorie").textContent = produit.categorie_nom || "—";
+  document.getElementById("result-unite").textContent = produit.unite || "u.";
+
+  // Colorer la card stock
+  const cardStock = document.getElementById("card-stock");
+  cardStock.className = "stock-info-card " + (produit.en_alerte ? "alerte" : "ok");
+
+  // Afficher le panel
+  document.getElementById("result-panel").classList.add("visible");
+  document.getElementById("scan-hint").textContent = "Produit trouvé !";
+
+  // Pré-remplir la quantité
+  document.getElementById("qte-input").value = 1;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   VALIDER UN MOUVEMENT
+──────────────────────────────────────────────────────────────── */
+async function validerMouvement() {
+  if (!state.produitId || state.enAttente) return;
+
+  const qte = parseInt(document.getElementById("qte-input").value);
+  if (!qte || qte <= 0) {
+    afficherToast("La quantité doit être supérieure à 0.", "warning");
+    return;
+  }
+
+  // Types selon sélection
+  const typeMap = {
+    entree: "achat",
+    sortie: "consommation",
+  };
+  const typeMouvement = typeMap[state.typeMvt] || "consommation";
+
+  // Animation
+  state.enAttente = true;
+  const btn     = document.getElementById("btn-valider");
+  const spinner = document.getElementById("valider-spinner");
+  const icon    = document.getElementById("valider-icon");
+  btn.disabled          = true;
+  spinner.style.display = "block";
+  icon.style.display    = "none";
+
+  try {
+    const result = await StockMasterAPI.mouvementRapide({
+      produit_id:     state.produitId,
+      type_mouvement: typeMouvement,
+      quantite:       qte,
+      commentaire:    `Scan mobile — ${state.typeMvt}`,
+    });
+
+    ScannerModule.jouerSon("ok");
+
+    if (result?._queued) {
+      // Mis en file hors ligne
+      afficherToast(`📥 Mouvement mis en file (hors ligne). Sync auto à la reconnexion.`, "warning", 5000);
+    } else {
+      afficherToast(result?.message || "✅ Mouvement enregistré !", "success");
+
+      // Mettre à jour le stock affiché
+      if (result?.nouveau_stock !== undefined) {
+        document.getElementById("result-stock").textContent = result.nouveau_stock;
+        const cardStock = document.getElementById("card-stock");
+        cardStock.className = "stock-info-card " + (result.en_alerte ? "alerte" : "ok");
+      }
+    }
+
+  } catch (err) {
+    ScannerModule.jouerSon("erreur");
+    afficherToast(err.message || "Erreur lors de l'enregistrement.", "error");
+  } finally {
+    state.enAttente           = false;
+    btn.disabled              = false;
+    spinner.style.display     = "none";
+    icon.style.display        = "block";
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   UI HELPERS
+──────────────────────────────────────────────────────────────── */
+function selectionnerType(type, btnEl) {
+  state.typeMvt = type;
+  document.querySelectorAll(".mvt-type-btn").forEach(b => b.classList.remove("selected"));
+  btnEl.classList.add("selected");
+}
+
+function changerQte(delta) {
+  const input = document.getElementById("qte-input");
+  const val   = parseInt(input.value) || 1;
+  input.value = Math.max(1, val + delta);
+}
+
+function nouveauScan() {
+  state.produitId = null;
+  document.getElementById("result-panel").classList.remove("visible");
+  document.getElementById("scan-hint").textContent = "Pointez la caméra vers un code-barres";
+  masquerErreur();
+  document.getElementById("saisie-ref").value = "";
+  document.getElementById("saisie-ref").focus();
+}
+
+function rechercherManuelle() {
+  const val = document.getElementById("saisie-ref").value.trim();
+  if (val) handleCodeScan(val);
+}
+
+function afficherErreur(msg) {
+  const panel  = document.getElementById("error-panel");
+  document.getElementById("error-msg").textContent = msg;
+  panel.style.display = "flex";
+  setTimeout(() => masquerErreur(), 4000);
+}
+
+function masquerErreur() {
+  document.getElementById("error-panel").style.display = "none";
+}
+
+async function toggleTorche() {
+  if (!state.streamTrack) return;
+  try {
+    state.torche = !state.torche;
+    await state.streamTrack.applyConstraints({ advanced: [{ torch: state.torche }] });
+    const btn = document.getElementById("btn-torche");
+    btn.style.background = state.torche ? "rgba(249,115,22,.4)" : "rgba(255,255,255,.15)";
+  } catch {
+    afficherToast("Torche non supportée sur cet appareil.", "warning");
+  }
+}
+
+// Arrêter la caméra en quittant
+window.addEventListener("pagehide", () => ScannerModule.arreter());
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) ScannerModule.arreter();
+});
+</script>
+{% endblock %}

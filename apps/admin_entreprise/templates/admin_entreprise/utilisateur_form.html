@@ -1,0 +1,91 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}{% if utilisateur %}Modifier{% else %}Inviter{% endif %} un utilisateur{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}{% if utilisateur %}Modifier l'utilisateur{% else %}Inviter un utilisateur{% endif %}{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_subtitle %}{% if utilisateur %}{{ utilisateur.email }}{% else %}Envoyer une invitation par email{% endif %}{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_utilisateurs %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<div style="max-width:580px;" class="au">
+  <a href="{% url 'admin_entreprise:utilisateurs' %}" class="btn btn-ghost btn-sm" style="margin-bottom:20px;">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <!-- Header carte -->
+    <div style="background:linear-gradient(135deg,var(--orange-dim),white);padding:24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;">
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:22px;color:white;box-shadow:0 4px 12px rgba(249,115,22,.3);">
+        <i class="fas fa-{% if utilisateur %}user-pen{% else %}user-plus{% endif %}"></i>
+      </div>
+      <div>
+        <div style="font-size:17px;font-weight:700;">
+          {% if utilisateur %}Modifier {{ utilisateur.get_full_name }}{% else %}Inviter un nouveau membre{% endif %}
+        </div>
+        <div style="font-size:12.5px;color:var(--text-muted);">
+          {% if utilisateur %}Modifiez les informations ci-dessous{% else %}Un email d'invitation sera envoyé automatiquement{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:28px;">
+      <form method="post">
+        {% csrf_token %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Prénom <span style="color:var(--red);">*</span></label>
+            <input type="text" name="first_name" value="{{ utilisateur.first_name|default:'' }}" class="form-input" placeholder="Jean" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nom <span style="color:var(--red);">*</span></label>
+            <input type="text" name="last_name" value="{{ utilisateur.last_name|default:'' }}" class="form-input" placeholder="Dupont" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adresse email <span style="color:var(--red);">*</span></label>
+          <input type="email" name="email" value="{{ utilisateur.email|default:'' }}"
+                 class="form-input" placeholder="jean.dupont@entreprise.com"
+                 {% if utilisateur %}readonly style="background:var(--body-bg);color:var(--text-muted);"{% endif %} required>
+          {% if utilisateur %}
+          <div class="form-hint">L'email ne peut pas être modifié.</div>
+          {% else %}
+          <div class="form-hint">L'invitation sera envoyée à cette adresse.</div>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rôle <span style="color:var(--red);">*</span></label>
+          <select name="role" class="form-input" required>
+            {% for role_val, role_label in roles_disponibles %}
+            <option value="{{ role_val }}" {% if utilisateur.role == role_val %}selected{% endif %}>
+              {{ role_label }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">Le rôle détermine les droits d'accès dans StockMaster.</div>
+        </div>
+
+        <!-- Carte d'info invitation -->
+        {% if not utilisateur %}
+        <div style="background:var(--blue-dim);border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;gap:10px;">
+          <i class="fas fa-circle-info" style="color:var(--blue);margin-top:2px;flex-shrink:0;"></i>
+          <div style="font-size:12.5px;color:#1d4ed8;line-height:1.6;">
+            L'utilisateur recevra un lien pour définir son mot de passe et accéder à la plateforme.
+            Son compte sera inactif jusqu'à validation.
+          </div>
+        </div>
+        {% endif %}
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <a href="{% url 'admin_entreprise:utilisateurs' %}" class="btn btn-ghost">Annuler</a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-{% if utilisateur %}check{% else %}paper-plane{% endif %}"></i>
+            {% if utilisateur %}Enregistrer les modifications{% else %}Envoyer l'invitation{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Activer mon compte{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-sm border">
+  <h2 class="text-xl font-bold mb-4">Définir votre mot de passe</h2>
+  <p class="mb-4">
+    Bonjour {{ user.first_name }}, veuillez choisir votre mot de passe.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-4">
+      <label>Mot de passe</label>
+      <input
+        type="password"
+        name="password1"
+        class="w-full border rounded px-3 py-2"
+        required
+      />
+    </div>
+    <div class="mb-4">
+      <label>Confirmer</label>
+      <input
+        type="password"
+        name="password2"
+        class="w-full border rounded px-3 py-2"
+        required
+      />
+    </div>
+    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded">
+      Activer mon compte
+    </button>
+  </form>
+</div>
+{% endblock %}

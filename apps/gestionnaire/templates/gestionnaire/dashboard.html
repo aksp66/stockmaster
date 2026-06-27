@@ -1,0 +1,95 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block page_sub %}Gestion des stocks · {{ user.entreprise.nom }}{% endblock %}
+{% block n_dash %}active{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px;" class="au a1">
+  <div>
+    <h2 style="font-size: 20px; font-weight: 800; color: var(--text-p); letter-spacing: -0.4px;">
+      Bonjour, Gestionnaire {{ user.first_name }}
+    </h2>
+    <p style="font-size: 13px; color: var(--text-m); margin-top: 3px">
+      Voici l'état de votre stock au {{ today|date:"d F Y" }}
+    </p>
+  </div>
+  <div style="display: flex; gap: 8px">
+    <a href="{% url 'gestionnaire:mouvement_form' %}" class="btn b-or"><i class="fas fa-plus"></i> Nouveau mouvement</a>
+    <a href="{% url 'gestionnaire:rapports' %}?export=stock" class="btn b-gh"><i class="fas fa-download"></i> Exporter</a>
+  </div>
+</div>
+
+{# KPIs #}
+<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px;">
+  <div class="stat s-or au a1"><div class="si"><i class="fas fa-box"></i></div><div class="sv">{{ total_produits }}</div><div class="sl">Produits actifs</div><i class="fas fa-box sc"></i></div>
+  <div class="stat s-bl au a2"><div class="si"><i class="fas fa-warehouse"></i></div><div class="sv">{{ total_entrepots }}</div><div class="sl">Entrepôts actifs</div><i class="fas fa-warehouse sc"></i></div>
+  <div class="stat s-ye au a3"><div class="si"><i class="fas fa-euro-sign"></i></div><div class="sv" style="font-size:{% if valeur_stock > 999999 %}18px{% else %}24px{% endif %};">{{ valeur_stock|floatformat:0 }} FCFA</div><div class="sl">Valeur du stock</div><i class="fas fa-coins sc"></i></div>
+  <div class="stat s-re au a4" {% if nb_alertes > 0 %}style="border-color:#fecaca;"{% endif %}><div class="si"><i class="fas fa-bell"></i></div><div class="sv">{{ nb_alertes }}</div><div class="sl">Alertes actives</div><i class="fas fa-bell sc"></i></div>
+  <div class="stat s-gr au a5"><div class="si"><i class="fas fa-clipboard-list"></i></div><div class="sv">{{ nb_inventaires }}</div><div class="sl">Inventaires en cours</div><i class="fas fa-clipboard-list sc"></i></div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 340px; gap: 18px">
+  {# Mouvements récents #}
+  <div class="card au a2">
+    <div class="card-h">
+      <div><div class="card-t"><i class="fas fa-arrows-rotate" style="color: var(--or); margin-right: 7px"></i>Derniers mouvements</div><div class="card-sub">30 derniers jours</div></div>
+      <a href="{% url 'gestionnaire:mouvements' %}" class="btn b-gh b-sm">Voir tout <i class="fas fa-arrow-right"></i></a>
+    </div>
+    {% if mouvements_recent %}
+    <table class="tbl">
+      <thead><tr><th>Produit</th><th>Type</th><th>Quantité</th><th>Entrepôt</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for m in mouvements_recent %}
+        <tr>
+          <td><div style="font-weight: 600; font-size: 13px; color: var(--text-p)">{{ m.produit.nom }}</div><div class="mono" style="font-size: 11px; color: var(--text-m)">{{ m.produit.sku }}</div></td>
+          <td>{% if m.type_mouvement == 'entree' %}<span class="badge bg-gr">Entrée</span>{% elif m.type_mouvement == 'sortie' %}<span class="badge bg-re">Sortie</span>{% elif m.type_mouvement == 'transfert' %}<span class="badge bg-bl">Transfert</span>{% else %}<span class="badge bg-ye">{{ m.get_type_mouvement_display }}</span>{% endif %}</td>
+          <td><span class="mono" style="font-weight:700;font-size:14px;color:{% if m.type_mouvement == 'sortie' %}var(--red){% else %}var(--or){% endif %};">{% if m.type_mouvement == 'sortie' %}−{% else %}+{% endif %}{{ m.quantite }}</span></td>
+          <td style="font-size: 12px; color: var(--text-m)">{{ m.entrepot.nom|default:"—" }}</td>
+          <td class="mono" style="font-size: 12px; color: var(--text-m)">{{ m.date_mouvement|date:"d/m H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty"><i class="fas fa-arrows-rotate"></i><h3>Aucun mouvement récent</h3><p style="font-size: 13px">Enregistrez votre premier mouvement de stock.</p><a href="{% url 'gestionnaire:mouvement_form' %}" class="btn b-or b-sm" style="margin-top:12px"><i class="fas fa-plus"></i> Ajouter un mouvement</a></div>
+    {% endif %}
+  </div>
+
+  {# Colonne droite #}
+  <div style="display: flex; flex-direction: column; gap: 14px">
+    {# Alertes #}
+    <div class="card {% if produits_alerte %}border-or-200{% endif %} au a3">
+      <div class="card-h {% if produits_alerte %}bg-or-dim border-or-200{% endif %}">
+        <div class="card-t" style="color:{% if produits_alerte %}var(--or-d){% else %}var(--text-p){% endif %};"><i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>Produits en alerte</div>
+        <a href="{% url 'gestionnaire:alertes' %}" class="btn b-ye b-sm">Voir <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div style="padding: 10px 16px">
+        {% for p in produits_alerte %}
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--or-border);">
+          <div style="width:8px;height:8px;border-radius:50%;background:{% if p.quantite_totale == 0 %}var(--red){% else %}var(--or){% endif %};flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.nom }}</div><div class="mono" style="font-size:11px;color:var(--text-m)">Stock : {{ p.quantite_totale }} / Seuil : {{ p.seuil_alerte }}</div></div>
+          <a href="{% url 'gestionnaire:mouvement_form' %}?produit={{ p.id }}" class="btn b-or b-sm" style="flex-shrink:0"><i class="fas fa-plus"></i></a>
+        </div>
+        {% empty %}
+        <div style="text-align:center;padding:22px 12px;color:var(--text-m)"><i class="fas fa-check-circle" style="color:var(--green);font-size:26px;display:block;margin-bottom:8px"></i><span style="font-size:13px;font-weight:500">Aucune alerte active</span></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Actions rapides #}
+    <div class="card au a4" style="padding:18px">
+      <div class="card-t" style="margin-bottom:12px"><i class="fas fa-bolt" style="color:var(--or);margin-right:6px"></i>Actions rapides</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="{% url 'gestionnaire:mouvement_form' %}" class="btn b-or b-sm" style="justify-content:center;flex-direction:column;height:58px;gap:4px;border-radius:10px"><i class="fas fa-plus" style="font-size:17px"></i><span style="font-size:11px">Mouvement</span></a>
+        <a href="{% url 'gestionnaire:scan' %}" class="btn b-gh b-sm" style="justify-content:center;flex-direction:column;height:58px;gap:4px;border-radius:10px"><i class="fas fa-barcode" style="font-size:17px;color:var(--or)"></i><span style="font-size:11px">Scanner</span></a>
+        <a href="{% url 'gestionnaire:inventaires' %}" class="btn b-gh b-sm" style="justify-content:center;flex-direction:column;height:58px;gap:4px;border-radius:10px"><i class="fas fa-clipboard-list" style="font-size:17px;color:var(--blue)"></i><span style="font-size:11px">Inventaire</span></a>
+        <a href="{% url 'gestionnaire:rapports' %}?export=stock" class="btn b-gh b-sm" style="justify-content:center;flex-direction:column;height:58px;gap:4px;border-radius:10px"><i class="fas fa-download" style="font-size:17px;color:var(--yellow)"></i><span style="font-size:11px">Exporter</span></a>
+        <a href="{% url 'gestionnaire:produits' %}" class="btn b-gh b-sm" style="justify-content:center;flex-direction:column;height:58px;gap:4px;border-radius:10px"><i class="fas fa-box" style="font-size:17px;color:var(--green)"></i><span style="font-size:11px">Nouveau produit</span></a>
+        <a href="{% url 'gestionnaire:transfert' %}" class="btn b-gh b-sm" style="justify-content:center;flex-direction:column;height:58px;gap:4px;border-radius:10px"><i class="fas fa-right-left" style="font-size:17px;color:var(--purple)"></i><span style="font-size:11px">Transfert</span></a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

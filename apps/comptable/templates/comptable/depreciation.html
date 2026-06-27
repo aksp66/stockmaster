@@ -1,0 +1,422 @@
+{% extends 'comptable/base_comptable.html' %}
+{% load static %}
+
+{% block title %}Dépréciation des stocks{% endblock %}
+{% block page_title %}Dépréciation{% endblock %}
+{% block page_sub %}Stocks inactifs & pertes de valeur{% endblock %}
+{% block n_dep %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ========== Styles additionnels sans casser le thème existant ========== */
+  .dep-bar-fill {
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+  .sortable:hover {
+    color: var(--or) !important;
+  }
+  .sort-asc::after {
+    content: " ↑";
+    color: var(--or);
+  }
+  .sort-desc::after {
+    content: " ↓";
+    color: var(--or);
+  }
+  .pagination {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .page-btn {
+    min-width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: white;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .page-btn.active {
+    background: var(--or);
+    border-color: var(--or);
+    color: white;
+  }
+  .page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .page-size-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+  }
+  .dep-search {
+    position: relative;
+  }
+  .dep-search input {
+    padding-left: 28px;
+  }
+  .dep-search i {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--txt-m);
+    font-size: 0.8rem;
+  }
+  .dep-seuil-group button.active {
+    background: var(--or);
+    border-color: var(--or);
+    color: white;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="au a1" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+  <div>
+    <p style="font-size:13px; color:var(--text-m);">
+      <strong id="kpi-produits">{{ nb_produits_deprecies }}</strong> produit(s) concerné(s) ·
+      Dépréciation totale : <strong class="mono" style="color:var(--red);" id="kpi-total">{{ depreciation_totale|floatformat:2 }} FCFA</strong>
+      · Taux moyen : <strong id="kpi-taux">{{ taux_depreciation_moyen|floatformat:1 }}%</strong>
+    </p>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <!-- Filtre seuil -->
+    <div class="dep-seuil-group" style="display:flex; gap:6px;">
+      <button class="dep-seuil-btn" data-seuil="60">60j</button>
+      <button class="dep-seuil-btn active" data-seuil="90">90j</button>
+      <button class="dep-seuil-btn" data-seuil="120">120j</button>
+      <button class="dep-seuil-btn" data-seuil="180">180j</button>
+    </div>
+    <div class="dep-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="text" id="search-input" placeholder="Chercher un produit..." class="fin" style="width:200px;">
+    </div>
+    <a href="#" id="export-csv" class="btn b-gh b-sm"><i class="fas fa-download"></i> CSV</a>
+  </div>
+</div>
+
+<div class="card au a2">
+  <div class="card-h">
+    <div class="card-t"><i class="fas fa-arrow-trend-down" style="color:var(--red);margin-right:7px;"></i>Stocks inactifs – Dépréciation progressive</div>
+  </div>
+
+  <div style="overflow-x:auto;">
+    <table class="tbl" id="dep-table">
+      <thead>
+        <tr>
+          <th class="sortable" data-col="0">Produit / SKU</th>
+          <th class="sortable" data-col="1">Dernier mouvement</th>
+          <th class="sortable tr" data-col="2">Inactivité</th>
+          <th class="sortable tr" data-col="3">Valeur initiale (FCFA)</th>
+          <th class="sortable" data-col="4">Taux dépr.</th>
+          <th class="sortable tr" data-col="5">Dépréciation (FCFA)</th>
+          <th class="sortable tr" data-col="6">Valeur actuelle (FCFA)</th>
+          <th>Motif</th>
+        </tr>
+      </thead>
+      <tbody id="dep-tbody">
+        {% for d in produits_deprecies %}
+        <tr data-nom="{{ d.nom|lower }}" data-sku="{{ d.sku|lower }}" data-jours="{{ d.jours_inactif }}">
+          <td>
+            <div style="font-weight:700; font-size:13px;">{{ d.nom }}</div>
+            <div class="mono" style="font-size:11px; color:var(--or);">{{ d.sku }}</div>
+          </td>
+          <td class="mono" style="font-size:12px;">{{ d.date|date:"d/m/Y" }}</td>
+          <td class="mono tr" style="color:var(--red); font-weight:700;">{{ d.jours_inactif }}j</td>
+          <td class="mono tr">{{ d.valeur_initiale|floatformat:2 }}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="min-width:40px; font-weight:700;">{{ d.taux|floatformat:0 }}%</span>
+              <div style="flex:1; background:var(--border); height:6px; border-radius:4px; overflow:hidden;">
+                <div class="dep-bar-fill" data-taux="{{ d.taux }}" style="width:0%; background:linear-gradient(90deg, var(--amber), var(--red)); height:100%;"></div>
+              </div>
+            </div>
+          </td>
+          <td class="mono tr" style="color:var(--red); font-weight:700;">{{ d.montant_depreciation|floatformat:2 }}</td>
+          <td class="mono tr">{{ d.valeur_actuelle|floatformat:2 }}</td>
+          <td style="font-size:12px; color:var(--text-m);">{{ d.motif }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="empty"><i class="fas fa-inbox"></i><p>Aucun produit inactif</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="background:var(--bg); font-weight:700;">
+          <td colspan="5" style="text-align:right;">TOTAL DÉPRÉCIATION</td>
+          <td style="color:var(--red);" id="total-dep-foot">{{ depreciation_totale|floatformat:2 }} FCFA</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Pagination + footer -->
+  <div style="padding:12px 20px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+    <div class="dep-info">
+      Affichage <strong id="range-info">—</strong> sur <strong id="total-rows">—</strong> lignes
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="page-size-select">
+        Lignes :
+        <select id="page-size" style="padding:4px 6px;">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card au a3" style="margin-top:20px; background:var(--blue-dim); border-color:#bfdbfe;">
+  <div style="display:flex; gap:12px; align-items:center; padding:8px 12px;">
+    <i class="fas fa-info-circle" style="color:var(--blue); font-size:22px;"></i>
+    <div style="font-size:12.5px; color:var(--text-s);">
+      <strong>Méthode de dépréciation :</strong> Taux progressif de 5 % par mois d'inactivité (plafonné à 50 %). La valeur actuelle est calculée automatiquement. Montants en Francs CFA.
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== DONNÉES ET PAGINATION ==========
+let allRows = Array.from(document.querySelectorAll("#dep-tbody tr"));
+let filteredRows = [...allRows];
+let currentPage = 1;
+let pageSize = 25;
+let sortCol = null;
+let sortAsc = true;
+
+function updateKPI() {
+  let totalPerte = 0;
+  let totalTaux = 0;
+  filteredRows.forEach(row => {
+    let perteCell = row.cells[5];
+    if (perteCell) {
+      let val = parseFloat(perteCell.innerText.replace(/[^\d.,-]/g, '').replace(',', '.'));
+      if (!isNaN(val)) totalPerte += val;
+    }
+    let tauxDiv = row.cells[4]?.querySelector('span');
+    if (tauxDiv) {
+      let taux = parseFloat(tauxDiv.innerText);
+      if (!isNaN(taux)) totalTaux += taux;
+    }
+  });
+  let avgTaux = filteredRows.length ? totalTaux / filteredRows.length : 0;
+  document.getElementById('kpi-produits').innerText = filteredRows.length;
+  document.getElementById('kpi-total').innerHTML = totalPerte.toFixed(2) + ' FCFA';
+  document.getElementById('kpi-taux').innerHTML = avgTaux.toFixed(1) + '%';
+  document.getElementById('total-dep-foot').innerHTML = totalPerte.toFixed(2) + ' FCFA';
+}
+
+function renderTable() {
+  let start = (currentPage - 1) * pageSize;
+  let end = start + pageSize;
+  let pageRows = filteredRows.slice(start, end);
+  let tbody = document.getElementById("dep-tbody");
+  tbody.innerHTML = "";
+  if (pageRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><i class="fas fa-inbox"></i><p>Aucun produit correspondant</p></div></td></tr>';
+  } else {
+    pageRows.forEach(row => tbody.appendChild(row.cloneNode(true)));
+  }
+  // met à jour les barres
+  document.querySelectorAll(".dep-bar-fill").forEach(bar => {
+    let taux = parseFloat(bar.getAttribute("data-taux"));
+    if (!isNaN(taux)) bar.style.width = Math.min(100, taux) + "%";
+  });
+  let total = filteredRows.length;
+  let startIdx = total ? start + 1 : 0;
+  let endIdx = Math.min(end, total);
+  document.getElementById('range-info').innerHTML = total ? `${startIdx}–${endIdx}` : '0';
+  document.getElementById('total-rows').innerHTML = total;
+  updateKPI();
+  renderPagination();
+}
+
+function renderPagination() {
+  let totalPages = Math.ceil(filteredRows.length / pageSize);
+  let container = document.getElementById('pagination');
+  container.innerHTML = '';
+  if (totalPages <= 1) return;
+  // bouton précédent
+  let prev = document.createElement('button');
+  prev.className = 'page-btn';
+  prev.innerHTML = '<i class="fas fa-chevron-left"></i>';
+  prev.disabled = currentPage === 1;
+  prev.onclick = () => { if(currentPage > 1) { currentPage--; renderTable(); } };
+  container.appendChild(prev);
+  // affichage des pages
+  let debut = Math.max(1, currentPage - 2);
+  let fin = Math.min(totalPages, currentPage + 2);
+  if (debut > 1) {
+    let first = document.createElement('button');
+    first.className = 'page-btn';
+    first.innerText = '1';
+    first.onclick = () => { currentPage = 1; renderTable(); };
+    container.appendChild(first);
+    if (debut > 2) { let dots = document.createElement('span'); dots.className = 'page-btn'; dots.innerText = '…'; dots.disabled = true; container.appendChild(dots); }
+  }
+  for (let i = debut; i <= fin; i++) {
+    let btn = document.createElement('button');
+    btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+    btn.innerText = i;
+    btn.onclick = () => { currentPage = i; renderTable(); };
+    container.appendChild(btn);
+  }
+  if (fin < totalPages) {
+    if (fin < totalPages - 1) { let dots = document.createElement('span'); dots.className = 'page-btn'; dots.innerText = '…'; dots.disabled = true; container.appendChild(dots); }
+    let last = document.createElement('button');
+    last.className = 'page-btn';
+    last.innerText = totalPages;
+    last.onclick = () => { currentPage = totalPages; renderTable(); };
+    container.appendChild(last);
+  }
+  let next = document.createElement('button');
+  next.className = 'page-btn';
+  next.innerHTML = '<i class="fas fa-chevron-right"></i>';
+  next.disabled = currentPage === totalPages;
+  next.onclick = () => { if(currentPage < totalPages) { currentPage++; renderTable(); } };
+  container.appendChild(next);
+}
+
+function applyFilters() {
+  let searchTerm = document.getElementById("search-input").value.toLowerCase();
+  let seuil = parseInt(document.querySelector(".dep-seuil-btn.active").getAttribute("data-seuil"));
+  filteredRows = allRows.filter(row => {
+    let nom = (row.getAttribute("data-nom") || "").toLowerCase();
+    let sku = (row.getAttribute("data-sku") || "").toLowerCase();
+    let jours = parseInt(row.getAttribute("data-jours") || "0");
+    let matchText = (nom.includes(searchTerm) || sku.includes(searchTerm));
+    let matchSeuil = jours >= seuil;
+    return matchText && matchSeuil;
+  });
+  // appliquer tri si existant
+  if (sortCol !== null) {
+    sortRows();
+  }
+  currentPage = 1;
+  renderTable();
+}
+
+function sortRows() {
+  if (sortCol === null) return;
+  filteredRows.sort((a, b) => {
+    let valA, valB;
+    if (sortCol === 0) {
+      valA = a.cells[0]?.innerText.trim() || "";
+      valB = b.cells[0]?.innerText.trim() || "";
+    } else if (sortCol === 1) {
+      valA = a.cells[1]?.innerText.trim() || "";
+      valB = b.cells[1]?.innerText.trim() || "";
+    } else if (sortCol === 2) {
+      valA = parseInt(a.cells[2]?.innerText.replace(/[^0-9]/g,'') || "0");
+      valB = parseInt(b.cells[2]?.innerText.replace(/[^0-9]/g,'') || "0");
+    } else if (sortCol === 3) {
+      valA = parseFloat(a.cells[3]?.innerText.replace(/[^0-9.,-]/g,'').replace(',','.') || "0");
+      valB = parseFloat(b.cells[3]?.innerText.replace(/[^0-9.,-]/g,'').replace(',','.') || "0");
+    } else if (sortCol === 4) {
+      let tauxA = a.cells[4]?.querySelector('span')?.innerText.replace('%','') || "0";
+      let tauxB = b.cells[4]?.querySelector('span')?.innerText.replace('%','') || "0";
+      valA = parseFloat(tauxA);
+      valB = parseFloat(tauxB);
+    } else if (sortCol === 5) {
+      valA = parseFloat(a.cells[5]?.innerText.replace(/[^0-9.,-]/g,'').replace(',','.') || "0");
+      valB = parseFloat(b.cells[5]?.innerText.replace(/[^0-9.,-]/g,'').replace(',','.') || "0");
+    } else if (sortCol === 6) {
+      valA = parseFloat(a.cells[6]?.innerText.replace(/[^0-9.,-]/g,'').replace(',','.') || "0");
+      valB = parseFloat(b.cells[6]?.innerText.replace(/[^0-9.,-]/g,'').replace(',','.') || "0");
+    } else {
+      return 0;
+    }
+    if (typeof valA === 'number' && typeof valB === 'number') {
+      return sortAsc ? valA - valB : valB - valA;
+    }
+    let cmp = valA.localeCompare(valB);
+    return sortAsc ? cmp : -cmp;
+  });
+}
+
+function setupSorting() {
+  document.querySelectorAll(".sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      let col = parseInt(th.getAttribute("data-col"));
+      if (sortCol === col) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = col;
+        sortAsc = true;
+      }
+      // update visuel
+      document.querySelectorAll(".sortable").forEach(h => h.classList.remove("sort-asc", "sort-desc"));
+      th.classList.add(sortAsc ? "sort-asc" : "sort-desc");
+      sortRows();
+      currentPage = 1;
+      renderTable();
+    });
+  });
+}
+
+function exportCSV() {
+  let headers = ["Produit", "SKU", "Dernier mouvement", "Inactivité (jours)", "Valeur initiale (FCFA)", "Taux dépréciation (%)", "Dépréciation (FCFA)", "Valeur actuelle (FCFA)", "Motif"];
+  let csvRows = [headers];
+  filteredRows.forEach(row => {
+    let cells = row.cells;
+    let sku = cells[0].querySelector('.mono')?.innerText || "";
+    let produit = cells[0].querySelector('div:first-child')?.innerText || "";
+    let date = cells[1]?.innerText || "";
+    let jours = cells[2]?.innerText || "";
+    let valInit = cells[3]?.innerText || "";
+    let tauxSpan = cells[4]?.querySelector('span');
+    let taux = tauxSpan ? tauxSpan.innerText : "";
+    let perte = cells[5]?.innerText || "";
+    let valAct = cells[6]?.innerText || "";
+    let motif = cells[7]?.innerText || "";
+    csvRows.push([produit, sku, date, jours, valInit, taux, perte, valAct, motif]);
+  });
+  let csvContent = csvRows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
+  let blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  let link = document.createElement("a");
+  let url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = `depreciation_stocks_${new Date().toISOString().slice(0,19)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// Événements
+document.getElementById("search-input").addEventListener("input", applyFilters);
+document.getElementById("page-size").addEventListener("change", (e) => {
+  pageSize = parseInt(e.target.value);
+  currentPage = 1;
+  renderTable();
+});
+document.querySelectorAll(".dep-seuil-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".dep-seuil-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    applyFilters();
+  });
+});
+document.getElementById("export-csv").addEventListener("click", (e) => {
+  e.preventDefault();
+  exportCSV();
+});
+
+// Initialisation
+setupSorting();
+applyFilters(); // applique seuil par défaut (90) et filtre texte
+</script>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Entreprises & Avis – StockMaster{% endblock %}
+{% block nav_ent %}active{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div style="text-align:center;margin-bottom:48px;">
+  <div style="display:inline-flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:#ea580c;margin-bottom:16px;">
+    <i class="fas fa-star" style="font-size:11px;"></i> +200 entreprises clientes
+  </div>
+  <h1 style="font-size:2.2rem;font-weight:800;color:#111827;letter-spacing:-.04em;margin-bottom:12px;">Ils nous font confiance</h1>
+  <p style="color:#6b7280;font-size:1rem;max-width:520px;margin:0 auto;line-height:1.7;">
+    Des centaines d'entreprises de toutes tailles ont adopté StockMaster pour gérer leur stock intelligemment.
+  </p>
+  <!-- Note globale -->
+  <div style="display:inline-flex;align-items:center;gap:16px;background:white;border:1.5px solid #e5e7eb;border-radius:16px;padding:14px 24px;margin-top:24px;">
+    <div style="text-align:center;">
+      <div style="font-size:2.4rem;font-weight:800;color:#111827;line-height:1;">{{ note_moyenne|default:"4.8" }}</div>
+      <div style="display:flex;gap:3px;justify-content:center;margin-top:4px;">
+        {% for i in "12345" %}<i class="fas fa-star" style="color:#f97316;font-size:14px;"></i>{% endfor %}
+      </div>
+    </div>
+    <div style="width:1px;height:40px;background:#e5e7eb;"></div>
+    <div style="text-align:center;">
+      <div style="font-size:1.4rem;font-weight:800;color:#111827;line-height:1;">{{ nb_avis|default:"84" }}</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:3px;">avis vérifiés</div>
+    </div>
+    <div style="width:1px;height:40px;background:#e5e7eb;"></div>
+    <div style="text-align:center;">
+      <div style="font-size:1.4rem;font-weight:800;color:#059669;line-height:1;">{{ pct_recommande|default:"97" }}%</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:3px;">recommandent</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;align-items:center;">
+  <span style="font-size:13px;font-weight:600;color:#374151;">Filtrer :</span>
+  <a href="?filtre=all"     class="filtre-btn {% if not request.GET.filtre or request.GET.filtre == 'all' %}actif{% endif %}">Tous</a>
+  <a href="?filtre=5"       class="filtre-btn {% if request.GET.filtre == '5' %}actif{% endif %}"><i class="fas fa-star" style="color:#f97316;font-size:10px;"></i> 5 étoiles</a>
+  <a href="?filtre=4"       class="filtre-btn {% if request.GET.filtre == '4' %}actif{% endif %}">4+ étoiles</a>
+  <a href="?filtre=recent"  class="filtre-btn {% if request.GET.filtre == 'recent' %}actif{% endif %}">Récents</a>
+</div>
+
+<style>
+  .filtre-btn { padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1.5px solid #e5e7eb;background:white;color:#6b7280;transition:all .15s;display:inline-flex;align-items:center;gap:5px; }
+  .filtre-btn:hover, .filtre-btn.actif { border-color:#f97316;background:#fff7ed;color:#ea580c; }
+</style>
+
+<!-- Grille des avis de la BD -->
+{% if avis_publies %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;margin-bottom:48px;" id="avis-grid">
+  {% for avis in avis_publies %}
+  <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px;" class="card-hover">
+    <!-- Étoiles -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;gap:3px;">
+        {% for i in avis.etoiles_range %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}
+        {% for i in avis.etoiles_vides_range %}<i class="fas fa-star" style="color:#e5e7eb;font-size:13px;"></i>{% endfor %}
+      </div>
+      <span style="font-size:11.5px;color:#9ca3af;background:#f9fafb;padding:3px 10px;border-radius:20px;">
+        <i class="fas fa-check-circle" style="color:#059669;margin-right:3px;"></i>Vérifié
+      </span>
+    </div>
+    <!-- Texte -->
+    <div>
+      <i class="fas fa-quote-left" style="color:#fed7aa;font-size:16px;margin-bottom:8px;display:block;"></i>
+      <p style="font-size:13.5px;color:#4b5563;line-height:1.75;font-style:italic;">{{ avis.commentaire }}</p>
+    </div>
+    <!-- Auteur -->
+    <div style="padding-top:14px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">
+        {{ avis.prenom|slice:":1"|upper }}{{ avis.nom|slice:":1"|upper }}
+      </div>
+      <div>
+        <div style="font-size:13.5px;font-weight:700;color:#111827;">{{ avis.prenom }} {{ avis.nom|slice:":1" }}.</div>
+        <div style="font-size:12px;color:#f97316;font-weight:600;">{{ avis.poste }} · {{ avis.entreprise.nom }}</div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div style="font-size:11px;color:#9ca3af;">{{ avis.date_publication|date:"d/m/Y" }}</div>
+        {% if avis.entreprise.secteur %}
+        <div style="font-size:11px;background:#fff7ed;color:#ea580c;padding:2px 8px;border-radius:10px;margin-top:3px;">{{ avis.entreprise.secteur }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if avis_publies.has_other_pages %}
+<div style="display:flex;justify-content:center;gap:8px;margin-bottom:48px;">
+  {% if avis_publies.has_previous %}
+  <a href="?page={{ avis_publies.previous_page_number }}&filtre={{ request.GET.filtre }}" style="padding:8px 16px;border-radius:8px;border:1.5px solid #e5e7eb;color:#374151;text-decoration:none;font-size:13px;font-weight:600;background:white;">← Précédent</a>
+  {% endif %}
+  <span style="padding:8px 16px;border-radius:8px;background:#f97316;color:white;font-size:13px;font-weight:700;">{{ avis_publies.number }}</span>
+  {% if avis_publies.has_next %}
+  <a href="?page={{ avis_publies.next_page_number }}&filtre={{ request.GET.filtre }}" style="padding:8px 16px;border-radius:8px;border:1.5px solid #e5e7eb;color:#374151;text-decoration:none;font-size:13px;font-weight:600;background:white;">Suivant →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+{# Avis statiques de fallback si la BD est vide #}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;margin-bottom:48px;">
+  {% for item in avis_statiques %}
+  <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;" class="card-hover">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="display:flex;gap:3px;">{% for i in "12345" %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}</div>
+      <span style="font-size:11px;color:#9ca3af;background:#f9fafb;padding:3px 10px;border-radius:20px;"><i class="fas fa-check-circle" style="color:#059669;margin-right:3px;"></i>Vérifié</span>
+    </div>
+    <i class="fas fa-quote-left" style="color:#fed7aa;font-size:16px;margin-bottom:8px;display:block;"></i>
+    <p style="font-size:13.5px;color:#4b5563;line-height:1.75;font-style:italic;">{{ item.commentaire }}</p>
+    <div style="padding-top:14px;border-top:1px solid #f3f4f6;margin-top:14px;display:flex;align-items:center;gap:10px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;">{{ item.initiales }}</div>
+      <div><div style="font-size:13.5px;font-weight:700;color:#111827;">{{ item.auteur }}</div><div style="font-size:12px;color:#f97316;font-weight:600;">{{ item.poste }}</div></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ══════════════════════════════════════
+     FORMULAIRE DE SOUMISSION D'AVIS
+══════════════════════════════════════ -->
+<div style="background:white;border:1.5px solid #e5e7eb;border-radius:24px;padding:40px;max-width:700px;margin:0 auto 48px;" id="laisser-avis">
+  <div style="text-align:center;margin-bottom:32px;">
+    <div style="width:56px;height:56px;background:#fff7ed;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+      <i class="fas fa-pen-to-square" style="color:#f97316;font-size:22px;"></i>
+    </div>
+    <h2 style="font-size:1.5rem;font-weight:800;color:#111827;margin-bottom:8px;">Laisser un avis</h2>
+    <p style="font-size:14px;color:#6b7280;line-height:1.6;">
+      Votre avis sera vérifié avant publication. Nous contrôlons que votre entreprise est bien cliente StockMaster.
+    </p>
+  </div>
+
+  {% if user.is_authenticated %}
+
+  {% if avis_sousmis %}
+  <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:20px;text-align:center;">
+    <i class="fas fa-circle-check" style="color:#059669;font-size:28px;display:block;margin-bottom:10px;"></i>
+    <div style="font-size:15px;font-weight:700;color:#065f46;">Avis envoyé !</div>
+    <div style="font-size:13px;color:#047857;margin-top:5px;">Il sera publié après vérification par notre équipe (sous 48h).</div>
+  </div>
+
+  {% elif avis_deja_existe %}
+  <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px;text-align:center;">
+    <i class="fas fa-triangle-exclamation" style="color:#d97706;font-size:26px;display:block;margin-bottom:10px;"></i>
+    <div style="font-size:15px;font-weight:700;color:#92400e;">Vous avez déjà soumis un avis</div>
+    <div style="font-size:13px;color:#b45309;margin-top:5px;">Un seul avis par utilisateur. Si vous souhaitez le modifier, <a href="{% url 'pages:contact' %}" style="color:#f97316;">contactez-nous</a>.</div>
+  </div>
+
+  {% elif not entreprise_valide %}
+  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:20px;text-align:center;">
+    <i class="fas fa-circle-xmark" style="color:#dc2626;font-size:26px;display:block;margin-bottom:10px;"></i>
+    <div style="font-size:15px;font-weight:700;color:#991b1b;">Entreprise non vérifiée</div>
+    <div style="font-size:13px;color:#b91c1c;margin-top:5px;">Votre compte n'est pas rattaché à une entreprise cliente active dans notre base. Contactez-nous pour régulariser votre situation.</div>
+  </div>
+
+  {% else %}
+  <form method="post" action="{% url 'pages:soumettre_avis' %}" id="form-avis">
+    {% csrf_token %}
+
+    <!-- Note étoiles -->
+    <div style="margin-bottom:24px;text-align:center;">
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.8px;">Votre note <span style="color:#dc2626;">*</span></label>
+      <div style="display:flex;justify-content:center;gap:8px;" id="star-picker">
+        {% for i in "12345" %}
+        <label style="cursor:pointer;">
+          <input type="radio" name="note" value="{{ forloop.counter }}" style="display:none;" required>
+          <i class="fas fa-star star-icon" data-val="{{ forloop.counter }}"
+             style="font-size:36px;color:#e5e7eb;transition:color .1s;cursor:pointer;"
+             onmouseover="hoverStars({{ forloop.counter }})" onmouseout="resetStars()" onclick="selectStar({{ forloop.counter }})"></i>
+        </label>
+        {% endfor %}
+      </div>
+      <div id="note-label" style="font-size:13px;color:#9ca3af;margin-top:8px;">Cliquez pour noter</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Prénom <span style="color:#dc2626;">*</span></label>
+        <input type="text" name="prenom" value="{{ user.first_name }}" required
+               style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;background:#f9fafb;"
+               onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+               onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Nom <span style="color:#dc2626;">*</span></label>
+        <input type="text" name="nom" value="{{ user.last_name }}" required
+               style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;background:#f9fafb;"
+               onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+               onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Poste / Fonction <span style="color:#dc2626;">*</span></label>
+      <input type="text" name="poste" value="{{ form_data.poste|default:'' }}" required placeholder="Ex: Responsable logistique"
+             style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;"
+             onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+             onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
+    </div>
+
+    <!-- Entreprise (lecture seule, récupérée depuis le compte) -->
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Entreprise</label>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:10px;">
+        <i class="fas fa-building" style="color:#f97316;font-size:13px;"></i>
+        <span style="font-size:14px;font-weight:600;color:#374151;">{{ user.entreprise.nom }}</span>
+        <span style="margin-left:auto;font-size:11px;background:#ecfdf5;color:#059669;padding:2px 8px;border-radius:8px;font-weight:700;">
+          <i class="fas fa-check-circle" style="margin-right:3px;"></i>Vérifiée
+        </span>
+      </div>
+      <input type="hidden" name="entreprise_id" value="{{ user.entreprise.id }}">
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Votre avis <span style="color:#dc2626;">*</span></label>
+      <textarea name="commentaire" required rows="4" minlength="50" maxlength="500"
+                placeholder="Décrivez votre expérience avec StockMaster (50 caractères minimum)…"
+                style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;resize:vertical;min-height:110px;"
+                onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
+                onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';"
+                oninput="document.getElementById('char-count').textContent=this.value.length">{{ form_data.commentaire|default:'' }}</textarea>
+      <div style="text-align:right;font-size:12px;color:#9ca3af;margin-top:4px;"><span id="char-count">0</span> / 500 caractères</div>
+    </div>
+
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:20px;">
+      <input type="checkbox" name="accord_publication" required style="width:16px;height:16px;margin-top:2px;accent-color:#f97316;flex-shrink:0;">
+      <span style="font-size:13px;color:#6b7280;line-height:1.6;">J'accepte que mon avis et mon nom soient publiés publiquement sur cette page après vérification.</span>
+    </label>
+
+    <button type="submit"
+            style="width:100%;display:flex;align-items:center;justify-content:center;gap:9px;background:#f97316;color:white;padding:13px 24px;border-radius:11px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:background .15s;box-shadow:0 2px 12px rgba(249,115,22,.35);"
+            onmouseover="this.style.background='#ea580c';" onmouseout="this.style.background='#f97316';">
+      <i class="fas fa-paper-plane"></i> Soumettre mon avis
+    </button>
+    <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:10px;">
+      <i class="fas fa-shield-halved" style="margin-right:4px;color:#059669;"></i>Votre entreprise est vérifiée. L'avis sera publié après modération (48h max).
+    </p>
+  </form>
+  {% endif %}
+
+  {% else %}
+  <!-- Non connecté -->
+  <div style="text-align:center;padding:28px;background:#f9fafb;border-radius:16px;">
+    <i class="fas fa-lock" style="font-size:32px;color:#9ca3af;display:block;margin-bottom:14px;"></i>
+    <h3 style="font-size:16px;font-weight:700;color:#374151;margin-bottom:8px;">Connexion requise</h3>
+    <p style="font-size:14px;color:#6b7280;margin-bottom:20px;line-height:1.6;">
+      Vous devez être connecté avec un compte lié à une entreprise cliente pour laisser un avis.
+    </p>
+    <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+      <a href="{% url 'accounts:connexion' %}" class="btn-or"><i class="fas fa-right-to-bracket"></i> Se connecter</a>
+      <a href="{% url 'accounts:inscription' %}" class="btn-ghost"><i class="fas fa-user-plus"></i> S'inscrire</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- CTA rejoindre -->
+<div style="background:linear-gradient(135deg,#1a1208,#2d1f12);border-radius:20px;padding:40px;text-align:center;">
+  <h2 style="font-size:1.6rem;font-weight:800;color:white;margin-bottom:10px;">Votre entreprise n'est pas encore cliente ?</h2>
+  <p style="color:rgba(255,255,255,.65);margin-bottom:22px;font-size:15px;">Rejoignez +200 entreprises et transformez votre gestion de stock.</p>
+  <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+    <a href="{% url 'accounts:inscription' %}" class="btn-or"><i class="fas fa-rocket"></i> Essai gratuit</a>
+    <a href="{% url 'pages:contact' %}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border:1.5px solid rgba(255,255,255,.25);border-radius:10px;color:rgba(255,255,255,.8);text-decoration:none;font-weight:600;font-size:14px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.08)';" onmouseout="this.style.background='transparent';"><i class="fas fa-phone"></i> Demander une démo</a>
+  </div>
+</div>
+
+<script>
+let selectedNote = 0;
+const labels = ['', 'Mauvais', 'Décevant', 'Correct', 'Bon', 'Excellent !'];
+
+function hoverStars(n) {
+  document.querySelectorAll('.star-icon').forEach((el, i) => {
+    el.style.color = i < n ? '#f97316' : '#e5e7eb';
+  });
+}
+function resetStars() {
+  document.querySelectorAll('.star-icon').forEach((el, i) => {
+    el.style.color = i < selectedNote ? '#f97316' : '#e5e7eb';
+  });
+}
+function selectStar(n) {
+  selectedNote = n;
+  document.querySelector(`input[name="note"][value="${n}"]`).checked = true;
+  document.getElementById('note-label').textContent = labels[n];
+  document.getElementById('note-label').style.color = '#f97316';
+  document.getElementById('note-label').style.fontWeight = '700';
+}
+</script>
+
+{% endblock %}

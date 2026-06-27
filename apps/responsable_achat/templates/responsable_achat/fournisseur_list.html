@@ -1,0 +1,118 @@
+{% extends 'responsable_achat/base_achat.html' %}
+{% block title %}Fournisseurs{% endblock %}
+{% block page_title %}Fournisseurs{% endblock %}
+{% block page_sub %}Gestion des fournisseurs · {{ user.entreprise.nom }}{% endblock %}
+{% block n_f %}active{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;" class="au a1">
+  <form method="get" style="display:flex;gap:8px;">
+    <div class="search-w" style="width:260px;">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Nom, email, téléphone…" class="fin" style="height:36px;font-size:13px;">
+    </div>
+    <select name="statut" class="fin" style="width:140px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous</option>
+      <option value="actif"   {% if request.GET.statut == 'actif' %}selected{% endif %}>Actifs</option>
+      <option value="inactif" {% if request.GET.statut == 'inactif' %}selected{% endif %}>Inactifs</option>
+    </select>
+    <button type="submit" class="btn b-or b-sm"><i class="fas fa-filter"></i> Filtrer</button>
+    {% if request.GET.q or request.GET.statut %}<a href="{% url 'responsable_achat:fournisseur_list' %}" class="btn b-gh b-sm"><i class="fas fa-xmark"></i></a>{% endif %}
+  </form>
+  <a href="{% url 'responsable_achat:fournisseur_create' %}" class="btn b-or"><i class="fas fa-plus"></i> Nouveau fournisseur</a>
+</div>
+
+<div class="card au a2">
+  {% if fournisseurs %}
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Fournisseur</th>
+        <th>Contact</th>
+        <th>Délai moyen</th>
+        <th>Nb commandes</th>
+        <th>Montant total</th>
+        <th>Statut</th>
+        <th style="text-align:right;padding-right:20px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in fournisseurs %}
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--or-dim);border:1.5px solid var(--or-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:13px;color:var(--or);">
+              {{ f.nom|slice:":2"|upper }}
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:13.5px;color:var(--text-p);">{{ f.nom }}</div>
+              {% if f.ville %}<div style="font-size:11px;color:var(--text-m);"><i class="fas fa-location-dot" style="margin-right:3px;font-size:10px;"></i>{{ f.ville }}{% if f.pays %}, {{ f.pays }}{% endif %}</div>{% endif %}
+            </div>
+          </div>
+        </td>
+        <td>
+          {% if f.email %}<div style="font-size:13px;"><i class="fas fa-envelope" style="color:var(--text-m);margin-right:4px;font-size:11px;"></i>{{ f.email }}</div>{% endif %}
+          {% if f.telephone %}<div style="font-size:12px;color:var(--text-m);"><i class="fas fa-phone" style="margin-right:4px;font-size:10px;"></i>{{ f.telephone }}</div>{% endif %}
+        </td>
+        <td>
+          {% if f.delai_livraison_moyen %}
+          <span class="mono" style="font-weight:700;">{{ f.delai_livraison_moyen }}j</span>
+          {% else %}<span style="color:var(--text-m);">—</span>{% endif %}
+        </td>
+        <td><span class="mono" style="font-weight:700;color:var(--or);">{{ f.nb_commandes }}</span></td>
+        <td><span class="mono" style="font-weight:700;">{{ f.montant_total|floatformat:2 }} FCFA</span></td>
+        <td>
+          {% if f.actif %}<span class="badge bg-gr">Actif</span>
+          {% else %}<span class="badge bg-gy">Inactif</span>{% endif %}
+        </td>
+        <td style="text-align:right;padding-right:16px;">
+          <div style="display:flex;gap:5px;justify-content:flex-end;">
+            <a href="{% url 'responsable_achat:fournisseur_detail' f.pk %}" class="btn b-gh b-sm"><i class="fas fa-eye"></i></a>
+            <a href="{% url 'responsable_achat:fournisseur_edit' f.pk %}" class="btn b-gh b-sm"><i class="fas fa-pen"></i></a>
+            <a href="{% url 'responsable_achat:boncommande_create' %}?fournisseur={{ f.id }}" class="btn b-or b-sm" title="Nouvelle commande"><i class="fas fa-file-invoice"></i></a>
+            <button onclick="openM('del-f-{{ f.pk }}')" class="btn b-re b-sm"><i class="fas fa-trash"></i></button>
+          </div>
+          <div class="modal-o" id="del-f-{{ f.pk }}">
+            <div class="modal" style="max-width:420px;">
+              <div style="text-align:center;margin-bottom:20px;">
+                <div style="width:52px;height:52px;border-radius:14px;background:var(--red-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                  <i class="fas fa-trash" style="color:var(--red);font-size:20px;"></i>
+                </div>
+                <h3 style="font-size:16px;font-weight:800;">Supprimer « {{ f.nom }} » ?</h3>
+                <p style="font-size:13px;color:var(--text-m);margin-top:6px;">L'historique des commandes sera conservé.</p>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button onclick="closeM('del-f-{{ f.pk }}')" class="btn b-gh" style="flex:1;justify-content:center;">Annuler</button>
+                <form method="post" action="{% url 'responsable_achat:fournisseur_delete' f.pk %}" style="flex:1;">
+                  {% csrf_token %}<button type="submit" class="btn b-re" style="width:100%;justify-content:center;"><i class="fas fa-trash"></i> Supprimer</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if fournisseurs.has_other_pages %}
+  <div class="pager">
+    {% if fournisseurs.has_previous %}<a href="?page={{ fournisseurs.previous_page_number }}&q={{ request.GET.q }}"><i class="fas fa-chevron-left" style="font-size:11px;"></i></a>{% endif %}
+    {% for num in fournisseurs.paginator.page_range %}
+      {% if fournisseurs.number == num %}<span class="cur">{{ num }}</span>
+      {% elif num > fournisseurs.number|add:'-3' and num < fournisseurs.number|add:'3' %}<a href="?page={{ num }}&q={{ request.GET.q }}">{{ num }}</a>{% endif %}
+    {% endfor %}
+    {% if fournisseurs.has_next %}<a href="?page={{ fournisseurs.next_page_number }}&q={{ request.GET.q }}"><i class="fas fa-chevron-right" style="font-size:11px;"></i></a>{% endif %}
+    <span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">{{ fournisseurs.paginator.count }} fournisseur{{ fournisseurs.paginator.count|pluralize }}</span>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty">
+    <i class="fas fa-truck"></i>
+    <h3>Aucun fournisseur trouvé</h3>
+    <p style="font-size:13px;">{% if request.GET.q %}Aucun résultat pour « {{ request.GET.q }} ».{% else %}Ajoutez votre premier fournisseur.{% endif %}</p>
+    <a href="{% url 'responsable_achat:fournisseur_create' %}" class="btn b-or b-sm" style="margin-top:14px;"><i class="fas fa-plus"></i> Ajouter</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

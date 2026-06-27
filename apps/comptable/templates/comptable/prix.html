@@ -1,0 +1,51 @@
+{% extends 'comptable/base_comptable.html' %}
+{% block title %}Historique des prix{% endblock %}
+{% block page_title %}Historique des prix d'achat{% endblock %}
+{% block page_sub %}Prix par produit · {{ user.entreprise.nom }}{% endblock %}
+{% block n_prix %}active{% endblock %}
+
+{% block content %}
+<div class="card au a1" style="padding:14px 18px;margin-bottom:18px;">
+  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <div class="search-w" style="width:220px;">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Produit, SKU…" class="fin" style="height:36px;font-size:13px;">
+    </div>
+    <select name="fournisseur" class="fin" style="width:180px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous fournisseurs</option>
+      {% for f in fournisseurs %}<option value="{{ f.id }}" {% if request.GET.fournisseur == f.id|stringformat:"s" %}selected{% endif %}>{{ f.nom }}</option>{% endfor %}
+    </select>
+    <input type="date" name="date_debut" value="{{ request.GET.date_debut }}" class="fin" style="width:145px;height:36px;font-size:13px;">
+    <input type="date" name="date_fin"   value="{{ request.GET.date_fin }}"   class="fin" style="width:145px;height:36px;font-size:13px;">
+    <button type="submit" class="btn b-or b-sm"><i class="fas fa-filter"></i> Filtrer</button>
+    {% if request.GET.q or request.GET.fournisseur %}<a href="{% url 'comptable:prix' %}" class="btn b-gh b-sm"><i class="fas fa-xmark"></i></a>{% endif %}
+    <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm" style="margin-left:auto;"><i class="fas fa-download"></i> CSV</a>
+  </form>
+</div>
+
+<div class="card au a2">
+  <div class="card-h"><div class="card-t"><i class="fas fa-tag" style="color:var(--or);margin-right:7px;"></i>Évolution des prix d'achat</div></div>
+  <table class="tbl">
+    <thead><tr><th>Produit</th><th>Fournisseur</th><th>Date</th><th>Prix d'achat</th><th>Qté</th><th>N° BC</th><th>Variation vs précédent</th></tr></thead>
+    <tbody>
+      {% for e in historique_prix %}
+      <tr>
+        <td><div style="font-weight:600;font-size:13px;">{{ e.produit__nom }}</div><div class="mono" style="font-size:11px;color:var(--or);">{{ e.produit__sku }}</div></td>
+        <td style="font-size:13px;color:var(--text-m);">{{ e.fournisseur__nom|default:"—" }}</td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ e.date|date:"d/m/Y" }}</td>
+        <td class="mono" style="font-weight:800;font-size:15px;color:var(--or);">{{ e.prix_unitaire|floatformat:4 }} FCFA</td>
+        <td class="mono" style="font-weight:600;">{{ e.quantite }}</td>
+        <td class="mono" style="font-size:11px;color:var(--blue);">{{ e.reference_bc|default:"—" }}</td>
+        <td>{% if e.variation_pct is not None %}
+          {% if e.variation_pct > 0 %}<span style="color:var(--red);font-size:12px;font-weight:700;"><i class="fas fa-arrow-up" style="font-size:9px;"></i> +{{ e.variation_pct|floatformat:1 }}%</span>
+          {% elif e.variation_pct < 0 %}<span style="color:var(--green);font-size:12px;font-weight:700;"><i class="fas fa-arrow-down" style="font-size:9px;"></i> {{ e.variation_pct|floatformat:1 }}%</span>
+          {% else %}<span style="color:var(--text-m);font-size:12px;">= Stable</span>{% endif %}
+        {% else %}<span style="color:var(--text-m);font-size:12px;">Premier prix</span>{% endif %}</td>
+      </tr>
+      {% empty %}<tr><td colspan="7"><div class="empty"><i class="fas fa-tag"></i><h3>Aucun historique de prix</h3></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if historique_prix.has_other_pages %}<div class="pager">{% if historique_prix.has_previous %}<a href="?page={{ historique_prix.previous_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-left" style="font-size:11px;"></i></a>{% endif %}{% for num in historique_prix.paginator.page_range %}{% if historique_prix.number == num %}<span class="cur">{{ num }}</span>{% elif num > historique_prix.number|add:'-3' and num < historique_prix.number|add:'3' %}<a href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>{% endif %}{% endfor %}{% if historique_prix.has_next %}<a href="?page={{ historique_prix.next_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-right" style="font-size:11px;"></i></a>{% endif %}<span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">{{ historique_prix.paginator.count }} entrées</span></div>{% endif %}
+</div>
+{% endblock %}

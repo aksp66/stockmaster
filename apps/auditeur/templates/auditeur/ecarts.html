@@ -1,0 +1,126 @@
+{% extends 'auditeur/base_auditeur.html' %}
+{% block title %}Écarts inventaire{% endblock %}
+{% block page_title %}Écarts d'inventaire{% endblock %}
+{% block page_sub %}Analyse des écarts · {{ user.entreprise.nom }}{% endblock %}
+{% block n_eca %}active{% endblock %}
+
+{% block content %}
+
+{# Résumé global #}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;" class="au a1">
+  <div class="stat s-or">
+    <div class="si"><i class="fas fa-clipboard-list"></i></div>
+    <div class="sv">{{ nb_sessions }}</div>
+    <div class="sl">Sessions inventaire</div>
+    <i class="fas fa-clipboard-list sc"></i>
+  </div>
+  <div class="stat s-re">
+    <div class="si"><i class="fas fa-scale-unbalanced"></i></div>
+    <div class="sv">{{ nb_ecarts_total }}</div>
+    <div class="sl">Lignes avec écart</div>
+    <i class="fas fa-scale-unbalanced sc"></i>
+  </div>
+  <div class="stat s-ye">
+    <div class="si"><i class="fas fa-euro-sign"></i></div>
+    <div class="sv" style="font-size:{% if valeur_ecarts_abs > 999999 %}18px{% else %}22px{% endif %};">{{ valeur_ecarts_abs|floatformat:0 }}</div>
+    <div class="sl">Valeur écarts (FCFA)</div>
+    <i class="fas fa-coins sc"></i>
+  </div>
+  <div class="stat s-gr">
+    <div class="si"><i class="fas fa-percent"></i></div>
+    <div class="sv">{{ taux_ecart }}%</div>
+    <div class="sl">Taux d'écart moyen</div>
+    <i class="fas fa-percent sc"></i>
+  </div>
+</div>
+
+{# Filtres #}
+<div class="card au a1" style="padding:14px 18px;margin-bottom:18px;">
+  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <select name="session" class="fin" style="width:200px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Toutes sessions</option>
+      {% for s in sessions %}
+      <option value="{{ s.id }}" {% if request.GET.session == s.id|stringformat:"s" %}selected{% endif %}>{{ s.entrepot.nom }} · {{ s.date_creation|date:"d/m/Y" }}</option>
+      {% endfor %}
+    </select>
+    <select name="sens" class="fin" style="width:150px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous écarts</option>
+      <option value="positif" {% if request.GET.sens == 'positif' %}selected{% endif %}>Positifs (surplus)</option>
+      <option value="negatif" {% if request.GET.sens == 'negatif' %}selected{% endif %}>Négatifs (manquants)</option>
+    </select>
+    <select name="entrepot" class="fin" style="width:160px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous entrepôts</option>
+      {% for e in entrepots %}
+      <option value="{{ e.id }}" {% if request.GET.entrepot == e.id|stringformat:"s" %}selected{% endif %}>{{ e.nom }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn b-or b-sm"><i class="fas fa-filter"></i> Filtrer</button>
+    {% if request.GET.session or request.GET.sens %}<a href="{% url 'auditeur:ecarts' %}" class="btn b-gh b-sm"><i class="fas fa-xmark"></i></a>{% endif %}
+    <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm" style="margin-left:auto;"><i class="fas fa-download"></i> Exporter</a>
+  </form>
+</div>
+
+<div class="card au a2">
+  <div class="card-h">
+    <div><div class="card-t"><i class="fas fa-scale-unbalanced" style="color:var(--or);margin-right:7px;"></i>Détail des écarts par session</div><div class="card-sub">{{ nb_ecarts_total }} ligne{{ nb_ecarts_total|pluralize }} avec écart</div></div>
+  </div>
+  {% if ecarts %}
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Session</th><th>Produit</th><th>Entrepôt</th>
+        <th>Stock théorique</th><th>Compté</th>
+        <th>Écart</th><th>Valeur écart</th><th>% Écart</th><th>Date validation</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in ecarts %}
+      <tr>
+        <td>
+          <div style="font-size:12px;font-weight:600;color:var(--blue);">{{ e.session.entrepot.nom }}</div>
+          <div class="mono" style="font-size:10px;color:var(--text-m);">{{ e.session.date_creation|date:"d/m/Y" }}</div>
+        </td>
+        <td>
+          <div style="font-weight:600;font-size:13px;">{{ e.produit.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--or);">{{ e.produit.sku }}</div>
+        </td>
+        <td style="font-size:12px;color:var(--text-m);">{{ e.session.entrepot.nom }}</td>
+        <td class="mono" style="font-weight:700;">{{ e.quantite_theorique }}</td>
+        <td class="mono" style="font-weight:700;">{{ e.quantite_comptee }}</td>
+        <td>
+          <span class="mono" style="font-size:16px;font-weight:800;color:{% if e.ecart > 0 %}var(--green){% else %}var(--red){% endif %};">
+            {% if e.ecart > 0 %}+{% endif %}{{ e.ecart }}
+          </span>
+        </td>
+        <td class="mono" style="font-weight:700;color:{% if e.valeur_ecart > 0 %}var(--green){% else %}var(--red){% endif %};">
+          {% if e.valeur_ecart > 0 %}+{% endif %}{{ e.valeur_ecart|floatformat:2 }} FCFA
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:40px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="width:{{ e.pct_ecart_abs|floatformat:0 }}%;max-width:100%;height:100%;background:{% if e.ecart > 0 %}var(--green){% else %}var(--red){% endif %};border-radius:3px;"></div>
+            </div>
+            <span class="mono" style="font-size:11px;">{{ e.pct_ecart|floatformat:1 }}%</span>
+          </div>
+        </td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ e.session.date_validation|date:"d/m/Y"|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if ecarts.has_other_pages %}
+  <div class="pager">
+    {% if ecarts.has_previous %}<a href="?page={{ ecarts.previous_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-left" style="font-size:11px;"></i></a>{% endif %}
+    {% for num in ecarts.paginator.page_range %}
+      {% if ecarts.number == num %}<span class="cur">{{ num }}</span>
+      {% elif num > ecarts.number|add:'-3' and num < ecarts.number|add:'3' %}<a href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>{% endif %}
+    {% endfor %}
+    {% if ecarts.has_next %}<a href="?page={{ ecarts.next_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-right" style="font-size:11px;"></i></a>{% endif %}
+    <span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">{{ ecarts.paginator.count }} écarts</span>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty"><i class="fas fa-scale-balanced"></i><h3>Aucun écart</h3><p style="font-size:13px;">Aucun écart détecté pour les filtres sélectionnés.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

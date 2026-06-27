@@ -1,0 +1,104 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+
+{% block title %}Inventaires{% endblock %}
+{% block page_title %}Sessions d'inventaire{% endblock %}
+{% block page_sub %}Gestion des inventaires · {{ user.entreprise.nom }}{% endblock %}
+{% block n_inv %}active{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;" class="au a1">
+  <div>
+    <p style="font-size: 13px; color: var(--text-m)">
+      {{ nb_sessions }} session{{ nb_sessions|pluralize }} — {{ nb_en_cours }} en cours
+    </p>
+  </div>
+  <a href="{% url 'gestionnaire:inventaire_session_create' %}" class="btn b-or"><i class="fas fa-plus"></i> Nouvelle session</a>
+</div>
+
+{# Filtres statut #}
+<div style="display: flex; gap: 8px; margin-bottom: 16px" class="au a1">
+  {% for val, label, color in statuts_filter %}
+  <a href="?statut={{ val }}" class="btn b-sm {% if request.GET.statut == val %}b-or{% else %}b-gh{% endif %}">{{ label }}</a>
+  {% endfor %}
+  <a href="?" class="btn b-sm {% if not request.GET.statut %}b-or{% else %}b-gh{% endif %}">Tous</a>
+</div>
+
+<div class="card au a2">
+  {% if sessions %}
+  <table class="tbl">
+    <thead>
+      <tr><th>Session</th><th>Entrepôt</th><th>Progression</th><th>Statut</th><th>Créée le</th><th>Validée le</th><th style="text-align: right; padding-right: 20px">Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td>
+          <div style="font-weight: 700; font-size: 13.5px; color: var(--text-p)">Inventaire du {{ s.date_debut|date:"d/m/Y" }}</div>
+          <div style="font-size: 11px; color: var(--text-m)">Par {{ s.utilisateur_demarrage.get_full_name }}</div>
+        </td>
+        <td><span style="font-size: 13px; font-weight: 500">{{ s.entrepot.nom }}</span></td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <div style="flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
+              <div style="width:{{ s.progression }}%; height:100%; background:{% if s.progression == 100 %}var(--green){% elif s.progression > 50 %}var(--or){% else %}var(--red){% endif %}; border-radius:3px;"></div>
+            </div>
+            <span class="mono" style="font-size:12px; font-weight:700; color:var(--text-m); white-space:nowrap;">{{ s.lignes_comptees }}/{{ s.total_lignes }}</span>
+          </div>
+        </td>
+        <td>
+          {% if s.statut == 'en_cours' %}<span class="badge bg-or">En cours</span>
+          {% elif s.statut == 'valide' %}<span class="badge bg-gr">Validée</span>
+          {% elif s.statut == 'annule' %}<span class="badge bg-gy">Annulée</span>
+          {% else %}<span class="badge bg-bl">{{ s.get_statut_display }}</span>{% endif %}
+        </td>
+        <td class="mono" style="font-size:12px; color:var(--text-m);">{{ s.date_debut|date:"d/m/Y" }}</td>
+        <td class="mono" style="font-size:12px; color:var(--text-m);">{{ s.date_fin|date:"d/m/Y"|default:"—" }}</td>
+        <td style="text-align:right; padding-right:16px">
+          <div style="display:flex; align-items:center; justify-content:flex-end; gap:5px;">
+            <a href="{% url 'gestionnaire:inventaire_session_detail' s.pk %}" class="btn b-or b-sm">
+              {% if s.statut == 'en_cours' %}<i class="fas fa-pen"></i> Saisir{% else %}<i class="fas fa-eye"></i> Voir{% endif %}
+            </a>
+            {% if s.statut == 'en_cours' %}
+            <button onclick="openM('ann-{{ s.pk }}')" class="btn b-re b-sm"><i class="fas fa-ban"></i></button>
+            {% endif %}
+          </div>
+          {% if s.statut == 'en_cours' %}
+          <div class="modal-o" id="ann-{{ s.pk }}">
+            <div class="modal" style="max-width:400px;">
+              <h3 style="font-size:16px; font-weight:800; margin-bottom:10px;">Annuler cette session ?</h3>
+              <p style="font-size:13px; color:var(--text-m); margin-bottom:20px;">Les saisies en cours seront perdues. Cette action est irréversible.</p>
+              <div style="display:flex; gap:10px;">
+                <button onclick="closeM('ann-{{ s.pk }}')" class="btn b-gh" style="flex:1; justify-content:center;">Non</button>
+                <form method="post" action="{% url 'gestionnaire:inventaire_session_annuler' s.pk %}" style="flex:1">
+                  {% csrf_token %}
+                  <button type="submit" class="btn b-re" style="width:100%; justify-content:center;">Oui, annuler</button>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <i class="fas fa-clipboard-list"></i>
+    <h3>Aucune session d'inventaire</h3>
+    <p style="font-size:13px;">Créez une session pour commencer le comptage.</p>
+    <a href="{% url 'gestionnaire:inventaire_session_create' %}" class="btn b-or b-sm" style="margin-top:14px;"><i class="fas fa-plus"></i> Nouvelle session</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function openM(id) { document.getElementById(id).classList.add('open'); }
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+window.addEventListener('click', function(e) {
+  document.querySelectorAll('.modal-o').forEach(m => {
+    if (e.target === m) m.classList.remove('open');
+  });
+});
+</script>
+{% endblock %}

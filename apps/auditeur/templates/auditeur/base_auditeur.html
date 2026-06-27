@@ -1,0 +1,275 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockMaster Audit – {% block title %}Auditeur{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --or:        #f97316;
+      --or-d:      #ea6c0a;
+      --or-l:      #fb923c;
+      --or-dim:    #fff7ed;
+      --or-border: #fed7aa;
+      --bg:        #fafaf9;
+      --bg-card:   #ffffff;
+      --bg-sidebar:#1a1208;
+      --text-p:    #1c1410;
+      --text-s:    #374151;
+      --text-m:    #6b7280;
+      --border:    #e5e7eb;
+      --red:       #dc2626;
+      --red-dim:   #fef2f2;
+      --blue:      #2563eb;
+      --blue-dim:  #eff6ff;
+      --green:     #059669;
+      --green-dim: #ecfdf5;
+      --yellow:    #d97706;
+      --yellow-dim:#fffbeb;
+      --purple:    #7c3aed;
+      --sw:        258px;
+      --th:        62px;
+      --sh:        0 1px 4px rgba(249,115,22,.07);
+      --sh-h:      0 6px 20px rgba(249,115,22,.13);
+    }
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text-s); min-height:100vh; }
+    .mono { font-family:'Fira Code',monospace; }
+
+    /* ── SIDEBAR ── */
+    #sb { position:fixed; top:0; left:0; bottom:0; width:var(--sw); background:var(--bg-sidebar); display:flex; flex-direction:column; z-index:40; transition:transform .28s cubic-bezier(.4,0,.2,1); }
+    .sb-logo { padding:20px 18px 16px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; gap:11px; }
+    .sb-logo-icon { width:38px; height:38px; border-radius:10px; background:var(--or); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(249,115,22,.4); flex-shrink:0; }
+    .sb-logo-text { font-size:17px; font-weight:800; color:white; letter-spacing:-.3px; }
+    .sb-logo-text span { color:var(--or-l); }
+    .sb-badge { font-family:'Fira Code',monospace; font-size:9px; letter-spacing:1.4px; color:rgba(255,255,255,.28); text-transform:uppercase; margin-top:2px; }
+
+    /* Badge lecture seule */
+    .ro-badge { margin:12px 10px 0; padding:7px 12px; background:rgba(249,115,22,.1); border:1px solid rgba(249,115,22,.2); border-radius:8px; display:flex; align-items:center; gap:7px; }
+    .ro-badge i { color:var(--or-l); font-size:11px; }
+    .ro-badge span { font-size:10.5px; color:rgba(255,255,255,.5); font-weight:600; }
+
+    .sb-section { padding:14px 10px 4px; }
+    .sb-section-label { font-size:9.5px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:rgba(255,255,255,.22); padding:0 10px; margin-bottom:4px; }
+    .sb-link { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; color:rgba(255,255,255,.52); font-size:13.5px; font-weight:500; text-decoration:none; transition:all .15s; margin-bottom:2px; position:relative; }
+    .sb-link i { width:18px; text-align:center; font-size:13px; }
+    .sb-link:hover { background:rgba(255,255,255,.07); color:rgba(255,255,255,.92); }
+    .sb-link.active { background:rgba(249,115,22,.18); color:var(--or-l); font-weight:600; }
+    .sb-link.active::before { content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; background:var(--or); border-radius:0 3px 3px 0; }
+    .sb-link .cnt { margin-left:auto; background:var(--or); color:white; font-size:10px; font-weight:700; padding:1px 7px; border-radius:20px; }
+
+    .sb-footer { margin-top:auto; padding:14px 10px; border-top:1px solid rgba(255,255,255,.07); }
+    .sb-user { display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,.05); border-radius:9px; margin-bottom:8px; border:1px solid rgba(255,255,255,.07); }
+    .sb-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--or),var(--or-l)); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:white; flex-shrink:0; }
+    .sb-uname { font-size:13px; font-weight:600; color:white; }
+    .sb-urole { font-size:10.5px; color:var(--or-l); font-weight:500; }
+
+    /* ── TOPBAR ── */
+    #tb { position:fixed; top:0; left:var(--sw); right:0; height:var(--th); background:white; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; z-index:30; box-shadow:0 1px 6px rgba(249,115,22,.06); }
+    .tb-title { font-size:16px; font-weight:800; color:var(--text-p); letter-spacing:-.3px; }
+    .tb-sub { font-size:12px; color:var(--text-m); margin-top:2px; }
+    .tb-right { display:flex; align-items:center; gap:8px; }
+    .ib { width:34px; height:34px; border:1.5px solid var(--border); border-radius:8px; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text-m); cursor:pointer; font-size:13px; text-decoration:none; transition:all .15s; }
+    .ib:hover { background:var(--or-dim); color:var(--or); border-color:var(--or-border); }
+
+    /* ── MAIN ── */
+    #main { margin-left:var(--sw); padding-top:var(--th); min-height:100vh; }
+    .pc { padding:26px 24px; }
+
+    /* ── COMPOSANTS ── */
+    .card { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--sh); transition:box-shadow .2s; }
+    .card:hover { box-shadow:var(--sh-h); }
+    .card-h { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--border); }
+    .card-t { font-size:14px; font-weight:700; color:var(--text-p); }
+    .card-sub { font-size:12px; color:var(--text-m); margin-top:2px; }
+
+    .stat { background:var(--bg-card); border:1px solid var(--border); border-radius:13px; padding:18px; box-shadow:var(--sh); position:relative; overflow:hidden; transition:all .2s; }
+    .stat:hover { box-shadow:var(--sh-h); transform:translateY(-1px); }
+    .si { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:16px; margin-bottom:13px; }
+    .sv { font-size:30px; font-weight:800; letter-spacing:-1px; color:var(--text-p); line-height:1; }
+    .sl { font-size:12px; color:var(--text-m); margin-top:5px; font-weight:500; }
+    .sc { position:absolute; right:-8px; bottom:-8px; font-size:58px; opacity:.04; }
+    .s-or .si{background:var(--or-dim);color:var(--or);}       .s-or .sc{color:var(--or);}
+    .s-re .si{background:var(--red-dim);color:var(--red);}     .s-re .sc{color:var(--red);}
+    .s-bl .si{background:var(--blue-dim);color:var(--blue);}   .s-bl .sc{color:var(--blue);}
+    .s-gr .si{background:var(--green-dim);color:var(--green);} .s-gr .sc{color:var(--green);}
+    .s-ye .si{background:var(--yellow-dim);color:var(--yellow);}.s-ye .sc{color:var(--yellow);}
+    .s-pu .si{background:#f5f3ff;color:var(--purple);}         .s-pu .sc{color:var(--purple);}
+
+    .badge { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:600; }
+    .badge::before { content:''; width:6px; height:6px; border-radius:50%; }
+    .bg-or{background:var(--or-dim);color:var(--or-d);}      .bg-or::before{background:var(--or);}
+    .bg-re{background:var(--red-dim);color:var(--red);}       .bg-re::before{background:var(--red);}
+    .bg-bl{background:var(--blue-dim);color:var(--blue);}     .bg-bl::before{background:var(--blue);}
+    .bg-gr{background:var(--green-dim);color:var(--green);}   .bg-gr::before{background:var(--green);}
+    .bg-ye{background:var(--yellow-dim);color:var(--yellow);} .bg-ye::before{background:var(--yellow);}
+    .bg-pu{background:#f5f3ff;color:var(--purple);}           .bg-pu::before{background:var(--purple);}
+    .bg-gy{background:#f3f4f6;color:#6b7280;}                 .bg-gy::before{background:#9ca3af;}
+
+    .btn { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border-radius:9px; font-size:13.5px; font-weight:600; cursor:pointer; transition:all .15s; text-decoration:none; border:none; font-family:'Plus Jakarta Sans',sans-serif; }
+    .b-or{background:var(--or);color:white;box-shadow:0 2px 10px rgba(249,115,22,.3);}
+    .b-or:hover{background:var(--or-d);}
+    .b-gh{background:white;color:var(--text-m);border:1.5px solid var(--border);}
+    .b-gh:hover{background:var(--or-dim);color:var(--or);border-color:var(--or-border);}
+    .b-re{background:var(--red-dim);color:var(--red);border:1.5px solid #fecaca;}
+    .b-sm{padding:5px 12px;font-size:12px;border-radius:7px;}
+
+    .tbl{width:100%;border-collapse:collapse;}
+    .tbl thead th{text-align:left;padding:10px 14px;font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-m);background:var(--bg);border-bottom:1px solid var(--border);}
+    .tbl thead th:first-child{padding-left:20px;}
+    .tbl tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
+    .tbl tbody tr:last-child{border-bottom:none;}
+    .tbl tbody tr:hover{background:var(--or-dim);}
+    .tbl td{padding:12px 14px;font-size:13.5px;vertical-align:middle;}
+    .tbl td:first-child{padding-left:20px;}
+
+    .fi{display:flex;flex-direction:column;margin-bottom:14px;}
+    .fl{font-size:12.5px;font-weight:600;color:var(--text-m);margin-bottom:5px;}
+    .fin{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text-s);background:white;outline:none;transition:border-color .15s,box-shadow .15s;}
+    .fin:focus{border-color:var(--or);box-shadow:0 0 0 3px rgba(249,115,22,.1);}
+
+    .toast-w{position:fixed;top:70px;right:18px;z-index:60;display:flex;flex-direction:column;gap:8px;}
+    .toast{display:flex;align-items:center;gap:10px;padding:11px 16px;background:white;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.11);font-size:13px;min-width:260px;border-left:4px solid var(--or);animation:ti .25s ease;transition:opacity .4s;}
+    @keyframes ti{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
+    .toast.error{border-color:var(--red);} .toast.success{border-color:var(--green);}
+
+    .empty{text-align:center;padding:48px 24px;color:var(--text-m);}
+    .empty i{font-size:40px;opacity:.25;display:block;margin-bottom:14px;}
+    .empty h3{font-size:15px;font-weight:700;color:var(--text-s);margin-bottom:6px;}
+
+    .pager{display:flex;align-items:center;gap:6px;padding:16px 20px;border-top:1px solid var(--border);}
+    .pager a,.pager span{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;border:1.5px solid var(--border);color:var(--text-m);}
+    .pager a:hover{background:var(--or-dim);color:var(--or);border-color:var(--or-border);}
+    .pager span.cur{background:var(--or);color:white;border-color:var(--or);}
+
+    .search-w{position:relative;}
+    .search-w i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-m);font-size:12px;pointer-events:none;}
+    .search-w .fin{padding-left:33px;}
+
+    @keyframes au{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+    .au{animation:au .3s ease forwards;}
+    .a1{animation-delay:.05s;opacity:0;}.a2{animation-delay:.1s;opacity:0;}.a3{animation-delay:.15s;opacity:0;}.a4{animation-delay:.2s;opacity:0;}.a5{animation-delay:.25s;opacity:0;}
+
+    @media(max-width:768px){#sb{transform:translateX(-100%);}#sb.open{transform:translateX(0);}#tb{left:0;}#main{margin-left:0;}}
+    ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-thumb{background:var(--or-border);border-radius:3px;}
+  </style>
+</head>
+<body>
+
+<aside id="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">          <i class="fas fa-boxes-stacked text-white" style="font-size:15px;"></i></div>
+    <div>
+      <div class="sb-logo-text">Stock<span>Master</span></div>
+      <div class="sb-badge">auditeur · contrôle</div>
+    </div>
+  </div>
+
+  <div class="ro-badge">
+    <i class="fas fa-eye"></i>
+    <span>Mode lecture seule</span>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Vue générale</div>
+    <a href="{% url 'auditeur:dashboard' %}" class="sb-link {% block n_dash %}{% endblock %}">
+      <i class="fas fa-gauge-high"></i> Tableau de bord
+    </a>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Analyse</div>
+    <a href="{% url 'auditeur:mouvements' %}" class="sb-link {% block n_mouv %}{% endblock %}">
+      <i class="fas fa-arrows-rotate"></i> Mouvements
+    </a>
+    <a href="{% url 'auditeur:ecarts' %}" class="sb-link {% block n_eca %}{% endblock %}">
+      <i class="fas fa-scale-unbalanced"></i> Écarts inventaire
+    </a>
+    <a href="{% url 'auditeur:valorisation' %}" class="sb-link {% block n_val %}{% endblock %}">
+      <i class="fas fa-coins"></i> Valorisation
+    </a>
+    <a href="{% url 'auditeur:conformite' %}" class="sb-link {% block n_conf %}{% endblock %}">
+      <i class="fas fa-shield-check"></i> Conformité
+    </a>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Traçabilité</div>
+    <a href="{% url 'auditeur:logs' %}" class="sb-link {% block n_logs %}{% endblock %}">
+      <i class="fas fa-list-check"></i> Logs d'audit
+    </a>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Exports</div>
+    <a href="{% url 'auditeur:exports' %}" class="sb-link {% block n_exp %}{% endblock %}">
+      <i class="fas fa-download"></i> Exports
+    </a>
+  </div>
+
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-avatar">{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</div>
+      <div>
+        <div class="sb-uname">{{ user.get_full_name }}</div>
+        <div class="sb-urole">Auditeur</div>
+      </div>
+    </div>
+    <form action="{% url 'accounts:logout' %}" method="post">{% csrf_token %}
+      <button type="submit" class="btn b-gh" style="width:100%;justify-content:center;font-size:13px;color:rgba(255,255,255,.45);border-color:rgba(255,255,255,.1);background:transparent;">
+        <i class="fas fa-right-from-bracket"></i> Déconnexion
+      </button>
+    </form>
+  </div>
+</aside>
+
+<header id="tb">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button id="sbt" class="ib" style="display:none;"><i class="fas fa-bars"></i></button>
+    <div>
+      <div class="tb-title">{% block page_title %}Audit{% endblock %}</div>
+      <div class="tb-sub">{% block page_sub %}{{ user.entreprise.nom }}{% endblock %}</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span style="font-size:11px;font-weight:700;color:var(--or);background:var(--or-dim);border:1px solid var(--or-border);padding:4px 11px;border-radius:20px;display:flex;align-items:center;gap:5px;">
+      <i class="fas fa-eye" style="font-size:10px;"></i> Lecture seule
+    </span>
+    <div style="width:1px;height:26px;background:var(--border);"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--or);background:var(--or-dim);border:1px solid var(--or-border);padding:4px 11px;border-radius:20px;">
+      {{ user.entreprise.nom }}
+    </div>
+  </div>
+</header>
+
+{% if messages %}
+<div class="toast-w" id="tw">
+  {% for m in messages %}
+  <div class="toast {{ m.tags }}">
+    <i class="fas fa-{% if m.tags == 'success' %}circle-check{% elif m.tags == 'error' %}circle-xmark{% else %}circle-info{% endif %}"
+       style="color:{% if m.tags == 'success' %}var(--green){% elif m.tags == 'error' %}var(--red){% else %}var(--or){% endif %};font-size:15px;flex-shrink:0;"></i>
+    <span>{{ m }}</span>
+    <i class="fas fa-xmark" style="margin-left:auto;cursor:pointer;color:var(--text-m);" onclick="this.parentElement.remove()"></i>
+  </div>
+  {% endfor %}
+</div>
+<script>setTimeout(()=>{document.querySelectorAll('.toast').forEach(t=>{t.style.opacity='0';setTimeout(()=>t.remove(),400);});},3500);</script>
+{% endif %}
+
+<main id="main">
+  <div class="pc">{% block content %}{% endblock %}</div>
+</main>
+
+<script>
+  const sb=document.getElementById('sb'),sbt=document.getElementById('sbt');
+  if(window.innerWidth<=768)sbt.style.display='flex';
+  sbt?.addEventListener('click',()=>sb.classList.toggle('open'));
+  document.addEventListener('click',e=>{if(window.innerWidth<=768&&!sb.contains(e.target)&&e.target!==sbt)sb.classList.remove('open');});
+</script>
+{% block xjs %}{% endblock %}
+</body>
+</html>

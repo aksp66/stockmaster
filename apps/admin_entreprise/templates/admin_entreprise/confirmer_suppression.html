@@ -1,0 +1,19 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Template pour confirmer la suppression d'un utilisateur -->
+{% block title %}Confirmer la suppression{% endblock %}
+<!-- Template pour confirmer la suppression d'un utilisateur -->
+{% block page_title %}Supprimer {{ utilisateur.get_full_name }} ?{% endblock %}
+<!-- Template pour confirmer la suppression d'un utilisateur -->
+{% block content %}
+<div class="card p-6 text-center max-w-md mx-auto">
+    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+    <p class="mb-4">Cette action est irréversible. Êtes-vous sûr de vouloir supprimer {{ utilisateur.email }} ?</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex justify-center gap-4">
+            <a href="{% url 'admin_entreprise:utilisateurs' %}" class="btn btn-ghost">Annuler</a>
+            <button type="submit" class="btn btn-danger">Confirmer la suppression</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

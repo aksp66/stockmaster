@@ -1,0 +1,57 @@
+{% extends 'auditeur/base_auditeur.html' %}
+{% block title %}Exports{% endblock %}
+{% block page_title %}Exports & Rapports audit{% endblock %}
+{% block page_sub %}Téléchargements · {{ user.entreprise.nom }}{% endblock %}
+{% block n_exp %}active{% endblock %}
+
+{% block content %}
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px;" class="au a1">
+  {% for rapport in types_rapports %}
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:20px 22px 16px;border-bottom:1px solid var(--border);">
+      <div style="width:44px;height:44px;border-radius:12px;background:{{ rapport.bg }};display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+        <i class="{{ rapport.icon }}" style="color:{{ rapport.color }};font-size:18px;"></i>
+      </div>
+      <div style="font-size:15px;font-weight:800;color:var(--text-p);">{{ rapport.nom }}</div>
+      <div style="font-size:12px;color:var(--text-m);margin-top:4px;">{{ rapport.description }}</div>
+    </div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:7px;">
+      <form method="get" action="{% url 'auditeur:exports' %}">
+        <input type="hidden" name="type" value="{{ rapport.code }}_csv">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div><label class="fl" style="font-size:11px;">Début</label><input type="date" name="date_debut" class="fin" style="height:32px;font-size:12px;"></div>
+          <div><label class="fl" style="font-size:11px;">Fin</label><input type="date" name="date_fin" class="fin" style="height:32px;font-size:12px;"></div>
+        </div>
+        <button type="submit" class="btn b-or b-sm" style="width:100%;justify-content:center;"><i class="fas fa-file-csv"></i> Exporter CSV</button>
+      </form>
+      <a href="{% url 'auditeur:exports' %}?type={{ rapport.code }}_pdf" class="btn b-gh b-sm" style="justify-content:center;"><i class="fas fa-file-pdf"></i> Rapport PDF</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{# Historique #}
+<div class="card au a2">
+  <div class="card-h"><div class="card-t"><i class="fas fa-clock-rotate-left" style="color:var(--or);margin-right:7px;"></i>Exports récents</div></div>
+  {% if exports_recents %}
+  <table class="tbl">
+    <thead><tr><th>Type</th><th>Rapport</th><th>Période</th><th>Généré le</th><th>Par</th><th style="text-align:right;padding-right:20px;">Télécharger</th></tr></thead>
+    <tbody>
+      {% for e in exports_recents %}
+      <tr>
+        <td><span class="badge {% if e.format == 'csv' %}bg-gr{% else %}bg-re{% endif %}">{{ e.format|upper }}</span></td>
+        <td style="font-weight:500;font-size:13px;">{{ e.nom }}</td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ e.periode|default:"—" }}</td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ e.date|date:"d/m/Y H:i" }}</td>
+        <td style="font-size:13px;">{{ e.utilisateur.get_full_name }}</td>
+        <td style="text-align:right;padding-right:16px;"><a href="{{ e.url }}" class="btn b-or b-sm"><i class="fas fa-download"></i></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty"><i class="fas fa-download"></i><h3>Aucun export récent</h3></div>
+  {% endif %}
+</div>
+{% endblock %}

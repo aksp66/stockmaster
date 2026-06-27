@@ -1,0 +1,227 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Utilisateurs{% endblock %}
+{% block breadcrumb %}Utilisateurs{% endblock %}
+{% block nav_utilisateurs %}active{% endblock %}
+
+{% block superadmin_content %}
+<div class="page-header fade-up">
+  <div>
+    <h1>Utilisateurs</h1>
+    <p class="subtitle">{{ utilisateurs.count }} utilisateur{{ utilisateurs.count|pluralize }} — toutes entreprises confondues</p>
+  </div>
+</div>
+
+<!-- ── FILTRES ── -->
+<div class="card fade-up delay-1" style="margin-bottom:20px;padding:16px 20px;">
+  <form method="get" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <div class="search-wrap" style="flex:1;min-width:220px;">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Nom, email…" class="form-input" />
+    </div>
+    <select name="role" class="form-input" style="width:200px;">
+      <option value="">Tous les rôles</option>
+      <option value="super_admin"       {% if request.GET.role == 'super_admin' %}selected{% endif %}>Super Admin</option>
+      <option value="admin_ent"         {% if request.GET.role == 'admin_ent' %}selected{% endif %}>Admin Entreprise</option>
+      <option value="gestionnaire"      {% if request.GET.role == 'gestionnaire' %}selected{% endif %}>Gestionnaire</option>
+      <option value="responsable_achat" {% if request.GET.role == 'responsable_achat' %}selected{% endif %}>Resp. Achat</option>
+      <option value="magasinier"        {% if request.GET.role == 'magasinier' %}selected{% endif %}>Magasinier</option>
+      <option value="auditeur"          {% if request.GET.role == 'auditeur' %}selected{% endif %}>Auditeur</option>
+      <option value="comptable"         {% if request.GET.role == 'comptable' %}selected{% endif %}>Comptable</option>
+    </select>
+    <select name="statut" class="form-input" style="width:160px;">
+      <option value="">Tous statuts</option>
+      <option value="actif"   {% if request.GET.statut == 'actif' %}selected{% endif %}>Actifs</option>
+      <option value="inactif" {% if request.GET.statut == 'inactif' %}selected{% endif %}>Inactifs</option>
+    </select>
+    <select name="entreprise" class="form-input" style="width:200px;">
+      <option value="">Toutes les entreprises</option>
+      {% for ent in entreprises_liste %}
+      <option value="{{ ent.id }}" {% if request.GET.entreprise == ent.id|stringformat:"s" %}selected{% endif %}>
+        {{ ent.nom }}
+      </option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-filter"></i> Filtrer
+    </button>
+    {% if request.GET.q or request.GET.role or request.GET.statut or request.GET.entreprise %}
+    <a href="{% url 'superadmin:utilisateurs' %}" class="btn btn-ghost">
+      <i class="fas fa-xmark"></i>
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- ── TABLEAU ── -->
+<div class="card fade-up delay-2" style="padding:0;overflow:hidden;">
+  {% if utilisateurs %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="padding-left:20px;">Utilisateur</th>
+        <th>Entreprise</th>
+        <th>Rôle</th>
+        <th>Inscription</th>
+        <th>Dernière connexion</th>
+        <th>Statut</th>
+        <th style="text-align:right;padding-right:20px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in utilisateurs %}
+      <tr>
+        <td style="padding-left:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,
+              {% cycle '#3b82f6' '#8b5cf6' '#ec4899' '#f97316' '#22c55e' '#06b6d4' %},
+              {% cycle '#6366f1' '#a855f7' '#f43f5e' '#ea580c' '#16a34a' '#0891b2' %}
+            );display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">
+              {{ u.first_name|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:600;">{{ u.get_full_name }}</div>
+              <div style="font-size:12px;color:var(--text-muted);">{{ u.email }}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          {% if u.entreprise %}
+          <a href="{% url 'superadmin:detail_entreprise' u.entreprise.id %}"
+             style="color:var(--orange);text-decoration:none;font-size:13px;font-weight:500;">
+            {{ u.entreprise.nom }}
+          </a>
+          {% else %}
+          <span style="color:var(--text-muted);font-size:13px;">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if u.role == 'super_admin' %}
+          <span class="badge badge-orange">{{ u.get_role_display }}</span>
+          {% elif u.role == 'admin_ent' %}
+          <span class="badge badge-blue">{{ u.get_role_display }}</span>
+          {% elif u.role == 'gestionnaire' %}
+          <span class="badge badge-green">{{ u.get_role_display }}</span>
+          {% elif u.role == 'responsable_achat' %}
+          <span class="badge badge-yellow">{{ u.get_role_display }}</span>
+          {% else %}
+          <span class="badge" style="background:rgba(139,92,246,0.12);color:#a78bfa;">
+            <span style="background:#a78bfa;"></span>{{ u.get_role_display }}
+          </span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px;color:var(--text-muted);font-family:'Space Mono',monospace;">
+          {{ u.date_joined|date:"d/m/Y" }}
+        </td>
+        <td style="font-size:12px;color:var(--text-muted);font-family:'Space Mono',monospace;">
+          {{ u.last_login|date:"d/m/Y H:i"|default:"Jamais" }}
+        </td>
+        <td>
+          {% if u.est_actif %}
+          <span class="badge badge-green">Actif</span>
+          {% else %}
+          <span class="badge badge-red">Inactif</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right;padding-right:20px;">
+          <div style="display:flex;gap:6px;justify-content:flex-end;">
+            {% if u.role != 'super_admin' %}
+            <button onclick="openRoleModal('{{ u.id }}', '{{ u.get_full_name }}', '{{ u.role }}')"
+                    class="btn btn-ghost btn-sm" title="Modifier le rôle">
+              <i class="fas fa-user-pen"></i>
+            </button>
+            {% endif %}
+            {% if u.est_actif %}
+            <a href="{% url 'superadmin:desactiver_utilisateur' u.id %}" class="btn btn-danger btn-sm" title="Désactiver">
+              <i class="fas fa-ban"></i>
+            </a>
+            {% else %}
+            <a href="{% url 'superadmin:activer_utilisateur' u.id %}" class="btn btn-success btn-sm" title="Activer">
+              <i class="fas fa-check"></i>
+            </a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  {% if utilisateurs.has_other_pages %}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);">
+    <span style="font-size:13px;color:var(--text-muted);">
+      Page {{ utilisateurs.number }} / {{ utilisateurs.paginator.num_pages }}
+      — {{ utilisateurs.paginator.count }} utilisateurs
+    </span>
+    <div style="display:flex;gap:6px;">
+      {% if utilisateurs.has_previous %}
+      <a href="?page={{ utilisateurs.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}" class="btn btn-ghost btn-sm">
+        <i class="fas fa-chevron-left"></i>
+      </a>
+      {% endif %}
+      {% if utilisateurs.has_next %}
+      <a href="?page={{ utilisateurs.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}" class="btn btn-ghost btn-sm">
+        <i class="fas fa-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-users-slash"></i>
+    <p>Aucun utilisateur ne correspond aux critères sélectionnés.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── MODAL MODIFICATION RÔLE ── -->
+<div class="modal-overlay" id="roleModal">
+  <div class="modal">
+    <div style="width:48px;height:48px;border-radius:12px;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+      <i class="fas fa-user-pen" style="color:var(--blue);font-size:20px;"></i>
+    </div>
+    <div class="modal-title">Modifier le rôle</div>
+    <div class="modal-sub" id="roleModalSub">—</div>
+    <form method="post" id="roleForm" action="">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Nouveau rôle</label>
+        <select name="role" id="roleSelect" class="form-input">
+          <option value="admin_ent">Admin Entreprise</option>
+          <option value="gestionnaire">Gestionnaire de stock</option>
+          <option value="responsable_achat">Responsable achat</option>
+          <option value="magasinier">Magasinier</option>
+          <option value="auditeur">Auditeur</option>
+          <option value="comptable">Comptable</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" onclick="closeRoleModal()" class="btn btn-ghost">Annuler</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-check"></i> Enregistrer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openRoleModal(userId, userName, currentRole) {
+    document.getElementById('roleForm').action = `/superadmin/utilisateurs/${userId}/changer-role/`;
+    document.getElementById('roleModalSub').textContent = `Modifier le rôle de ${userName}`;
+    document.getElementById('roleSelect').value = currentRole;
+    document.getElementById('roleModal').classList.add('open');
+  }
+  function closeRoleModal() {
+    document.getElementById('roleModal').classList.remove('open');
+  }
+  document.getElementById('roleModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRoleModal();
+  });
+</script>
+{% endblock %}

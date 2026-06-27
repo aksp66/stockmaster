@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 – Page introuvable | StockMaster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <style>
+      body {
+        font-family: "Sora", sans-serif;
+        background: #f8f7f4;
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .code {
+        font-family: "JetBrains Mono", monospace;
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-12px);
+        }
+      }
+      .float {
+        animation: float 3s ease-in-out infinite;
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .au {
+        animation: fadeUp 0.4s ease forwards;
+      }
+      .au-1 {
+        animation-delay: 0.08s;
+        opacity: 0;
+      }
+      .au-2 {
+        animation-delay: 0.16s;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Fond décoratif -->
+    <div
+      style="
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 0;
+      "
+    >
+      <div
+        style="
+          position: absolute;
+          top: -80px;
+          right: -80px;
+          width: 400px;
+          height: 400px;
+          border-radius: 50%;
+          background: rgba(249, 115, 22, 0.06);
+        "
+      ></div>
+      <div
+        style="
+          position: absolute;
+          bottom: -60px;
+          left: -60px;
+          width: 300px;
+          height: 300px;
+          border-radius: 50%;
+          background: rgba(249, 115, 22, 0.04);
+        "
+      ></div>
+      <div
+        style="
+          position: absolute;
+          top: 50%;
+          left: 10%;
+          width: 1px;
+          height: 200px;
+          background: linear-gradient(
+            transparent,
+            rgba(249, 115, 22, 0.15),
+            transparent
+          );
+          transform: translateY(-50%);
+        "
+      ></div>
+      <div
+        style="
+          position: absolute;
+          top: 50%;
+          right: 12%;
+          width: 1px;
+          height: 150px;
+          background: linear-gradient(
+            transparent,
+            rgba(249, 115, 22, 0.1),
+            transparent
+          );
+          transform: translateY(-50%);
+        "
+      ></div>
+    </div>
+
+    <div
+      style="
+        text-align: center;
+        padding: 40px 24px;
+        position: relative;
+        z-index: 1;
+        max-width: 520px;
+      "
+    >
+      <!-- Logo -->
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-bottom: 48px;
+        "
+        class="au"
+      >
+        <div
+          style="
+            width: 34px;
+            height: 34px;
+            background: #f97316;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+          "
+        >
+          <i
+            class="fas fa-layer-group"
+            style="color: white; font-size: 14px"
+          ></i>
+        </div>
+        <span style="font-size: 18px; font-weight: 800"
+          >Stock<span style="color: #f97316">Master</span></span
+        >
+      </div>
+
+      <!-- Illustration 404 -->
+      <div class="float" style="margin-bottom: 32px">
+        <div
+          style="
+            font-size: 100px;
+            font-weight: 800;
+            letter-spacing: -6px;
+            color: #f97316;
+            line-height: 1;
+            opacity: 0.15;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+          "
+          class="code"
+        >
+          404
+        </div>
+        <div
+          style="
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fff7ed, #fed7aa);
+            border: 2px solid #fdba74;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            position: relative;
+          "
+        >
+          <i
+            class="fas fa-magnifying-glass"
+            style="font-size: 48px; color: #f97316"
+          ></i>
+          <div
+            style="
+              position: absolute;
+              top: -4px;
+              right: -4px;
+              width: 28px;
+              height: 28px;
+              background: #ef4444;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 3px solid white;
+            "
+          >
+            <i class="fas fa-xmark" style="color: white; font-size: 12px"></i>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding-top: 80px">
+        <div
+          class="code au"
+          style="
+            font-size: 64px;
+            font-weight: 800;
+            color: #f97316;
+            line-height: 1;
+            margin-bottom: 12px;
+          "
+        >
+          404
+        </div>
+        <h1
+          class="au au-1"
+          style="
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 10px;
+          "
+        >
+          Page introuvable
+        </h1>
+        <p
+          class="au au-1"
+          style="
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.7;
+            margin-bottom: 32px;
+          "
+        >
+          La page que vous cherchez n'existe pas ou a été déplacée.<br />
+          Vérifiez l'URL ou revenez à la page d'accueil.
+        </p>
+
+        <div
+          class="au au-2"
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+          "
+        >
+          <a
+            href="javascript:history.back()"
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 7px;
+              padding: 10px 20px;
+              border-radius: 9px;
+              border: 1.5px solid #e5e7eb;
+              background: white;
+              color: #374151;
+              font-size: 14px;
+              font-weight: 600;
+              text-decoration: none;
+              transition: all 0.15s;
+            "
+            onmouseover="this.style.background = '#f9fafb'"
+            onmouseout="this.style.background = 'white'"
+          >
+            <i class="fas fa-arrow-left"></i> Retour
+          </a>
+          <a
+            href="{% url 'pages:accueil' %}"
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 7px;
+              padding: 10px 20px;
+              border-radius: 9px;
+              background: #f97316;
+              color: white;
+              font-size: 14px;
+              font-weight: 600;
+              text-decoration: none;
+              box-shadow: 0 2px 10px rgba(249, 115, 22, 0.3);
+              transition: all 0.15s;
+            "
+            onmouseover="this.style.background = '#fb923c'"
+            onmouseout="this.style.background = '#f97316'"
+          >
+            <i class="fas fa-house"></i> Accueil
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

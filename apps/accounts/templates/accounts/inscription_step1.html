@@ -1,0 +1,133 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Inscription – Type
+d'entreprise{% endblock %} {% block content %}
+<div class="wrap">
+  <div class="stepper">
+    <div class="step">
+      <div class="step-dot {% if step > 1 %}done{% else %}active{% endif %}">
+        1
+      </div>
+      <div class="step-label {% if step == 1 %}active{% endif %}">Type</div>
+    </div>
+    <div class="step">
+      <div class="step-dot">2</div>
+      <div class="step-label">Entreprise</div>
+    </div>
+    <div class="step">
+      <div class="step-dot">3</div>
+      <div class="step-label">Admin</div>
+    </div>
+    <div class="step">
+      <div class="step-dot">4</div>
+      <div class="step-label">Confirmation</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <form method="post" id="step1Form">
+      {% csrf_token %}
+      <h2>Quel type d'entreprise êtes-vous ?</h2>
+      <p class="sub">
+        Nous configurerons les rôles disponibles selon votre activité.
+      </p>
+
+      <div class="grid" id="typeGrid">
+        {% for value, label, description in type_choices %}
+        <div
+          class="type-card"
+          data-type="{{ value }}"
+          data-roles="{% if value == 'commerce_detail' %}Admin,Gestionnaire,Achat,Magasinier{% elif value == 'gros_distribution' %}Admin,Gestionnaire,Achat,Magasinier,Auditeur,Comptable{% elif value == 'ecommerce' %}Admin,Gestionnaire,Achat,Magasinier,Comptable{% elif value == 'industrie' %}Admin,Gestionnaire,Achat,Magasinier{% elif value == 'sante' %}Admin,Gestionnaire,Achat,Auditeur,Comptable{% else %}Admin,Gestionnaire,Achat,Magasinier{% endif %}"
+        >
+          <div
+            class="type-icon"
+            style="background:{% if value == 'commerce_detail' %}#FFF7ED{% elif value == 'gros_distribution' %}#EFF6FF{% elif value == 'ecommerce' %}#F0FDF4{% elif value == 'industrie' %}#FDF4FF{% elif value == 'sante' %}#FFF1F2{% else %}#FFFBEB{% endif %}"
+          >
+            <i
+              class="fas {% if value == 'commerce_detail' %}fa-store{% elif value == 'gros_distribution' %}fa-warehouse{% elif value == 'ecommerce' %}fa-box{% elif value == 'industrie' %}fa-industry{% elif value == 'sante' %}fa-hospital{% else %}fa-utensils{% endif %}"
+            ></i>
+          </div>
+          <div class="type-name">{{ label }}</div>
+          <div class="type-desc">{{ description }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {{ form.type_entreprise }}
+
+      <div class="roles-box">
+        <div class="roles-title">
+          Rôles disponibles pour ce type d'entreprise
+        </div>
+        <div id="rolesList"></div>
+      </div>
+
+      <div class="btn-row">
+        <div></div>
+        <button type="submit" class="btn-primary">Continuer →</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  const roleColors = {
+    Admin: "#F97316",
+    Gestionnaire: "#3B82F6",
+    Achat: "#8B5CF6",
+    Magasinier: "#10B981",
+    Auditeur: "#EF4444",
+    Comptable: "#6B7280",
+  };
+  const roleLabels = {
+    Admin: "Admin entreprise",
+    Gestionnaire: "Gestionnaire stock",
+    Achat: "Responsable achat",
+    Magasinier: "Magasinier",
+    Auditeur: "Auditeur",
+    Comptable: "Comptable",
+  };
+
+  function updateRoles(selectedType) {
+    const card = document.querySelector(
+      `.type-card[data-type="${selectedType}"]`,
+    );
+    if (!card) return;
+    const rolesStr = card.dataset.roles;
+    const roles = rolesStr.split(",");
+    const container = document.getElementById("rolesList");
+    container.innerHTML = roles
+      .map(
+        (r) => `
+      <span class="role-pill">
+        <span class="role-dot" style="background:${roleColors[r] || "#888"}"></span>
+        ${roleLabels[r] || r}
+      </span>
+    `,
+      )
+      .join("");
+  }
+
+  document.querySelectorAll(".type-card").forEach((card) => {
+    card.addEventListener("click", function (e) {
+      e.preventDefault();
+      document
+        .querySelectorAll(".type-card")
+        .forEach((c) => c.classList.remove("selected"));
+      this.classList.add("selected");
+      const typeValue = this.dataset.type;
+      document.getElementById("id_type_entreprise").value = typeValue;
+      updateRoles(typeValue);
+    });
+  });
+
+  const firstSelected =
+    document.querySelector(".type-card.selected") ||
+    document.querySelector(".type-card");
+  if (firstSelected) {
+    const defaultType = firstSelected.dataset.type;
+    document.getElementById("id_type_entreprise").value = defaultType;
+    updateRoles(defaultType);
+  } else {
+    updateRoles("commerce_detail");
+  }
+</script>
+{% endblock %}

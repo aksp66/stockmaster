@@ -1,0 +1,77 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Confirmation
+d'inscription - StockMaster{% endblock %} {% block content %}
+
+<div class="wrap">
+  <div class="stepper">
+    <div class="step">
+      <div class="step-dot done">✓</div>
+      <div class="step-label">Type</div>
+    </div>
+    <div class="step">
+      <div class="step-dot done">✓</div>
+      <div class="step-label">Entreprise</div>
+    </div>
+    <div class="step">
+      <div class="step-dot done">✓</div>
+      <div class="step-label">Admin</div>
+    </div>
+    <div class="step">
+      <div class="step-dot active">4</div>
+      <div class="step-label active">Confirmation</div>
+    </div>
+  </div>
+
+  <div class="card" style="text-align: center; padding: 1rem 0">
+    <div class="success-icon">
+      <i class="fas fa-check"></i>
+    </div>
+    <h2 style="margin-bottom: 6px">Compte créé avec succès !</h2>
+    <p class="sub" style="margin-bottom: 1.5rem">
+      Un email de confirmation vous a été envoyé.<br />
+      Vérifiez votre boîte de réception pour activer votre compte.
+    </p>
+
+    <p class="mt-4">
+      <a
+        href="{% url 'accounts:inscription' %}?reset=1"
+        class="text-orange-500 underline"
+      >
+        Créer une autre entreprise
+      </a>
+    </p>
+
+    <div
+      style="
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 14px;
+        text-align: left;
+        margin-bottom: 1.5rem;
+      "
+    >
+      <div
+        style="
+          font-size: 12px;
+          font-weight: 500;
+          color: #6b7280;
+          margin-bottom: 8px;
+        "
+      >
+        Prochaines étapes
+      </div>
+      <div style="font-size: 13px; color: #111827; line-height: 2">
+        1. Confirmer votre email<br />
+        2. Ajouter vos produits & entrepôts<br />
+        3. Inviter votre équipe par email<br />
+        4. Scanner votre premier article
+      </div>
+    </div>
+    <a
+      href="{% url 'accounts:connexion' %}"
+      class="btn-primary"
+      style="display: inline-block; text-decoration: none"
+      >Aller à la connexion</a
+    >
+  </div>
+</div>
+{% endblock %}

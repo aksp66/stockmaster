@@ -1,0 +1,24 @@
+{
+  "name": "StockMaster",
+  "short_name": "StockMaster",
+  "description": "Gestion d'inventaire et d'achats — StockMaster",
+  "start_url": "/magasinier/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#F97316",
+  "background_color": "#FFFFFF",
+  "lang": "fr",
+  "icons": [
+    { "src": "/static/pwa/icons/icon-72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "/static/pwa/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "/static/pwa/icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "/static/pwa/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/static/pwa/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Scanner un produit", "short_name": "Scanner", "url": "/magasinier/scan/", "icons": [{ "src": "/static/pwa/icons/shortcut-scan.png", "sizes": "96x96" }] },
+    { "name": "Alertes de stock", "short_name": "Alertes", "url": "/magasinier/alertes/", "icons": [{ "src": "/static/pwa/icons/shortcut-alerte.png", "sizes": "96x96" }] },
+    { "name": "Nouveau mouvement", "short_name": "Mouvement", "url": "/magasinier/mouvement/rapide/", "icons": [{ "src": "/static/pwa/icons/shortcut-mouvement.png", "sizes": "96x96" }] }
+  ]
+}

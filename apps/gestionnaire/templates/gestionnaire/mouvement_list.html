@@ -1,0 +1,155 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+{% block title %}Mouvements{% endblock %}
+{% block page_title %}Mouvements de stock{% endblock %}
+{% block page_sub %}Historique complet · {{ user.entreprise.nom }}{% endblock %}
+{% block n_mouv %}active{% endblock %}
+
+{% block content %}
+
+{# ── Filtres ── #}
+<div class="card au a1" style="padding:16px 20px;margin-bottom:18px;">
+  <form method="get" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div class="search-w" style="width:220px;">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Produit, SKU…" class="fin" style="height:36px;font-size:13px;">
+    </div>
+    <select name="type" class="fin" style="width:150px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous types</option>
+      <option value="entree"    {% if request.GET.type == 'entree' %}selected{% endif %}>Entrée</option>
+      <option value="sortie"    {% if request.GET.type == 'sortie' %}selected{% endif %}>Sortie</option>
+      <option value="transfert" {% if request.GET.type == 'transfert' %}selected{% endif %}>Transfert</option>
+      <option value="ajustement" {% if request.GET.type == 'ajustement' %}selected{% endif %}>Ajustement</option>
+    </select>
+    <select name="entrepot" class="fin" style="width:170px;height:36px;font-size:13px;padding:0 10px;">
+      <option value="">Tous entrepôts</option>
+      {% for e in entrepots %}
+      <option value="{{ e.id }}" {% if request.GET.entrepot == e.id|stringformat:"s" %}selected{% endif %}>{{ e.nom }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="date_debut" value="{{ request.GET.date_debut }}" class="fin" style="width:150px;height:36px;font-size:13px;">
+    <input type="date" name="date_fin"   value="{{ request.GET.date_fin }}"   class="fin" style="width:150px;height:36px;font-size:13px;">
+    <button type="submit" class="btn b-or b-sm"><i class="fas fa-filter"></i> Filtrer</button>
+    {% if request.GET.q or request.GET.type or request.GET.entrepot or request.GET.date_debut %}
+    <a href="{% url 'gestionnaire:mouvement_list' %}" class="btn b-gh b-sm"><i class="fas fa-xmark"></i></a>
+    {% endif %}
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <a href="?{{ request.GET.urlencode }}&export=csv" class="btn b-gh b-sm"><i class="fas fa-download"></i> CSV</a>
+      <a href="{% url 'gestionnaire:mouvement_form' %}" class="btn b-or b-sm"><i class="fas fa-plus"></i> Nouveau mouvement</a>
+    </div>
+  </form>
+</div>
+
+{# ── Résumé rapide ── #}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;" class="au a1">
+  {% for item in resume_types %}
+  <div style="background:white;border:1.5px solid var(--border);border-radius:11px;padding:14px 16px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-m);margin-bottom:4px;">{{ item.label }}</div>
+    <div class="mono" style="font-size:22px;font-weight:800;color:{{ item.couleur }};">{{ item.total }}</div>
+    <div style="font-size:11px;color:var(--text-m);">{{ item.nb_ops }} opération{{ item.nb_ops|pluralize }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+{# ── Tableau ── #}
+<div class="card au a2">
+  <div class="card-h">
+    <div>
+      <div class="card-t"><i class="fas fa-arrows-rotate" style="color:var(--or);margin-right:7px;"></i>Historique des mouvements</div>
+      <div class="card-sub">{{ total_mouvements }} mouvement{{ total_mouvements|pluralize }} trouvé{{ total_mouvements|pluralize }}</div>
+    </div>
+  </div>
+
+  {% if mouvements %}
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Produit</th>
+        <th>Type</th>
+        <th>Quantité</th>
+        <th>Entrepôt / Emplacement</th>
+        <th>Référence</th>
+        <th>Opérateur</th>
+        <th>Motif</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in mouvements %}
+      <tr>
+        <td>
+          <div class="mono" style="font-size:12px;font-weight:600;color:var(--text-p);">{{ m.date_mouvement|date:"d/m/Y" }}</div>
+          <div class="mono" style="font-size:11px;color:var(--text-m);">{{ m.date_mouvement|date:"H:i" }}</div>
+        </td>
+        <td>
+          <div style="font-weight:600;font-size:13px;">{{ m.produit.nom }}</div>
+          <div class="mono" style="font-size:11px;color:var(--or);">{{ m.produit.sku }}</div>
+        </td>
+        <td>
+          {% if m.type_mouvement == 'entree' %}
+            <span class="badge bg-gr"><i class="fas fa-arrow-down" style="font-size:9px;"></i> Entrée</span>
+          {% elif m.type_mouvement == 'sortie' %}
+            <span class="badge bg-re"><i class="fas fa-arrow-up" style="font-size:9px;"></i> Sortie</span>
+          {% elif m.type_mouvement == 'transfert' %}
+            <span class="badge bg-bl"><i class="fas fa-right-left" style="font-size:9px;"></i> Transfert</span>
+          {% else %}
+            <span class="badge bg-ye">{{ m.get_type_mouvement_display }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="mono" style="font-size:16px;font-weight:800;color:{% if m.type_mouvement == 'sortie' %}var(--red){% elif m.type_mouvement == 'entree' %}var(--green){% else %}var(--or){% endif %};">
+            {% if m.type_mouvement == 'sortie' %}−{% elif m.type_mouvement == 'entree' %}+{% endif %}{{ m.quantite }}
+          </span>
+        </td>
+        <td>
+          <div style="font-size:13px;font-weight:500;">{{ m.entrepot.nom|default:"—" }}</div>
+          {% if m.emplacement %}<div style="font-size:11px;color:var(--text-m);">{{ m.emplacement.code }}</div>{% endif %}
+        </td>
+        <td>
+          {% if m.reference_document %}
+          <span class="mono" style="font-size:12px;color:var(--blue);">{{ m.reference_document }}</span>
+          {% else %}<span style="color:var(--text-m);font-size:12px;">—</span>{% endif %}
+        </td>
+        <td>
+          <div style="font-size:12px;font-weight:500;">{{ m.utilisateur.get_full_name|default:m.utilisateur.username }}</div>
+        </td>
+        <td style="max-width:150px;">
+          <span style="font-size:12px;color:var(--text-m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">
+            {{ m.motif|default:"—"|truncatechars:40 }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if mouvements.has_other_pages %}
+  <div class="pager">
+    {% if mouvements.has_previous %}
+    <a href="?page={{ mouvements.previous_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-left" style="font-size:11px;"></i></a>
+    {% endif %}
+    {% for num in mouvements.paginator.page_range %}
+      {% if mouvements.number == num %}<span class="cur">{{ num }}</span>
+      {% elif num > mouvements.number|add:'-3' and num < mouvements.number|add:'3' %}
+      <a href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if mouvements.has_next %}
+    <a href="?page={{ mouvements.next_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-right" style="font-size:11px;"></i></a>
+    {% endif %}
+    <span style="margin-left:auto;font-size:12px;color:var(--text-m);border:none;">
+      Page {{ mouvements.number }} / {{ mouvements.paginator.num_pages }}
+    </span>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty">
+    <i class="fas fa-arrows-rotate"></i>
+    <h3>Aucun mouvement trouvé</h3>
+    <p style="font-size:13px;">{% if request.GET.q %}Affinez vos filtres ou{% else %}Commencez par{% endif %} enregistrer un mouvement.</p>
+    <a href="{% url 'gestionnaire:mouvement_form' %}" class="btn b-or b-sm" style="margin-top:14px;"><i class="fas fa-plus"></i> Enregistrer un mouvement</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

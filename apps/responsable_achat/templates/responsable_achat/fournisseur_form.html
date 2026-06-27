@@ -1,0 +1,177 @@
+{% extends 'responsable_achat/base_achat.html' %}
+{% block title %}{% if fournisseur %}Modifier {{ fournisseur.nom }}{% else %}Nouveau fournisseur{% endif %}{% endblock %}
+{% block page_title %}{% if fournisseur %}Modifier le fournisseur{% else %}Nouveau fournisseur{% endif %}{% endblock %}
+{% block page_sub %}Fournisseurs · {{ user.entreprise.nom }}{% endblock %}
+{% block n_f %}active{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--text-m);" class="au a1">
+  <a href="{% url 'responsable_achat:fournisseur_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-truck" style="margin-right:4px;"></i>Fournisseurs</a>
+  <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+  <span>{% if fournisseur %}{{ fournisseur.nom }}{% else %}Nouveau{% endif %}</span>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 300px;gap:20px;" class="au a2">
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h"><div class="card-t"><i class="fas fa-building" style="color:var(--or);margin-right:7px;"></i>Informations générales</div></div>
+      <div style="padding:22px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Raison sociale <span style="color:var(--red);">*</span></label>
+            <input type="text" name="nom" value="{{ fournisseur.nom|default:'' }}" class="fin" placeholder="Ex: Fournitures Dupont SA" required>
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Code fournisseur</label>
+            <input type="text" name="code" value="{{ fournisseur.code|default:'' }}" class="fin" placeholder="Ex: FOUR-001">
+          </div>
+        </div>
+        <div class="fi" style="margin-top:14px;margin-bottom:0;">
+          <label class="fl">Description / Notes</label>
+          <textarea name="description" class="fin" rows="2" placeholder="Notes internes sur ce fournisseur…">{{ fournisseur.description|default:'' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h"><div class="card-t"><i class="fas fa-address-card" style="color:var(--or);margin-right:7px;"></i>Contact</div></div>
+      <div style="padding:22px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Nom du contact</label>
+            <input type="text" name="contact_nom" value="{{ fournisseur.contact_nom|default:'' }}" class="fin" placeholder="Jean Dupont">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Email <span style="color:var(--red);">*</span></label>
+            <input type="email" name="email" value="{{ fournisseur.email|default:'' }}" class="fin" placeholder="contact@fournisseur.com" required>
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Téléphone</label>
+            <input type="tel" name="telephone" value="{{ fournisseur.telephone|default:'' }}" class="fin" placeholder="+33 1 23 45 67 89">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Site web</label>
+            <input type="url" name="site_web" value="{{ fournisseur.site_web|default:'' }}" class="fin" placeholder="https://…">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h"><div class="card-t"><i class="fas fa-location-dot" style="color:var(--or);margin-right:7px;"></i>Adresse</div></div>
+      <div style="padding:22px;">
+        <div class="fi">
+          <label class="fl">Adresse</label>
+          <input type="text" name="adresse" value="{{ fournisseur.adresse|default:'' }}" class="fin" placeholder="123 rue des Acacias">
+        </div>
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:14px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Code postal</label>
+            <input type="text" name="code_postal" value="{{ fournisseur.code_postal|default:'' }}" class="fin" placeholder="75001">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Ville</label>
+            <input type="text" name="ville" value="{{ fournisseur.ville|default:'' }}" class="fin" placeholder="Paris">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Pays</label>
+            <input type="text" name="pays" value="{{ fournisseur.pays|default:'France' }}" class="fin">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h"><div class="card-t"><i class="fas fa-handshake" style="color:var(--or);margin-right:7px;"></i>Conditions commerciales</div></div>
+      <div style="padding:22px;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Délai de livraison (jours)</label>
+            <input type="number" name="delai_livraison" value="{{ fournisseur.delai_livraison|default:'7' }}" class="fin" min="0">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Délai de paiement (jours)</label>
+            <input type="number" name="delai_paiement" value="{{ fournisseur.delai_paiement|default:'30' }}" class="fin" min="0">
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Remise habituelle (%)</label>
+            <input type="number" name="remise" value="{{ fournisseur.remise|default:'0' }}" class="fin" min="0" max="100" step="0.1">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Devise</label>
+            <select name="devise" class="fin">
+              <option value="EUR" {% if fournisseur.devise == 'EUR' %}selected{% endif %}>EUR — Euro</option>
+              <option value="USD" {% if fournisseur.devise == 'USD' %}selected{% endif %}>USD — Dollar</option>
+              <option value="XOF" {% if fournisseur.devise == 'XOF' %}selected{% endif %}>XOF — Franc CFA</option>
+            </select>
+          </div>
+          <div class="fi" style="margin-bottom:0;">
+            <label class="fl">Statut</label>
+            <select name="actif" class="fin">
+              <option value="1" {% if fournisseur.actif or not fournisseur %}selected{% endif %}>Actif</option>
+              <option value="0" {% if fournisseur and not fournisseur.actif %}selected{% endif %}>Inactif</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button type="submit" class="btn b-or"><i class="fas fa-{% if fournisseur %}check{% else %}plus{% endif %}"></i> {% if fournisseur %}Enregistrer{% else %}Créer le fournisseur{% endif %}</button>
+      <a href="{% url 'responsable_achat:fournisseur_list' %}" class="btn b-gh"><i class="fas fa-xmark"></i> Annuler</a>
+      {% if fournisseur %}<button type="button" onclick="openM('del-f')" class="btn b-re" style="margin-left:auto;"><i class="fas fa-trash"></i> Supprimer</button>{% endif %}
+    </div>
+  </form>
+
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    {% if fournisseur %}
+    <div class="card" style="padding:18px;">
+      <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-chart-bar" style="color:var(--or);margin-right:6px;"></i>Statistiques</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="text-align:center;padding:12px;background:var(--or-dim);border-radius:10px;">
+          <div class="mono" style="font-size:22px;font-weight:800;color:var(--or);">{{ fournisseur.nb_commandes }}</div>
+          <div style="font-size:11px;color:var(--text-m);margin-top:2px;">Commandes</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--green-dim);border-radius:10px;">
+          <div class="mono" style="font-size:18px;font-weight:800;color:var(--green);">{{ fournisseur.montant_total|floatformat:0 }}FCFA</div>
+          <div style="font-size:11px;color:var(--text-m);margin-top:2px;">Volume total</div>
+        </div>
+      </div>
+      <a href="{% url 'responsable_achat:boncommande_create' %}?fournisseur={{ fournisseur.id }}" class="btn b-or" style="width:100%;justify-content:center;margin-top:12px;">
+        <i class="fas fa-file-invoice"></i> Nouvelle commande
+      </a>
+    </div>
+    {% endif %}
+    <div class="card" style="padding:18px;border-color:var(--or-border);background:var(--or-dim);">
+      <div class="card-t" style="color:var(--or-d);margin-bottom:10px;"><i class="fas fa-lightbulb" style="margin-right:6px;"></i>Conseils</div>
+      <ul style="font-size:13px;color:var(--or-d);line-height:1.8;list-style:none;padding:0;">
+        <li><i class="fas fa-check" style="color:var(--or);margin-right:6px;width:12px;"></i>Renseignez l'email pour les notifications</li>
+        <li><i class="fas fa-check" style="color:var(--or);margin-right:6px;width:12px;"></i>Le délai de livraison aide les suggestions IA</li>
+        <li><i class="fas fa-check" style="color:var(--or);margin-right:6px;width:12px;"></i>La remise est appliquée aux bons de commande</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% if fournisseur %}
+<div class="modal-o" id="del-f">
+  <div class="modal" style="max-width:420px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--red-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fas fa-trash" style="color:var(--red);font-size:20px;"></i></div>
+      <h3 style="font-size:16px;font-weight:800;">Supprimer « {{ fournisseur.nom }} » ?</h3>
+      <p style="font-size:13px;color:var(--text-m);margin-top:6px;">L'historique des commandes passées sera conservé.</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeM('del-f')" class="btn b-gh" style="flex:1;justify-content:center;">Annuler</button>
+      <form method="post" action="{% url 'responsable_achat:fournisseur_delete' fournisseur.pk %}" style="flex:1;">
+        {% csrf_token %}<button type="submit" class="btn b-re" style="width:100%;justify-content:center;"><i class="fas fa-trash"></i> Supprimer</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'gestionnaire/base_gestionnaire.html' %}
+{% load static %}
+
+{% block title %}Importer des produits{% endblock %}
+{% block page_title %}Import CSV des produits{% endblock %}
+{% block page_sub %}Ajout massif de produits à partir d’un fichier CSV{% endblock %}
+{% block n_prod %}active{% endblock %}
+
+{% block content %}
+
+<div class="au a1" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+  <div>
+    <p style="font-size: 13px; color: var(--text-m);">
+      <i class="fas fa-upload" style="margin-right: 6px; color: var(--or);"></i>
+      Téléchargez un fichier CSV pour créer ou mettre à jour plusieurs produits à la fois.
+    </p>
+  </div>
+  <div>
+    <a href="{% url 'gestionnaire:produits' %}" class="btn b-gh b-sm">
+      <i class="fas fa-arrow-left"></i> Retour aux produits
+    </a>
+  </div>
+</div>
+
+<div class="grid md:grid-cols-2 gap-6 au a2">
+  <!-- Formulaire d'upload -->
+  <div class="card p-6">
+    <h3 class="font-bold mb-3"><i class="fas fa-file-csv text-or-500 mr-2"></i>Fichier CSV</h3>
+    <form method="post" enctype="multipart/form-data" id="import-form">
+      {% csrf_token %}
+      <div class="mb-5">
+        <label class="block text-sm font-medium mb-2">Fichier CSV (encodage UTF-8)</label>
+        <input type="file" name="fichier" accept=".csv,.xlsx" required class="w-full border border-gray-300 rounded-lg p-2 text-sm">
+        <p class="text-xs text-gray-400 mt-1">Formats supportés : .csv (séparateur virgule ou point-virgule)</p>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2">Séparateur</label>
+        <select name="separateur" class="form-input w-full">
+          <option value=",">Virgule ( , )</option>
+          <option value=";">Point-virgule ( ; )</option>
+          <option value="tab">Tabulation</option>
+        </select>
+      </div>
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium mb-2">Action en cas de doublon (SKU existant)</label>
+        <select name="doublon" class="form-input w-full">
+          <option value="ignorer">Ignorer et passer au suivant</option>
+          <option value="mettre_a_jour">Mettre à jour le produit existant</option>
+          <option value="erreur">Bloquer l'import</option>
+        </select>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-4">
+        <button type="reset" class="btn b-gh">Réinitialiser</button>
+        <button type="submit" class="btn b-or"><i class="fas fa-upload mr-1"></i>Importer</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Instructions & exemples -->
+  <div>
+    <div class="card p-6 mb-4">
+      <h3 class="font-bold mb-3"><i class="fas fa-info-circle text-blue-500 mr-2"></i>Format attendu</h3>
+      <div class="text-sm text-gray-600 space-y-2">
+        <p>Le fichier CSV doit contenir les colonnes suivantes (ordre libre) :</p>
+        <ul class="list-disc pl-5 space-y-1">
+          <li><strong>nom</strong> (obligatoire) – Nom du produit</li>
+          <li><strong>sku</strong> (obligatoire) – Référence unique</li>
+          <li><strong>categorie</strong> (facultatif) – Nom de la catégorie (sera créée si inexistante)</li>
+          <li><strong>prix_unitaire</strong> – Montant en FCFA (ex: 12500)</li>
+          <li><strong>seuil_alerte</strong> – Quantité minimale (par défaut 0)</li>
+          <li><strong>unite_mesure</strong> – Unité (unite, kg, litre, boite, etc.)</li>
+          <li><strong>code_barres</strong> – Code EAN optionnel</li>
+          <li><strong>description</strong> – Texte libre</li>
+          <li><strong>fournisseur_principal</strong> – Nom du fournisseur (ignoré si non trouvé)</li>
+        </ul>
+        <p class="mt-3 text-xs text-gray-400"><i class="fas fa-download"></i> <a href="#" id="exemple-csv" class="text-or-500 hover:underline">Télécharger un exemple de fichier CSV</a></p>
+      </div>
+    </div>
+
+    <div class="card p-6 border-or-200 bg-or-50">
+      <h3 class="font-bold mb-2 text-or-700"><i class="fas fa-lightbulb"></i> Conseils</h3>
+      <ul class="text-sm text-or-800 space-y-1 list-disc pl-5">
+        <li>Vérifiez que l’encodage est UTF-8 pour éviter les caractères mal affichés.</li>
+        <li>Les champs obligatoires sont <strong>nom</strong> et <strong>sku</strong>.</li>
+        <li>Le SKU doit être unique par entreprise → en cas de doublon, l’option choisie détermine le comportement.</li>
+        <li>Les produits créés par import ne génèrent pas de stock initial (il faudra ensuite créer un mouvement manuellement).</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Affichage des logs/erreurs (optionnel, si votre vue renvoie des messages) -->
+{% if messages %}
+<div class="mt-6 card p-4 au a3">
+  <h3 class="font-bold mb-2"><i class="fas fa-list"></i> Résultat de l’import</h3>
+  <div class="max-h-60 overflow-y-auto text-sm">
+    {% for message in messages %}
+    <div class="py-1 {% if message.tags == 'error' %}text-red-600{% elif message.tags == 'success' %}text-green-600{% else %}text-gray-700{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+  // Générer un exemple de CSV à télécharger
+  document.getElementById('exemple-csv').addEventListener('click', function(e) {
+    e.preventDefault();
+    const headers = ['nom', 'sku', 'categorie', 'prix_unitaire', 'seuil_alerte', 'unite_mesure', 'code_barres', 'description', 'fournisseur_principal'];
+    const exemple = [
+      ['Ordinateur portable', 'PC-001', 'Électronique', '450000', '3', 'unite', '1234567890123', 'Ordinateur i5 8Go RAM', 'TechDistrib Afrique'],
+      ['Souris sans fil', 'SOURIS-01', 'Informatique', '8500', '10', 'unite', '9876543210987', 'Souris optique', 'Bureau Plus Togo'],
+      ['Ramette papier A4', 'PAP-A4-80', 'Papeterie', '4000', '20', 'ramette', '', 'Papier 80g', 'ConsomPro Sénégal']
+    ];
+    let csvContent = headers.join(',') + '\n' + exemple.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(["\uFEFF" + csvContent], {type: 'text/csv;charset=utf-8;'});
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'exemple_produits.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  });
+</script>
+{% endblock %}

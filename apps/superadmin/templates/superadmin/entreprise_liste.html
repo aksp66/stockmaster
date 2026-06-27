@@ -1,0 +1,195 @@
+{% extends 'superadmin/base_superadmin.html' %}
+{% block title %}Entreprises{% endblock %}
+{% block breadcrumb %}Entreprises{% endblock %}
+{% block nav_entreprises %}active{% endblock %}
+
+{% block superadmin_content %}
+<div class="page-header fade-up">
+  <div>
+    <h1>Entreprises</h1>
+    <p class="subtitle">{{ entreprises.count }} entreprise{{ entreprises.count|pluralize }} enregistrée{{ entreprises.count|pluralize }}</p>
+  </div>
+</div>
+
+<!-- ── FILTRES / RECHERCHE ── -->
+<div class="card fade-up delay-1" style="margin-bottom:20px;padding:16px 20px;">
+  <form method="get" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <div class="search-wrap" style="flex:1;min-width:220px;">
+      <i class="fas fa-search"></i>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Rechercher une entreprise…" class="form-input" />
+    </div>
+    <select name="statut" class="form-input" style="width:180px;">
+      <option value="">Tous les statuts</option>
+      <option value="active"   {% if request.GET.statut == 'active' %}selected{% endif %}>Actives</option>
+      <option value="inactive" {% if request.GET.statut == 'inactive' %}selected{% endif %}>Inactives</option>
+    </select>
+    <select name="type" class="form-input" style="width:200px;">
+      <option value="">Tous les types</option>
+      {% for val, label in types_entreprise %}
+      <option value="{{ val }}" {% if request.GET.type == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-filter"></i> Filtrer
+    </button>
+    {% if request.GET.q or request.GET.statut or request.GET.type %}
+    <a href="{% url 'superadmin:entreprises' %}" class="btn btn-ghost">
+      <i class="fas fa-xmark"></i> Réinitialiser
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- ── TABLE ── -->
+<div class="card fade-up delay-2" style="padding:0;overflow:hidden;">
+  {% if entreprises %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="padding-left:20px;">Entreprise</th>
+        <th>Type</th>
+        <th>Localisation</th>
+        <th>Entrepôts</th>
+        <th>Utilisateurs</th>
+        <th>Inscription</th>
+        <th>Statut</th>
+        <th style="text-align:right;padding-right:20px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entreprises %}
+      <tr>
+        <td style="padding-left:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:var(--orange-dim);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--orange);flex-shrink:0;">
+              {{ e.nom|slice:":1"|upper }}
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:14px;">{{ e.nom }}</div>
+              <div style="font-size:12px;color:var(--text-muted);font-family:'Space Mono',monospace;">
+                #{{ e.id|truncatechars:8 }}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td style="color:var(--text-secondary);font-size:13px;">{{ e.get_type_entreprise_display }}</td>
+        <td>
+          <div style="font-size:13px;">{{ e.pays }}</div>
+          <div style="font-size:12px;color:var(--text-muted);">{{ e.ville|default:"—" }}</div>
+        </td>
+        <td>
+          <span style="font-family:'Space Mono',monospace;font-size:13px;color:var(--text-secondary);">
+            {{ e.nb_entrepots }}
+          </span>
+        </td>
+        <td>
+          <span style="font-family:'Space Mono',monospace;font-size:13px;color:var(--text-secondary);">
+            {{ e.utilisateurs.count }}
+          </span>
+        </td>
+        <td style="color:var(--text-muted);font-size:12px;font-family:'Space Mono',monospace;">
+          {{ e.created_at|date:"d/m/Y" }}
+        </td>
+        <td>
+          {% if e.est_active %}
+          <span class="badge badge-green">Active</span>
+          {% else %}
+          <span class="badge badge-red">Inactive</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right;padding-right:20px;">
+          <div style="display:flex;gap:6px;justify-content:flex-end;">
+            <a href="{% url 'superadmin:detail_entreprise' e.id %}"
+               class="btn btn-ghost btn-sm" title="Voir les détails">
+              <i class="fas fa-eye"></i>
+            </a>
+            {% if not e.est_active %}
+            <a href="{% url 'superadmin:activer_entreprise' e.id %}"
+               class="btn btn-success btn-sm" title="Activer">
+              <i class="fas fa-check"></i>
+            </a>
+            {% else %}
+            <a href="{% url 'superadmin:desactiver_entreprise' e.id %}"
+               class="btn btn-danger btn-sm" title="Désactiver">
+              <i class="fas fa-ban"></i>
+            </a>
+            {% endif %}
+            <button onclick="openDeleteModal('{{ e.id }}', '{{ e.nom }}')"
+                    class="btn btn-danger btn-sm" title="Supprimer (soft)">
+              <i class="fas fa-trash-can"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  {% if entreprises.has_other_pages %}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);">
+    <span style="font-size:13px;color:var(--text-muted);">
+      Page {{ entreprises.number }} / {{ entreprises.paginator.num_pages }}
+    </span>
+    <div style="display:flex;gap:6px;">
+      {% if entreprises.has_previous %}
+      <a href="?page={{ entreprises.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-ghost btn-sm">
+        <i class="fas fa-chevron-left"></i>
+      </a>
+      {% endif %}
+      {% if entreprises.has_next %}
+      <a href="?page={{ entreprises.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-ghost btn-sm">
+        <i class="fas fa-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-building"></i>
+    <p>Aucune entreprise ne correspond à votre recherche.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── MODAL SUPPRESSION ── -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div style="width:48px;height:48px;border-radius:12px;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+      <i class="fas fa-trash-can" style="color:var(--red);font-size:20px;"></i>
+    </div>
+    <div class="modal-title">Supprimer l'entreprise ?</div>
+    <div class="modal-sub" id="deleteModalSub">Cette action est réversible (soft delete). L'entreprise sera masquée mais ses données seront conservées.</div>
+    <form method="post" id="deleteForm" action="">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="soft_delete" />
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" onclick="closeDeleteModal()" class="btn btn-ghost">Annuler</button>
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash-can"></i> Confirmer la suppression
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openDeleteModal(id, nom) {
+    document.getElementById('deleteForm').action = `/superadmin/entreprises/${id}/supprimer/`;
+    document.getElementById('deleteModalSub').textContent =
+      `Supprimer « ${nom} » ? L'entreprise sera archivée et ses données conservées.`;
+    document.getElementById('deleteModal').classList.add('open');
+  }
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('open');
+  }
+  document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+</script>
+{% endblock %}

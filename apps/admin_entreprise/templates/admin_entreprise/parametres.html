@@ -1,0 +1,121 @@
+{% extends 'admin_entreprise/base_admin.html' %}
+<!-- Pas de sous-titre pour cette page -->
+{% block title %}Paramètres{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_title %}Paramètres{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block page_subtitle %}Configuration de votre compte et de l'entreprise{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block nav_parametres %}active{% endblock %}
+<!-- Pas de sous-titre pour cette page -->
+{% block content %}
+<div style="max-width:680px;" class="au">
+  <h1 style="font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:22px;">Paramètres généraux</h1>
+
+  <!-- Notifications -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title"><i class="fas fa-bell" style="color:var(--orange);margin-right:6px;"></i>Notifications</div>
+        <div class="card-subtitle">Choisissez comment recevoir les alertes</div>
+      </div>
+    </div>
+    <div style="padding:20px 22px;">
+      <form method="post" action="{% url 'admin_entreprise:parametres' %}">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="notifications">
+        {% for label, key in notif_options %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:13.5px;font-weight:500;">{{ label }}</div>
+          </div>
+          <label style="position:relative;display:inline-block;width:42px;height:24px;">
+            <input type="checkbox" name="{{ key }}" {% if notif_prefs|default:dict %}checked{% endif %}
+                   style="opacity:0;width:0;height:0;position:absolute;">
+            <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked;this.style.background=this.previousElementSibling.checked?'var(--orange)':'#d1d5db';"
+                  style="position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:24px;transition:.2s;"></span>
+          </label>
+        </div>
+        {% empty %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div style="font-size:13.5px;font-weight:500;">Alertes stock par email</div>
+          <input type="checkbox" name="alerte_email" checked style="accent-color:var(--orange);width:18px;height:18px;">
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div style="font-size:13.5px;font-weight:500;">Rapports hebdomadaires</div>
+          <input type="checkbox" name="rapport_hebdo" style="accent-color:var(--orange);width:18px;height:18px;">
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
+          <div style="font-size:13.5px;font-weight:500;">Prédictions IA par email</div>
+          <input type="checkbox" name="ia_email" checked style="accent-color:var(--orange);width:18px;height:18px;">
+        </div>
+        {% endfor %}
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-check"></i> Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Seuils d'alerte -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title"><i class="fas fa-triangle-exclamation" style="color:var(--yellow);margin-right:6px;"></i>Seuils d'alerte par défaut</div>
+        <div class="card-subtitle">Valeurs utilisées lors de la création de produits</div>
+      </div>
+    </div>
+    <div style="padding:20px 22px;">
+      <form method="post" action="{% url 'admin_entreprise:parametres' %}">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="seuils">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Seuil d'alerte par défaut</label>
+            <input type="number" name="seuil_defaut" value="{{ seuil_defaut|default:'10' }}" class="form-input" min="0">
+            <div class="form-hint">Quantité minimale déclenchant une alerte</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jours avant expiration (alerte)</label>
+            <input type="number" name="jours_expiration" value="{{ jours_expiration|default:'30' }}" class="form-input" min="1">
+            <div class="form-hint">Alerte N jours avant la date d'expiration</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-check"></i> Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Zone de danger -->
+  <div class="card" style="padding:20px 22px;border-color:#fecaca;">
+    <div class="card-title" style="color:var(--red);margin-bottom:12px;">
+      <i class="fas fa-triangle-exclamation" style="margin-right:6px;"></i>Zone de danger
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Actions irréversibles sur votre compte.</p>
+    <button class="btn btn-danger" onclick="openModal('deleteAccountModal')">
+      <i class="fas fa-trash-can"></i> Demander la suppression du compte
+    </button>
+  </div>
+</div>
+
+<!-- Modal confirmation suppression compte -->
+<div class="modal-overlay" id="deleteAccountModal">
+  <div class="modal">
+    <div class="modal-icon" style="background:var(--red-dim);"><i class="fas fa-triangle-exclamation" style="color:var(--red);"></i></div>
+    <div class="modal-title">Supprimer le compte ?</div>
+    <div class="modal-sub">Votre demande sera transmise à l'équipe StockMaster. Un Super Admin traitera votre demande sous 48h.</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeModal('deleteAccountModal')">Annuler</button>
+      <a href="mailto:support@stockmaster.tg?subject=Demande de suppression de compte" class="btn btn-danger">
+        <i class="fas fa-envelope"></i> Envoyer la demande
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
