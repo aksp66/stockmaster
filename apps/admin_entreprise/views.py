@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -125,7 +126,7 @@ def ajouter_utilisateur(request):
         send_mail(
             subject=sujet,
             message=plain_message,
-            from_email='StockMaster <noreply@stockmaster.tg>',
+            from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[email],
             html_message=html_message,
             fail_silently=False,
@@ -168,7 +169,7 @@ def modifier_utilisateur(request, user_id):
                 send_mail(
                     subject="Changement de rôle sur StockMaster",
                     message=plain_message,
-                    from_email='StockMaster <ahlipedro66@gmail.com>',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[utilisateur.email],
                     html_message=html_message,
                     fail_silently=True,

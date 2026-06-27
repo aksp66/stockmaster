@@ -6,7 +6,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.db import transaction
 from django.db.models import Sum, Count, Q, F
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST, require_GET
@@ -111,7 +113,7 @@ def produit_form(request, pk=None):
             # Modification
             produit.nom = data.get('nom')
             # SKU non modifiable (readonly)
-            produit.code_barre = data.get('code_barre', '')
+            produit.code_barres = data.get('code_barres', '')
             produit.unite_mesure = data.get('unite', 'unite')
             produit.seuil_alerte = Decimal(data.get('seuil_alerte', 0))
             produit.prix_unitaire = Decimal(data.get('prix_unitaire', 0))
@@ -138,7 +140,7 @@ def produit_form(request, pk=None):
                 entreprise=ent,
                 nom=data.get('nom'),
                 sku=sku,
-                code_barre=data.get('code_barre', ''),
+                code_barres=data.get('code_barres', ''),
                 unite_mesure=data.get('unite', 'unite'),
                 seuil_alerte=Decimal(data.get('seuil_alerte', 0)),
                 prix_unitaire=Decimal(data.get('prix_unitaire', 0)),
@@ -283,76 +285,48 @@ def mouvements_liste(request):
     })
 
 
-@login_required
-@role_required('gestionnaire', 'admin_ent', 'super_admin', 'magasinier')
-def mouvement_form(request):
-    ent = get_entreprise(request)
-    if request.method == 'POST':
-        data      = request.POST
-        produit   = get_object_or_404(Produit, pk=data.get('produit'), entreprise=ent)
-        type_m    = data.get('type_mouvement')
-        quantite  = float(data.get('quantite', 0))
-        ent_src   = Entrepot.objects.filter(pk=data.get('entrepot_source'), entreprise=ent).first()
-        ent_dst   = Entrepot.objects.filter(pk=data.get('entrepot_destination'), entreprise=ent).first()
-        empl_src  = Emplacement.objects.filter(pk=data.get('emplacement_source')).first()
-        empl_dst  = Emplacement.objects.filter(pk=data.get('emplacement_destination')).first()
-
-        mouv = Mouvement.objects.create(
-            type_mouvement=type_m,
-            produit=produit,
-            quantite=quantite,
-            entrepot_source=ent_src,
-            entrepot_destination=ent_dst,
-            emplacement_source=empl_src,
-            emplacement_destination=empl_dst,
-            utilisateur=request.user,
-            reference=data.get('reference', ''),
-            note=data.get('note', ''),
-            lot_numero=data.get('lot_numero', ''),
-        )
-
-        # Mise à jour du stock
-        _appliquer_mouvement(mouv)
-        # Vérification des seuils
-        _verifier_seuil(produit, ent_dst or ent_src)
-
-        AuditLog.log(request, TypeAction.MOUVEMENT_STOCK,
-                     f"{mouv.get_type_mouvement_display()} : {produit.nom} × {quantite}", objet=mouv)
-        messages.success(request, "Mouvement enregistré avec succès.")
-        return redirect('gestionnaire:mouvements')
-
-    context = {
-        'produits':  Produit.objects.filter(entreprise=ent, est_actif=True),
-        'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True),
-        'types':     TypeMouvement.choices,
-        'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
-    }
-    return render(request, 'gestionnaire/mouvement_form.html', context)
-
-
 def _appliquer_mouvement(mouv):
-    """Met à jour la table Stock selon le type de mouvement."""
+    """
+    Met à jour la table Stock selon le type de mouvement.
+
+    Verrouille la ligne Stock concernée (select_for_update) et lève
+    ValidationError si le stock source deviendrait négatif. Doit toujours être
+    appelée à l'intérieur du même transaction.atomic() que la création du
+    Mouvement, afin que la création soit annulée si la mise à jour échoue
+    (sinon on se retrouve avec un Mouvement « fantôme » jamais appliqué).
+    """
     def maj_stock(produit, entrepot, emplacement, delta):
         if not entrepot:
             return
-        stock, _ = Stock.objects.get_or_create(
+        stock, _ = Stock.objects.select_for_update().get_or_create(
             produit=produit, entrepot=entrepot, emplacement=emplacement,
             defaults={'quantite': 0}
         )
-        stock.quantite = max(0, float(stock.quantite) + delta)
+        nouvelle_quantite = Decimal(str(stock.quantite)) + Decimal(str(delta))
+        if nouvelle_quantite < 0:
+            raise ValidationError(
+                f"Stock insuffisant pour « {produit.nom} » dans « {entrepot.nom} » "
+                f"(disponible : {stock.quantite}, demandé : {abs(delta)})."
+            )
+        stock.quantite = nouvelle_quantite
         stock.save(update_fields=['quantite', 'updated_at'])
 
-    p, q = mouv.produit, float(mouv.quantite)
-    if mouv.type_mouvement == TypeMouvement.ENTREE:
-        maj_stock(p, mouv.entrepot_destination, mouv.emplacement_destination, +q)
-    elif mouv.type_mouvement in [TypeMouvement.SORTIE, TypeMouvement.PERTE]:
-        maj_stock(p, mouv.entrepot_source, mouv.emplacement_source, -q)
-    elif mouv.type_mouvement == TypeMouvement.TRANSFERT:
-        maj_stock(p, mouv.entrepot_source,      mouv.emplacement_source,      -q)
-        maj_stock(p, mouv.entrepot_destination, mouv.emplacement_destination, +q)
-    elif mouv.type_mouvement == TypeMouvement.AJUSTEMENT:
-        maj_stock(p, mouv.entrepot_destination or mouv.entrepot_source,
-                  mouv.emplacement_destination or mouv.emplacement_source, q)
+    p, q = mouv.produit, Decimal(str(mouv.quantite))
+    with transaction.atomic():
+        if mouv.type_mouvement == TypeMouvement.ENTREE:
+            maj_stock(p, mouv.entrepot_destination, mouv.emplacement_destination, q)
+        elif mouv.type_mouvement in [TypeMouvement.SORTIE, TypeMouvement.PERTE]:
+            maj_stock(p, mouv.entrepot_source, mouv.emplacement_source, -q)
+        elif mouv.type_mouvement == TypeMouvement.TRANSFERT:
+            maj_stock(p, mouv.entrepot_source,      mouv.emplacement_source,      -q)
+            maj_stock(p, mouv.entrepot_destination, mouv.emplacement_destination, +q)
+        elif mouv.type_mouvement == TypeMouvement.AJUSTEMENT:
+            # Le signe dépend de l'entrepôt renseigné : destination = surplus (+),
+            # source = manque (-). `quantite` est toujours une magnitude positive.
+            if mouv.entrepot_destination:
+                maj_stock(p, mouv.entrepot_destination, mouv.emplacement_destination, q)
+            elif mouv.entrepot_source:
+                maj_stock(p, mouv.entrepot_source, mouv.emplacement_source, -q)
 
 
 def _verifier_seuil(produit, entrepot):
@@ -507,27 +481,32 @@ def inventaire_valider(request, pk):
     ent = get_entreprise(request)
     session = get_object_or_404(InventaireSession, pk=pk, entrepot__entreprise=ent, statut='en_cours')
     if request.method == 'POST':
-        session.statut = 'valide'
-        session.date_fin = timezone.now()
-        session.utilisateur_validation = request.user
-        session.save()
-        # Appliquer les écarts
-        for ligne in session.lignes.filter(quantite_comptee__isnull=False):
-            ecart = ligne.ecart()  # utilise la méthode du modèle
-            if ecart != 0:
-                mouv = Mouvement.objects.create(
-                    type_mouvement=TypeMouvement.AJUSTEMENT,
-                    produit=ligne.produit,
-                    quantite=abs(ecart),
-                    entrepot_destination=session.entrepot if ecart > 0 else None,
-                    entrepot_source=session.entrepot if ecart < 0 else None,
-                    emplacement_destination=ligne.emplacement if ecart > 0 else None,
-                    emplacement_source=ligne.emplacement if ecart < 0 else None,
-                    utilisateur=request.user,
-                    reference=f"INVENTAIRE-{session.pk}",
-                    note="Ajustement inventaire automatique",
-                )
-                _appliquer_mouvement(mouv)
+        try:
+            with transaction.atomic():
+                session.statut = 'valide'
+                session.date_fin = timezone.now()
+                session.utilisateur_validation = request.user
+                session.save()
+                # Appliquer les écarts
+                for ligne in session.lignes.filter(quantite_comptee__isnull=False):
+                    ecart = ligne.ecart()  # utilise la méthode du modèle
+                    if ecart != 0:
+                        mouv = Mouvement.objects.create(
+                            type_mouvement=TypeMouvement.AJUSTEMENT,
+                            produit=ligne.produit,
+                            quantite=abs(ecart),
+                            entrepot_destination=session.entrepot if ecart > 0 else None,
+                            entrepot_source=session.entrepot if ecart < 0 else None,
+                            emplacement_destination=ligne.emplacement if ecart > 0 else None,
+                            emplacement_source=ligne.emplacement if ecart < 0 else None,
+                            utilisateur=request.user,
+                            reference=f"INVENTAIRE-{session.pk}",
+                            note="Ajustement inventaire automatique",
+                        )
+                        _appliquer_mouvement(mouv)
+        except ValidationError as e:
+            messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
+            return redirect('gestionnaire:inventaire_saisie', pk=pk)
         AuditLog.log(request, TypeAction.VALIDATION_INVENTAIRE,
                      f"Inventaire validé : {session.entrepot.nom}", objet=session)
         messages.success(request, "Inventaire validé. Les ajustements ont été appliqués.")
@@ -655,19 +634,18 @@ def transfert_view(request):
         dst     = get_object_or_404(Entrepot, pk=data.get('entrepot_destination'), entreprise=ent)
         quantite = float(data.get('quantite', 0))
 
-        # Vérifier stock disponible
-        stock_dispo = Stock.objects.filter(produit=produit, entrepot=src).first()
-        if not stock_dispo or float(stock_dispo.quantite) < quantite:
-            messages.error(request, "Stock insuffisant dans l'entrepôt source.")
+        try:
+            with transaction.atomic():
+                mouv = Mouvement.objects.create(
+                    type_mouvement=TypeMouvement.TRANSFERT,
+                    produit=produit, quantite=quantite,
+                    entrepot_source=src, entrepot_destination=dst,
+                    utilisateur=request.user, note=data.get('note', ''),
+                )
+                _appliquer_mouvement(mouv)
+        except ValidationError as e:
+            messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
             return redirect('gestionnaire:transfert')
-
-        mouv = Mouvement.objects.create(
-            type_mouvement=TypeMouvement.TRANSFERT,
-            produit=produit, quantite=quantite,
-            entrepot_source=src, entrepot_destination=dst,
-            utilisateur=request.user, note=data.get('note', ''),
-        )
-        _appliquer_mouvement(mouv)
         messages.success(request, f"Transfert de {quantite} {produit.unite_mesure} effectué.")
         return redirect('gestionnaire:mouvements')
 
@@ -966,9 +944,11 @@ def mouvement_form(request):
         try:
             quantite = float(data.get('quantite', 0))
         except ValueError:
-            messages.error(request, "Quantité invalide.")
+            quantite = 0
+        if quantite <= 0:
+            messages.error(request, "La quantité doit être strictement positive.")
             return redirect('gestionnaire:mouvement_form')
-        
+
         # Gestion des entrepôts selon le type
         ent_src = None
         ent_dst = None
@@ -979,18 +959,23 @@ def mouvement_form(request):
             ent_src = Entrepot.objects.filter(pk=data.get('entrepot'), entreprise=ent).first()
         elif type_m == 'entree':
             ent_dst = Entrepot.objects.filter(pk=data.get('entrepot'), entreprise=ent).first()
-        
-        mouv = Mouvement.objects.create(
-            type_mouvement=type_m,
-            produit=produit,
-            quantite=quantite,
-            entrepot_source=ent_src,
-            entrepot_destination=ent_dst,
-            utilisateur=request.user,
-            reference=data.get('reference_document', ''),
-            note=data.get('motif', ''),
-        )
-        _appliquer_mouvement(mouv)
+
+        try:
+            with transaction.atomic():
+                mouv = Mouvement.objects.create(
+                    type_mouvement=type_m,
+                    produit=produit,
+                    quantite=quantite,
+                    entrepot_source=ent_src,
+                    entrepot_destination=ent_dst,
+                    utilisateur=request.user,
+                    reference=data.get('reference_document', ''),
+                    note=data.get('motif', ''),
+                )
+                _appliquer_mouvement(mouv)
+        except ValidationError as e:
+            messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
+            return redirect('gestionnaire:mouvement_form')
         _verifier_seuil(produit, ent_dst or ent_src)
         messages.success(request, "Mouvement enregistré avec succès.")
         return redirect('gestionnaire:mouvements')

@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.db import transaction
 from django.db.models import Q, Sum
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
@@ -57,6 +59,7 @@ def scan_view(request):
 
 
 @login_required
+@role_required('magasinier', 'admin_ent', 'gestionnaire', 'super_admin')
 @require_http_methods(["GET", "POST"])
 def api_scan(request):
     if request.method == 'GET':
@@ -109,35 +112,39 @@ def api_scan(request):
         except Entrepot.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Entrepôt invalide'})
 
-        # Créer le mouvement
-        if action == 'entree':
-            mouv = Mouvement.objects.create(
-                type_mouvement=TypeMouvement.ENTREE,
-                produit=produit,
-                quantite=quantite,
-                entrepot_destination=entrepot,
-                utilisateur=request.user,
-                reference=f"SCAN-{timezone.now().timestamp()}",
-                note=f"Scan rapide par {request.user.get_full_name()}"
-            )
-        elif action == 'sortie':
-            # Vérifier le stock disponible
-            stock = Stock.objects.filter(produit=produit, entrepot=entrepot).first()
-            if not stock or stock.quantite < quantite:
-                return JsonResponse({'success': False, 'error': f'Stock insuffisant. Disponible : {stock.quantite if stock else 0}'})
-            mouv = Mouvement.objects.create(
-                type_mouvement=TypeMouvement.SORTIE,
-                produit=produit,
-                quantite=quantite,
-                entrepot_source=entrepot,
-                utilisateur=request.user,
-                reference=f"SCAN-{timezone.now().timestamp()}",
-                note=f"Scan rapide par {request.user.get_full_name()}"
-            )
-        else:
+        if action not in ('entree', 'sortie'):
             return JsonResponse({'success': False, 'error': 'Action non reconnue'})
+        if quantite <= 0:
+            return JsonResponse({'success': False, 'error': 'Quantité invalide'})
 
-        _appliquer_mouvement(mouv)
+        # Créer le mouvement et l'appliquer dans la même transaction : si le
+        # stock est insuffisant, _appliquer_mouvement lève ValidationError et
+        # tout est annulé (pas de mouvement fantôme jamais appliqué).
+        try:
+            with transaction.atomic():
+                if action == 'entree':
+                    mouv = Mouvement.objects.create(
+                        type_mouvement=TypeMouvement.ENTREE,
+                        produit=produit,
+                        quantite=quantite,
+                        entrepot_destination=entrepot,
+                        utilisateur=request.user,
+                        reference=f"SCAN-{timezone.now().timestamp()}",
+                        note=f"Scan rapide par {request.user.get_full_name()}"
+                    )
+                else:
+                    mouv = Mouvement.objects.create(
+                        type_mouvement=TypeMouvement.SORTIE,
+                        produit=produit,
+                        quantite=quantite,
+                        entrepot_source=entrepot,
+                        utilisateur=request.user,
+                        reference=f"SCAN-{timezone.now().timestamp()}",
+                        note=f"Scan rapide par {request.user.get_full_name()}"
+                    )
+                _appliquer_mouvement(mouv)
+        except ValidationError as e:
+            return JsonResponse({'success': False, 'error': e.messages[0] if hasattr(e, 'messages') else str(e)})
         _verifier_seuil(produit, entrepot)
 
         return JsonResponse({
@@ -234,40 +241,50 @@ def mouvement_rapide(request):
     ent = _entreprise(request)
     if request.method == 'POST':
         produit_id = request.POST.get('produit')
-        quantite = float(request.POST.get('quantite', 1))
+        try:
+            quantite = float(request.POST.get('quantite', 1))
+        except ValueError:
+            quantite = 0
         type_mvt = request.POST.get('type_mouvement')
         entrepot_id = request.POST.get('entrepot')
 
         if not produit_id or not type_mvt or not entrepot_id:
             messages.error(request, "Tous les champs obligatoires doivent être remplis.")
             return redirect('magasinier:mouvement_rapide')
+        if type_mvt not in ('entree', 'sortie'):
+            messages.error(request, "Type de mouvement invalide.")
+            return redirect('magasinier:mouvement_rapide')
+        if quantite <= 0:
+            messages.error(request, "La quantité doit être strictement positive.")
+            return redirect('magasinier:mouvement_rapide')
 
         produit = get_object_or_404(Produit, pk=produit_id, entreprise=ent)
         entrepot = get_object_or_404(Entrepot, pk=entrepot_id, entreprise=ent)
 
-        if type_mvt == 'entree':
-            mouv = Mouvement.objects.create(
-                type_mouvement=TypeMouvement.ENTREE,
-                produit=produit,
-                quantite=quantite,
-                entrepot_destination=entrepot,
-                utilisateur=request.user,
-                note="Mouvement rapide magasinier"
-            )
-        elif type_mvt == 'sortie':
-            mouv = Mouvement.objects.create(
-                type_mouvement=TypeMouvement.SORTIE,
-                produit=produit,
-                quantite=quantite,
-                entrepot_source=entrepot,
-                utilisateur=request.user,
-                note="Mouvement rapide magasinier"
-            )
-        else:
-            messages.error(request, "Type de mouvement invalide.")
+        try:
+            with transaction.atomic():
+                if type_mvt == 'entree':
+                    mouv = Mouvement.objects.create(
+                        type_mouvement=TypeMouvement.ENTREE,
+                        produit=produit,
+                        quantite=quantite,
+                        entrepot_destination=entrepot,
+                        utilisateur=request.user,
+                        note="Mouvement rapide magasinier"
+                    )
+                else:
+                    mouv = Mouvement.objects.create(
+                        type_mouvement=TypeMouvement.SORTIE,
+                        produit=produit,
+                        quantite=quantite,
+                        entrepot_source=entrepot,
+                        utilisateur=request.user,
+                        note="Mouvement rapide magasinier"
+                    )
+                _appliquer_mouvement(mouv)
+        except ValidationError as e:
+            messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
             return redirect('magasinier:mouvement_rapide')
-
-        _appliquer_mouvement(mouv)
         _verifier_seuil(produit, entrepot)
         messages.success(request, f"{quantite} {produit.unite_mesure} enregistré(s).")
         return redirect('magasinier:mouvement_rapide')

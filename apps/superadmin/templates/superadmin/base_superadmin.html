@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StockMaster Super Admin – {% block title %}Dashboard{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
     :root {
@@ -31,13 +31,13 @@
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       background: var(--bg-base);
       color: var(--text-primary);
       min-height: 100vh;
       display: flex;
     }
-    code, .mono { font-family: 'Space Mono', monospace; }
+    code, .mono { font-family: 'Fira Code', monospace; }
 
     /* ── SIDEBAR ── */
     #sidebar {
@@ -70,7 +70,7 @@
     .sidebar-logo .brand { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
     .sidebar-logo .brand span { color: var(--orange); }
     .sidebar-logo .badge {
-      font-family: 'Space Mono', monospace;
+      font-family: 'Fira Code', monospace;
       font-size: 9px;
       color: var(--text-muted);
       letter-spacing: 1.5px;
@@ -145,7 +145,7 @@
     .user-info .name { font-size: 13px; font-weight: 600; }
     .user-info .role {
       font-size: 11px; color: var(--orange);
-      font-family: 'Space Mono', monospace;
+      font-family: 'Fira Code', monospace;
     }
 
     /* ── TOPBAR ── */
@@ -275,7 +275,7 @@
     .stat-value { font-size: 32px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
     .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
     .stat-trend {
-      font-size: 12px; font-family: 'Space Mono', monospace;
+      font-size: 12px; font-family: 'Fira Code', monospace;
       margin-top: 10px;
     }
     .stat-trend.up { color: var(--green); }

@@ -73,9 +73,9 @@
         <span class="mono" style="font-size:13px;color:var(--or);font-weight:700;background:var(--or-dim);padding:3px 10px;border-radius:8px;border:1px solid var(--or-border);">
           <i class="fas fa-barcode" style="margin-right:5px;"></i>{{ produit.sku }}
         </span>
-        {% if produit.code_barre %}
+        {% if produit.code_barres %}
         <span class="mono" style="font-size:13px;color:var(--text-m);">
-          <i class="fas fa-qrcode" style="margin-right:4px;"></i>{{ produit.code_barre }}
+          <i class="fas fa-qrcode" style="margin-right:4px;"></i>{{ produit.code_barres }}
         </span>
         {% endif %}
         {% if produit.categorie %}

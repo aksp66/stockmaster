@@ -265,12 +265,29 @@ class Produit(TimestampMixin):
     null=True, blank=True,
     verbose_name="Prix de vente HT"
     )
+    delai_reappro = models.PositiveIntegerField(
+        default=7,
+        verbose_name=_("Délai de réapprovisionnement (jours)")
+    )
+    qte_min_commande = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_("Quantité minimale de commande")
+    )
 
     class Meta:
         verbose_name = _("Produit")
         verbose_name_plural = _("Produits")
         ordering = ['nom']
         unique_together = [('sku', 'entreprise')]
+        constraints = [
+            # Unicité du code-barres par entreprise, uniquement quand il est renseigné
+            # (le champ est optionnel : on ne veut pas qu'une chaîne vide bloque les autres produits).
+            models.UniqueConstraint(
+                fields=['entreprise', 'code_barres'],
+                condition=models.Q(code_barres__gt=''),
+                name='unique_code_barres_par_entreprise',
+            ),
+        ]
 
     def __str__(self):
         return f"[{self.sku}] {self.nom}"

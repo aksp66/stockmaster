@@ -19,12 +19,15 @@ const SYNC_QUEUE_KEY = "stockmaster-sync-queue";
 // ── Ressources précachées au premier install ──────────────────────────
 const STATIC_ASSETS = [
   "/static/pwa/offline.html",
+  "/static/pwa/manifest.json",
+  "/static/pwa/icons/icon-72.png",
+  "/static/pwa/icons/icon-96.png",
+  "/static/pwa/icons/icon-128.png",
   "/static/pwa/icons/icon-192.png",
   "/static/pwa/icons/icon-512.png",
-  "/static/css/stockmaster.css",
-  "/static/js/stockmaster.js",
-  // CDN Chart.js — optionnel mais améliore l'offline
-  "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js",
+  "/static/pwa/app.js",
+  "/static/sounds/beep_ok.mp3",
+  "/static/sounds/beep_err.mp3",
 ];
 
 // ── URLs API à mettre en cache pour consultation offline ──────────────
@@ -40,7 +43,7 @@ const API_CACHE_PATTERNS = [
 const SHELL_PAGES = [
   "/magasinier/",
   "/magasinier/scan/",
-  "/magasinier/stock/",
+  "/magasinier/stocks/",
   "/magasinier/alertes/",
 ];
 
@@ -315,7 +318,7 @@ self.addEventListener("push", event => {
   const options = {
     body:    data.message || "Nouvelle alerte StockMaster",
     icon:    "/static/pwa/icons/icon-192.png",
-    badge:   "/static/pwa/icons/badge-72.png",
+    badge:   "/static/pwa/icons/icon-72.png",
     vibrate: [200, 100, 200],
     data:    { url: data.url || "/magasinier/alertes/" },
     actions: [
@@ -365,7 +368,8 @@ function isStaticAsset(url) {
   return url.pathname.startsWith("/static/")
       || url.hostname === "cdnjs.cloudflare.com"
       || url.hostname === "fonts.gstatic.com"
-      || url.hostname === "fonts.googleapis.com";
+      || url.hostname === "fonts.googleapis.com"
+      || url.hostname === "cdn.tailwindcss.com";
 }
 
 function shouldCacheApiResponse(url) {

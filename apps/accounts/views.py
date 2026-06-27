@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model
 from django.contrib import messages
@@ -15,7 +16,9 @@ from .models import InvitationToken
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.urls import reverse_lazy
-from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmView, PasswordResetDoneView, PasswordResetCompleteView 
+from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmView, PasswordResetDoneView, PasswordResetCompleteView
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 
 
@@ -154,7 +157,7 @@ def _envoyer_email_confirmation(request, user):
     send_mail(
         subject=sujet,
         message=plain_message,
-        from_email='StockMaster <ahlipedro66@gmail.com>',
+        from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
         html_message=html_message,
         fail_silently=False,
@@ -232,14 +235,20 @@ def accept_invitation(request, token):
     if request.method == 'POST':
         password = request.POST.get('password1')
         password2 = request.POST.get('password2')
-        if password and password == password2:
-            user.set_password(password)
-            user.is_active = True
-            user.est_actif = True
-            user.save()
-            token_obj.delete()
-            messages.success(request, "Votre compte est activé. Vous pouvez vous connecter.")
-            return redirect('accounts:connexion')
-        else:
+        if not password or password != password2:
             messages.error(request, "Les mots de passe ne correspondent pas.")
+        else:
+            try:
+                validate_password(password, user=user)
+            except ValidationError as e:
+                for msg in e.messages:
+                    messages.error(request, msg)
+            else:
+                user.set_password(password)
+                user.is_active = True
+                user.est_actif = True
+                user.save()
+                token_obj.delete()
+                messages.success(request, "Votre compte est activé. Vous pouvez vous connecter.")
+                return redirect('accounts:connexion')
     return render(request, 'accounts/accept_invitation.html', {'user': user})

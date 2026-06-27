@@ -1,7 +1,9 @@
+from django.db import transaction
 from django.db.models import Sum, Count, Q, F
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta, date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -212,23 +214,31 @@ class MouvementViewSet(viewsets.ModelViewSet):
         if not produit:
             return Response({"detail": "Produit invalide."}, status=400)
         type_mvt = request.data["type_mouvement"]
-        quantite = Decimal(str(request.data["quantite"]))
+        if type_mvt not in ("entree", "sortie", "perte"):
+            return Response({"detail": "Type de mouvement invalide."}, status=400)
+        try:
+            quantite = Decimal(str(request.data["quantite"]))
+        except InvalidOperation:
+            return Response({"detail": "Quantité invalide."}, status=400)
+        if quantite <= 0:
+            return Response({"detail": "La quantité doit être strictement positive."}, status=400)
         entrepot_id = request.data.get("entrepot_id")
         entrepot = Entrepot.objects.filter(pk=entrepot_id, entreprise=request.user.entreprise).first() if entrepot_id else None
-        if type_mvt == "sortie":
-            stock = Stock.objects.filter(produit=produit, entrepot=entrepot).first()
-            if not stock or stock.quantite < quantite:
-                return Response({"detail": "Stock insuffisant."}, status=400)
-        mvt = Mouvement.objects.create(
-            type_mouvement=type_mvt,
-            produit=produit,
-            quantite=quantite,
-            entrepot_source=entrepot if type_mvt in ("sortie", "perte") else None,
-            entrepot_destination=entrepot if type_mvt == "entree" else None,
-            utilisateur=request.user,
-            note=request.data.get("commentaire", "Scan mobile")
-        )
-        _appliquer_mouvement(mvt)
+
+        try:
+            with transaction.atomic():
+                mvt = Mouvement.objects.create(
+                    type_mouvement=type_mvt,
+                    produit=produit,
+                    quantite=quantite,
+                    entrepot_source=entrepot if type_mvt in ("sortie", "perte") else None,
+                    entrepot_destination=entrepot if type_mvt == "entree" else None,
+                    utilisateur=request.user,
+                    note=request.data.get("commentaire", "Scan mobile")
+                )
+                _appliquer_mouvement(mvt)
+        except ValidationError as e:
+            return Response({"detail": e.messages[0] if hasattr(e, 'messages') else str(e)}, status=400)
         return Response({
             "succes": True,
             "mouvement_id": mvt.pk,

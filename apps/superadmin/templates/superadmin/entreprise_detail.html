@@ -20,7 +20,7 @@
       <p class="subtitle">
         {{ entreprise.get_type_entreprise_display }}
         &nbsp;·&nbsp;
-        <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted);">
+        <span style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text-muted);">
           #{{ entreprise.id }}
         </span>
       </p>
@@ -81,15 +81,15 @@
       </div>
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Entrepôts déclarés</div>
-        <div style="font-size:14px;font-family:'Space Mono',monospace;">{{ entreprise.nb_entrepots }}</div>
+        <div style="font-size:14px;font-family:'Fira Code',monospace;">{{ entreprise.nb_entrepots }}</div>
       </div>
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Date d'inscription</div>
-        <div style="font-size:14px;font-family:'Space Mono',monospace;">{{ entreprise.created_at|date:"d/m/Y H:i" }}</div>
+        <div style="font-size:14px;font-family:'Fira Code',monospace;">{{ entreprise.created_at|date:"d/m/Y H:i" }}</div>
       </div>
       <div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Dernière mise à jour</div>
-        <div style="font-size:14px;font-family:'Space Mono',monospace;">{{ entreprise.updated_at|date:"d/m/Y H:i" }}</div>
+        <div style="font-size:14px;font-family:'Fira Code',monospace;">{{ entreprise.updated_at|date:"d/m/Y H:i" }}</div>
       </div>
     </div>
   </div>

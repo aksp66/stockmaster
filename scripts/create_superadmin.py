@@ -6,6 +6,8 @@ Exécution : python manage.py shell < create_superadmin.py
 
 import os
 import django
+from decouple import config
+from django.utils.crypto import get_random_string
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.dev')
 django.setup()
@@ -13,13 +15,24 @@ django.setup()
 from apps.accounts.models import Utilisateur, RoleUtilisateur
 
 def run():
-    """Fonction appelée par django-extensions runscript."""
+    """Fonction appelée par django-extensions runscript.
+
+    Identifiants lus depuis .env (SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD).
+    Si absents, un mot de passe aléatoire est généré et affiché une seule fois.
+    """
     from apps.accounts.models import Utilisateur, RoleUtilisateur
 
-    email = "ahlipedro66@gmail.com"
-    password = "AAKSP@12"
+    email = config('SUPERADMIN_EMAIL', default='')
+    password = config('SUPERADMIN_PASSWORD', default='')
     first_name = "Super"
     last_name = "Admin"
+
+    if not email:
+        print("❌ Définissez SUPERADMIN_EMAIL dans .env avant d'exécuter ce script.")
+        return
+    if not password:
+        password = get_random_string(16)
+        print(f"ℹ️ SUPERADMIN_PASSWORD non défini : mot de passe généré : {password}")
 
     user, created = Utilisateur.objects.get_or_create(
         email=email,

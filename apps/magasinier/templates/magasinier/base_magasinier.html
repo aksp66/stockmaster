@@ -3,8 +3,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <title>StockMaster – {% block title %}Magasinier{% endblock %}</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#F97316">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="StockMaster">
+  <link rel="apple-touch-icon" href="{% static 'pwa/icons/icon-192.png' %}">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -232,6 +242,20 @@
   function openM(id){document.getElementById(id).classList.add('open');}
   function closeM(id){document.getElementById(id).classList.remove('open');}
   document.querySelectorAll('.modal-o').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+</script>
+
+<!-- ═══════════ PWA : client API + Service Worker ═══════════ -->
+<script src="{% static 'pwa/app.js' %}"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => console.log('[PWA] SW enregistré, scope :', reg.scope))
+      .catch(err => console.error('[PWA] SW erreur :', err));
+  }
+  document.getElementById('btn-installer-pwa')?.addEventListener('click', async () => {
+    const result = await window.PWAInstaller?.installer();
+    if (result === 'accepted') console.log('[PWA] Application installée');
+  });
 </script>
 {% block xjs %}{% endblock %}
 </body>

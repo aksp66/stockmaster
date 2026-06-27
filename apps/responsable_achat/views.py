@@ -3,7 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
+from django.db import transaction
+from django.core.exceptions import ValidationError
 from apps.accounts.decorators import role_required
+from apps.gestionnaire.views import _appliquer_mouvement
 from apps.stock.models import (
     Fournisseur, BonCommande, LigneCommande, StatutBonCommande,
     Produit, Entrepot, Mouvement, TypeMouvement, Alerte
@@ -242,27 +245,33 @@ def boncommande_reception(request, pk):
     ent = _entreprise(request)
     bc = get_object_or_404(BonCommande, pk=pk, entreprise=ent, statut__in=['envoye', 'recu_partiel'])
     if request.method == 'POST':
-        for ligne in bc.lignes.all():
-            recu = request.POST.get(f'recu_{ligne.pk}')
-            if recu and float(recu) > 0:
-                nouveau = min(float(recu), float(ligne.quantite_commandee) - float(ligne.quantite_recue))
-                if nouveau > 0:
-                    ligne.quantite_recue = float(ligne.quantite_recue) + nouveau
-                    ligne.save()
-                    # Créer mouvement d'entrée
-                    if bc.entrepot_destination:
-                        Mouvement.objects.create(
-                            type_mouvement=TypeMouvement.ENTREE,
-                            produit=ligne.produit,
-                            quantite=nouveau,
-                            entrepot_destination=bc.entrepot_destination,
-                            utilisateur=request.user,
-                            reference=f"BC-{bc.numero}",
-                            prix_unitaire_snapshot=ligne.prix_unitaire_ht,
-                        )
-        toutes_recues = all(l.quantite_recue >= l.quantite_commandee for l in bc.lignes.all())
-        bc.statut = StatutBonCommande.RECU_COMPLET if toutes_recues else StatutBonCommande.RECU_PARTIEL
-        bc.save()
+        try:
+            with transaction.atomic():
+                for ligne in bc.lignes.all():
+                    recu = request.POST.get(f'recu_{ligne.pk}')
+                    if recu and float(recu) > 0:
+                        nouveau = min(float(recu), float(ligne.quantite_commandee) - float(ligne.quantite_recue))
+                        if nouveau > 0:
+                            ligne.quantite_recue = float(ligne.quantite_recue) + nouveau
+                            ligne.save()
+                            # Créer le mouvement d'entrée ET l'appliquer au stock réel
+                            if bc.entrepot_destination:
+                                mouv = Mouvement.objects.create(
+                                    type_mouvement=TypeMouvement.ENTREE,
+                                    produit=ligne.produit,
+                                    quantite=nouveau,
+                                    entrepot_destination=bc.entrepot_destination,
+                                    utilisateur=request.user,
+                                    reference=f"BC-{bc.numero}",
+                                    prix_unitaire_snapshot=ligne.prix_unitaire_ht,
+                                )
+                                _appliquer_mouvement(mouv)
+                toutes_recues = all(l.quantite_recue >= l.quantite_commandee for l in bc.lignes.all())
+                bc.statut = StatutBonCommande.RECU_COMPLET if toutes_recues else StatutBonCommande.RECU_PARTIEL
+                bc.save()
+        except ValidationError as e:
+            messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
+            return redirect('responsable_achat:boncommande_reception', pk=pk)
         messages.success(request, "Réception enregistrée.")
         return redirect('responsable_achat:boncommande_detail', pk=pk)
     return render(request, 'responsable_achat/boncommande_reception.html', {'bc': bc})

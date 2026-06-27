@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 from celery.schedules import crontab
+from decouple import config
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,10 +24,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-hfs$e*2c27u69$f_lqw2km)j8@_2#b&f&_^oap%#+2+8l*7%xo'
+# Défini dans .env (voir .env.example) ; valeur de repli utilisable UNIQUEMENT en local.
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-only-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -134,11 +136,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
  'default': {
   'ENGINE': 'django.db.backends.postgresql',
-  'NAME': 'stockmaster',
-  'USER': 'postgres',
-  'PASSWORD': '',
-  'HOST': 'localhost',
-  'PORT': '5432',
+  'NAME': config('DB_NAME', default='stockmaster'),
+  'USER': config('DB_USER', default='postgres'),
+  'PASSWORD': config('DB_PASSWORD', default=''),
+  'HOST': config('DB_HOST', default='localhost'),
+  'PORT': config('DB_PORT', default='5432'),
  }
 }
 
@@ -193,13 +195,19 @@ STATICFILES_DIRS = [
 # Dossier où les fichiers seront rassemblés en production (via collectstatic)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Fichiers médias (avatars utilisateurs, etc.)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  CELERY + REDIS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CELERY_BROKER_URL        = "redis://127.0.0.1:6379/0"
-CELERY_RESULT_BACKEND    = "redis://127.0.0.1:6379/1"
+REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379')
+
+CELERY_BROKER_URL        = f"{REDIS_URL}/0"
+CELERY_RESULT_BACKEND    = f"{REDIS_URL}/1"
 CELERY_ACCEPT_CONTENT    = ["json"]
 CELERY_TASK_SERIALIZER   = "json"
 CELERY_RESULT_SERIALIZER = "json"
@@ -210,7 +218,7 @@ CELERY_ENABLE_UTC        = True
 CACHES = {
     "default": {
         "BACKEND":  "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/2",
+        "LOCATION": f"{REDIS_URL}/2",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }

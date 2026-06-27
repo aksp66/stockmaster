@@ -14,13 +14,11 @@ def role_required(*roles):
         def wrapped(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return redirect('accounts:connexion')
-            if request.user.role not in roles and 'super_admin' not in roles:
-                # Super admin a accès à tout
-                if request.user.role == 'super_admin':
-                    return view_func(request, *args, **kwargs)
-                messages.error(request, "Vous n'avez pas accès à cette section.")
-                return redirect('pages:accueil')
-            return view_func(request, *args, **kwargs)
+            # Super admin a toujours accès ; sinon le rôle doit être explicitement autorisé.
+            if request.user.role == 'super_admin' or request.user.role in roles:
+                return view_func(request, *args, **kwargs)
+            messages.error(request, "Vous n'avez pas accès à cette section.")
+            return redirect('pages:accueil')
         return wrapped
     return decorator
 

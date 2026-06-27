@@ -2,6 +2,8 @@ from django import forms
 from apps.entreprises.models import Entreprise, TypeEntreprise
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -41,6 +43,15 @@ class Step3AdminForm(forms.Form):
         if cd.get('password1') != cd.get('password2'):
             raise forms.ValidationError("Les mots de passe ne correspondent pas.")
         return cd
+
+    def clean_password1(self):
+        password1 = self.cleaned_data.get('password1')
+        if password1:
+            try:
+                validate_password(password1)
+            except ValidationError as e:
+                raise forms.ValidationError(e.messages)
+        return password1
 
 
 

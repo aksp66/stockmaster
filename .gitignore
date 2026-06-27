@@ -23,6 +23,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Env files (secrets)
+# Env files (secrets) — mais on garde le modèle .env.example
 .env
 .env.*
+!.env.example

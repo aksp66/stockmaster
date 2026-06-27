@@ -88,17 +88,17 @@
       <tr>
         <td style="padding-left:20px;">
           <div style="font-weight:600;font-size:13px;">{{ p.produit.nom }}</div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ p.produit.sku }}</div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:'Fira Code',monospace;">{{ p.produit.sku }}</div>
         </td>
-        <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted);">
+        <td style="font-family:'Fira Code',monospace;font-size:12px;color:var(--text-muted);">
           {{ p.date_cible|date:"d/m/Y" }}
         </td>
         <td>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;">
+          <span style="font-family:'Fira Code',monospace;font-size:14px;font-weight:700;">
             {{ p.quantite_prevue|floatformat:0 }}
           </span>
         </td>
-        <td style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">
+        <td style="font-size:12px;color:var(--text-muted);font-family:'Fira Code',monospace;">
           [{{ p.borne_inferieure|floatformat:0|default:"—" }} – {{ p.borne_superieure|floatformat:0|default:"—" }}]
         </td>
         <td>
@@ -107,12 +107,12 @@
             <div style="flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;">
               <div style="height:100%;width:{{ p.confiance|floatformat:0 }}%;background:{% if p.confiance >= 80 %}var(--green){% elif p.confiance >= 50 %}var(--yellow){% else %}var(--red){% endif %};border-radius:3px;"></div>
             </div>
-            <span style="font-size:12px;font-family:'JetBrains Mono',monospace;">{{ p.confiance|floatformat:0 }}%</span>
+            <span style="font-size:12px;font-family:'Fira Code',monospace;">{{ p.confiance|floatformat:0 }}%</span>
           </div>
           {% else %}—{% endif %}
         </td>
         <td>
-          <span class="badge badge-blue" style="font-size:10px;font-family:'JetBrains Mono',monospace;">{{ p.modele_utilise|default:"—" }}</span>
+          <span class="badge badge-blue" style="font-size:10px;font-family:'Fira Code',monospace;">{{ p.modele_utilise|default:"—" }}</span>
         </td>
         <td style="text-align:right;padding-right:20px;">
           {% if p.quantite_recommandee_commande %}

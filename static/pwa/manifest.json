@@ -19,6 +19,6 @@
   "shortcuts": [
     { "name": "Scanner un produit", "short_name": "Scanner", "url": "/magasinier/scan/", "icons": [{ "src": "/static/pwa/icons/shortcut-scan.png", "sizes": "96x96" }] },
     { "name": "Alertes de stock", "short_name": "Alertes", "url": "/magasinier/alertes/", "icons": [{ "src": "/static/pwa/icons/shortcut-alerte.png", "sizes": "96x96" }] },
-    { "name": "Nouveau mouvement", "short_name": "Mouvement", "url": "/magasinier/mouvement/rapide/", "icons": [{ "src": "/static/pwa/icons/shortcut-mouvement.png", "sizes": "96x96" }] }
+    { "name": "Nouveau mouvement", "short_name": "Mouvement", "url": "/magasinier/mouvement/", "icons": [{ "src": "/static/pwa/icons/shortcut-mouvement.png", "sizes": "96x96" }] }
   ]
 }
