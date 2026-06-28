@@ -17,6 +17,9 @@ celerybeat-schedule*
 # Node
 node_modules/
 
+# Binaire CLI Tailwind (~120 Mo, ne doit pas être versionné)
+tailwind.exe
+
 # Editors / OS
 .vscode/
 .idea/
