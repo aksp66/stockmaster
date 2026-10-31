@@ -290,6 +290,23 @@
           </div>
         </div>
 
+        {# Sens du retour (retour uniquement) #}
+        <div id="retour-wrap" style="display: none; margin-top: 14px">
+          <div class="fi" style="margin-bottom: 0">
+            <label class="fl">Type de retour <span style="color: var(--red)">*</span></label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+              <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13.5px;">
+                <input type="radio" name="sens_retour" value="client" checked style="accent-color:var(--green);">
+                <span><strong style="color:var(--green);">+ Retour client</strong> — la marchandise revient en stock</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13.5px;">
+                <input type="radio" name="sens_retour" value="fournisseur" style="accent-color:var(--red);">
+                <span><strong style="color:var(--red);">− Retour fournisseur</strong> — la marchandise repart</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         {# Entrepôt destination (transfert uniquement) #}
         <div id="transfert-wrap" style="display: none; margin-top: 14px">
           <div class="fi" style="margin-bottom: 0">
@@ -496,6 +513,8 @@
         radio.value === "entree" ? "block" : "none";
       document.getElementById("ajustement-wrap").style.display =
         radio.value === "ajustement" ? "block" : "none";
+      document.getElementById("retour-wrap").style.display =
+        radio.value === "retour" ? "block" : "none";
       document.getElementById("entrepot-label").innerHTML = isTransfert
         ? "Entrepôt source <span style='color:var(--red);'>*</span>"
         : "Entrepôt <span style='color:var(--red);'>*</span>";

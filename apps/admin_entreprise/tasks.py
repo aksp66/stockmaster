@@ -74,8 +74,9 @@ def envoyer_suggestions_ia():
         if not suggestions:
             continue
         lignes = [
-            f"- {s['produit'].nom} ({s['produit'].sku}) : commander {s['quantite_suggeree']:g}, "
-            f"rupture estimée dans {s['jours_rupture']} jour(s)"
+            f"- {s['produit'].nom} ({s['produit'].sku}) : commander {s['quantite_suggeree']:g}"
+            + (f", rupture estimée dans {s['jours_rupture']} jour(s)" if s['jours_rupture'] is not None
+               else ", sous le seuil d'alerte")
             for s in suggestions[:20]
         ]
         corps = (f"{len(suggestions)} produit(s) à commander pour {entreprise.nom} d'après les prédictions IA :\n\n"

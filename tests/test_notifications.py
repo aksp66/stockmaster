@@ -69,9 +69,8 @@ class NotificationsTests(EntrepriseTestCase):
     def test_suggestions_ia_par_email(self):
         self.produit.seuil_alerte = 20  # 10 en stock, 60 consommés sur 30 jours : à commander
         self.produit.save()
-        for i in range(30):
-            PredictionStock.objects.create(produit=self.produit, date_cible=timezone.localdate() + timedelta(days=i),
-                                           quantite_prevue=2, confiance=80, modele_utilise='prophet')
+        PredictionStock.objects.create(produit=self.produit, date_cible=timezone.localdate() + timedelta(days=30),
+                                       quantite_prevue=60, confiance=80, modele_utilise='prophet')
         self.assertEqual(envoyer_suggestions_ia(), 1)
         self.assertIn(self.produit.nom, mail.outbox[0].body)
         self._parametres(ia_email=False)

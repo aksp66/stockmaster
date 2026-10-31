@@ -25,6 +25,7 @@ from apps.stock.models import (
 )
 from apps.core.models import AuditLog, TypeAction
 from apps.entreprises.models import ParametresEntreprise
+from apps.stock.reappro import calculer_reappro
 import uuid
 
 def get_entreprise(request):
@@ -171,29 +172,24 @@ def produit_form(request, pk=None):
                 est_actif=True,
             )
             # Stock initial
-            stock_initial = Decimal(data.get('stock_initial', 0))
+            stock_initial = _prix_saisi(data.get('stock_initial')) or Decimal(0)
             entrepot_id = data.get('entrepot_initial')
             if stock_initial > 0 and entrepot_id:
                 entrepot = Entrepot.objects.filter(pk=entrepot_id, entreprise=ent).first()
                 if entrepot:
-                    Mouvement.objects.create(
-                        type_mouvement=TypeMouvement.ENTREE,
-                        produit=produit,
-                        quantite=stock_initial,
-                        entrepot_destination=entrepot,
-                        utilisateur=request.user,
-                        reference=f"INIT-{produit.sku}",
-                        note="Stock initial lors de la création du produit",
-                        prix_unitaire_snapshot=produit.prix_unitaire,
-                    )
-                    # Mise à jour du stock dans la table Stock
-                    stock_obj, _ = Stock.objects.get_or_create(
-                        produit=produit,
-                        entrepot=entrepot,
-                        defaults={'quantite': Decimal('0')}
-                    )
-                    stock_obj.quantite += stock_initial
-                    stock_obj.save()
+                    with transaction.atomic():
+                        mouv = Mouvement.objects.create(
+                            type_mouvement=TypeMouvement.ENTREE,
+                            produit=produit,
+                            quantite=stock_initial,
+                            entrepot_destination=entrepot,
+                            utilisateur=request.user,
+                            reference=f"INIT-{produit.sku}",
+                            note="Stock initial lors de la création du produit",
+                            prix_unitaire_snapshot=produit.prix_unitaire,
+                        )
+                        _appliquer_mouvement(mouv)
+            _verifier_seuil(produit, Entrepot.objects.filter(pk=entrepot_id or None, entreprise=ent).first())
             messages.success(request, f"Produit « {produit.nom} » créé.")
         return redirect('gestionnaire:produits')
 
@@ -306,32 +302,23 @@ def _variation_stock_total(type_m, quantite, entrepot_destination_id):
         return quantite
     if type_m in (TypeMouvement.SORTIE, TypeMouvement.PERTE):
         return -quantite
-    if type_m == TypeMouvement.AJUSTEMENT:
+    if type_m in (TypeMouvement.AJUSTEMENT, TypeMouvement.RETOUR):
         return quantite if entrepot_destination_id else -quantite
-    return Decimal(0)  # transfert (total inchangé), retour (non appliqué au stock)
+    return Decimal(0)  # transfert : total inchangé
 
 
 def _resume_prediction(produit, stock_actuel):
-    """Synthèse des prédictions IA à 30 jours pour la fiche produit (None s'il n'y en a pas)."""
-    futures = list(produit.predictions.filter(date_cible__gte=timezone.localdate()).order_by('date_cible')[:30])
-    if not futures:
+    """Synthèse des prédictions IA pour la fiche produit (None s'il n'y en a pas). Calcul : apps/stock/reappro.py."""
+    reappro = calculer_reappro(produit, stock_actuel)
+    if reappro['source'] != 'ia':
         return None
-    conso = sum((p.quantite_prevue for p in futures), Decimal(0))
-    stock_prevu = stock_actuel - conso
-    if stock_prevu < 0:
-        a_commander = -stock_prevu + produit.seuil_alerte
-    elif stock_prevu < produit.seuil_alerte:
-        a_commander = produit.seuil_alerte - stock_prevu
-    else:
-        a_commander = Decimal(0)
-    derniere = max(futures, key=lambda p: p.created_at)
     return {
-        'modele_utilise': derniere.modele_utilise,
-        'score_confiance': round(derniere.confiance) if derniere.confiance else 70,
-        'consommation_prevue': conso,
-        'stock_prevu_j30': stock_prevu,
-        'quantite_a_commander': a_commander,
-        'date_calcul': derniere.created_at,
+        'modele_utilise': reappro['prediction'].modele_utilise,
+        'score_confiance': reappro['confiance'] or 70,
+        'consommation_prevue': reappro['consommation_prevue'],
+        'stock_prevu_j30': reappro['stock_prevu_j30'],
+        'quantite_a_commander': reappro['quantite_suggeree'],
+        'date_calcul': reappro['prediction'].created_at,
     }
 
 @login_required
@@ -494,9 +481,9 @@ def _appliquer_mouvement(mouv):
         elif mouv.type_mouvement == TypeMouvement.TRANSFERT:
             maj_stock(p, mouv.entrepot_source,      mouv.emplacement_source,      -q)
             maj_stock(p, mouv.entrepot_destination, mouv.emplacement_destination, +q)
-        elif mouv.type_mouvement == TypeMouvement.AJUSTEMENT:
-            # Le signe dépend de l'entrepôt renseigné : destination = surplus (+),
-            # source = manque (-). `quantite` est toujours une magnitude positive.
+        elif mouv.type_mouvement in (TypeMouvement.AJUSTEMENT, TypeMouvement.RETOUR):
+            # Le signe dépend de l'entrepôt renseigné : destination = surplus / retour client (+),
+            # source = manque / retour fournisseur (-). `quantite` est toujours une magnitude positive.
             if mouv.entrepot_destination:
                 maj_stock(p, mouv.entrepot_destination, mouv.emplacement_destination, q)
             elif mouv.entrepot_source:
@@ -504,24 +491,32 @@ def _appliquer_mouvement(mouv):
 
 
 def _verifier_seuil(produit, entrepot):
-    """Crée une alerte si le stock tombe sous le seuil."""
+    """
+    À appeler après toute variation du stock d'un produit (mouvement, réception, inventaire) :
+    crée une alerte si le stock total est sous le seuil, et clôt les alertes de stock bas
+    devenues sans objet (stock remonté).
+    """
+    total = produit.quantite_totale()
+    ouvertes = Alerte.objects.filter(produit=produit, lue=False)
+    if total > produit.seuil_alerte:
+        ouvertes.filter(type_alerte__in=[TypeAlerte.RUPTURE, TypeAlerte.SEUIL_BAS])             .update(lue=True, date_lecture=timezone.now())
+        return
+    if total > 0:
+        ouvertes.filter(type_alerte=TypeAlerte.RUPTURE).update(lue=True, date_lecture=timezone.now())
     if not entrepot:
         return
-    total = produit.quantite_totale()
-    if total <= produit.seuil_alerte:
-        type_a = TypeAlerte.RUPTURE if total == 0 else TypeAlerte.SEUIL_BAS
-        prio   = PrioriteAlerte.CRITIQUE if total == 0 else PrioriteAlerte.HAUTE
-        alerte, creee = Alerte.objects.get_or_create(
-            produit=produit, entrepot=entrepot, type_alerte=type_a, lue=False,
-            defaults={
-                'priorite': prio,
-                'message': f"Stock de « {produit.nom} » : {total} {produit.unite_mesure} (seuil : {produit.seuil_alerte})"
-            }
-        )
-        if creee:
-            from apps.admin_entreprise.notifications import notifier_alerte
-            notifier_alerte(alerte)
-
+    type_a = TypeAlerte.RUPTURE if total <= 0 else TypeAlerte.SEUIL_BAS
+    prio   = PrioriteAlerte.CRITIQUE if total <= 0 else PrioriteAlerte.HAUTE
+    alerte, creee = Alerte.objects.get_or_create(
+        produit=produit, entrepot=entrepot, type_alerte=type_a, lue=False,
+        defaults={
+            'priorite': prio,
+            'message': f"Stock de « {produit.nom} » : {total} {produit.unite_mesure} (seuil : {produit.seuil_alerte})"
+        }
+    )
+    if creee:
+        from apps.admin_entreprise.notifications import notifier_alerte
+        notifier_alerte(alerte)
 
 # ── SCAN CODE-BARRES ───────────────────────────────────────────────────────────
 @login_required
@@ -701,6 +696,9 @@ def inventaire_valider(request, pk):
         except ValidationError as e:
             messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
             return redirect('gestionnaire:inventaire_saisie', pk=pk)
+        for ligne in session.lignes.filter(quantite_comptee__isnull=False).select_related('produit'):
+            if ligne.ecart() != 0:
+                _verifier_seuil(ligne.produit, session.entrepot)
         AuditLog.log(request, TypeAction.VALIDATION_INVENTAIRE,
                      f"Inventaire validé : {session.entrepot.nom}", objet=session)
         messages.success(request, "Inventaire validé. Les ajustements ont été appliqués.")
@@ -1141,6 +1139,9 @@ def mouvement_form(request):
             return redirect('gestionnaire:mouvement_form')
         
         type_m = data.get('type_mouvement')
+        if type_m not in TypeMouvement.values:
+            messages.error(request, "Type de mouvement invalide.")
+            return redirect('gestionnaire:mouvement_form')
         try:
             quantite = float(data.get('quantite', 0))
         except ValueError:
@@ -1155,10 +1156,11 @@ def mouvement_form(request):
         if type_m == 'transfert':
             ent_src = Entrepot.objects.filter(pk=data.get('entrepot') or None, entreprise=ent).first()
             ent_dst = Entrepot.objects.filter(pk=data.get('entrepot_destination') or None, entreprise=ent).first()
-        elif type_m == 'ajustement':
-            # Surplus = ajout dans l'entrepôt (destination), manque = retrait (source)
+        elif type_m in ('ajustement', 'retour'):
+            # Surplus / retour client = ajout dans l'entrepôt (destination) ;
+            # manque / retour fournisseur = retrait (source)
             entrepot_ajuste = Entrepot.objects.filter(pk=data.get('entrepot') or None, entreprise=ent).first()
-            if data.get('sens_ajustement') == 'surplus':
+            if data.get('sens_ajustement') == 'surplus' or data.get('sens_retour') == 'client':
                 ent_dst = entrepot_ajuste
             else:
                 ent_src = entrepot_ajuste
@@ -1168,7 +1170,7 @@ def mouvement_form(request):
             ent_dst = Entrepot.objects.filter(pk=data.get('entrepot') or None, entreprise=ent).first()
 
         # Sans entrepôt valide, le mouvement serait enregistré sans aucun effet sur le stock
-        if type_m in ('entree', 'sortie', 'perte', 'ajustement') and not (ent_src or ent_dst):
+        if type_m in ('entree', 'sortie', 'perte', 'ajustement', 'retour') and not (ent_src or ent_dst):
             messages.error(request, "Choisissez un entrepôt.")
             return redirect('gestionnaire:mouvement_form')
         if type_m == 'transfert' and (not ent_src or not ent_dst or ent_src == ent_dst):

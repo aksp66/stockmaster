@@ -360,6 +360,7 @@ class TypeMouvement(models.TextChoices):
     SORTIE      = 'sortie',      _('Sortie')
     TRANSFERT   = 'transfert',   _('Transfert entre entrepôts')
     AJUSTEMENT  = 'ajustement',  _('Ajustement inventaire')
+    # Retour : entrepôt de destination = retour client (entrée), entrepôt source = retour fournisseur (sortie)
     RETOUR      = 'retour',      _('Retour fournisseur/client')
     PERTE       = 'perte',       _('Perte / Casse')
 
@@ -454,6 +455,17 @@ class Mouvement(TimestampMixin):
     def entrepot(self):
         """Entrepôt à afficher : destination pour une entrée / un surplus, source sinon."""
         return self.entrepot_destination or self.entrepot_source
+
+    @property
+    def signe(self):
+        """'+' si le mouvement augmente le stock total, '−' s'il le diminue, '' sinon (transfert)."""
+        if self.type_mouvement == TypeMouvement.ENTREE:
+            return '+'
+        if self.type_mouvement in (TypeMouvement.SORTIE, TypeMouvement.PERTE):
+            return '−'
+        if self.type_mouvement in (TypeMouvement.AJUSTEMENT, TypeMouvement.RETOUR):
+            return '+' if self.entrepot_destination_id else '−'
+        return ''
 
     @property
     def emplacement(self):

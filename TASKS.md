@@ -51,6 +51,13 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [x] Champs numériques des formulaires : plus de virgule décimale qui vidait les champs prix / quantités en modification
 - [x] 93 tests
 
+### Octobre 2026 (suite 3) — retours, réapprovisionnement, seuils
+- [x] Retour : retour client (entrée) ou retour fournisseur (sortie), choisi dans le formulaire ; signe +/− correct dans tous les historiques
+- [x] Quantité suggérée calculée sur la consommation prévue (IA, ou moyenne des sorties sur 28 jours), le délai de réappro, le stock de sécurité, la quantité minimale et les commandes en cours (`apps/stock/reappro.py`, commun aux trois écrans)
+- [x] Bouton « Commander » des suggestions : bon de commande pré-rempli
+- [x] Seuils vérifiés après réception de commande, validation d'inventaire, API mobile et stock initial ; alertes clôturées quand le stock remonte
+- [x] 111 tests
+
 ---
 
 ## À faire
@@ -63,13 +70,12 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 
 ### P2 — Fonctionnalités incomplètes
 - [ ] **Module `apps/ia/views.py` (routes `/ia/…`)** : code hérité, inutilisable en l'état (templates `ia/*.html` absents ; champs et modèles inexistants : `date_prediction`, `consommation_prevue`, `actif`, `MouvementStock`, `LigneBonCommande`). Les écrans IA réellement utilisés sont `admin_entreprise` → IA et `responsable_achat` → Prédictions / Suggestions. Décider : supprimer ces routes ou les réécrire. Les tâches Celery (`apps/ia/tasks.py`) ne sont pas concernées.
-- [ ] Tâches planifiées prévues mais jamais écrites : vérification périodique des seuils d'alerte (aujourd'hui vérifiés à chaque mouvement saisi, pas après une réception de BC ou une validation d'inventaire), statistiques fournisseurs hebdomadaires.
-- [ ] Type de mouvement « Retour » : proposé dans le formulaire mais sans effet sur le stock (retour fournisseur = sortie ? retour client = entrée ?). Définir la règle ou retirer le type.
-- [ ] Suggestions d'achat : la quantité suggérée dépend seulement du seuil d'alerte (seuil × 2 − stock), pas de la consommation prévue ; un produit très consommé avec un seuil bas n'est pas suggéré.
+- [ ] Statistiques fournisseurs hebdomadaires (tâche prévue, jamais écrite).
+- [ ] Rapports du comptable (stock début / entrées / sorties / stock fin, valorisation) : ne comptent que les types « entrée » et « sortie » ; les retours, pertes et ajustements n'y figurent pas.
+- [ ] Prédictions IA : une seule prédiction (total sur 30 jours) est conservée par produit ; les écrans IA de l'admin entreprise et le script de démonstration (`scripts/seed.py`, qui génère des valeurs proches du stock) n'utilisent pas tous cette convention.
 - [ ] Formulaire fournisseur : champs sans colonne en base (code, description longue, site web, ville, code postal, délai de paiement, remise, devise). Les ajouter au modèle `Fournisseur` (migration) ou les retirer du formulaire.
 - [ ] Remise par ligne de BC : appliquée au prix net à l'enregistrement mais non conservée. Ajouter un champ `remise` à `LigneCommande` si elle doit apparaître sur le PDF.
 - [ ] `boncommande_changer_statut` (`/commandes/<id>/statut/<statut>/`) change l'état sur une requête GET. Le passer en POST ou le supprimer (les nouvelles actions envoyer / clôturer / annuler le remplacent).
-- [ ] Création de BC depuis une suggestion IA (lien `?produit=…&qte=…` du tableau de bord) : le formulaire ne pré-remplit pas encore la ligne.
 - [ ] Options d'inventaire affichées mais non implémentées : « masquer le stock théorique aux compteurs » et « ajustement automatique ».
 - [ ] Bon de commande : « Envoyé le » toujours vide (pas de champ `date_envoi`). L'ajouter, et l'enregistrer lors de l'envoi.
 

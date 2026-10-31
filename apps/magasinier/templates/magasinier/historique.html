@@ -46,8 +46,8 @@
           <div style="font-size:11.5px;color:var(--text-m);margin-top:2px;">{{ m.entrepot.nom|default:"—" }} · {{ m.date_mouvement|date:"d/m H:i" }}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div class="mono" style="font-size:22px;font-weight:800;color:{% if m.type_mouvement == 'entree' %}var(--green){% elif m.type_mouvement == 'sortie' %}var(--red){% else %}var(--or){% endif %};">
-            {% if m.type_mouvement == 'entree' %}+{% elif m.type_mouvement == 'sortie' %}−{% endif %}{{ m.quantite }}
+          <div class="mono" style="font-size:22px;font-weight:800;color:{% if m.signe == '+' %}var(--green){% elif m.signe == '−' %}var(--red){% else %}var(--or){% endif %};">
+            {{ m.signe }}{{ m.quantite }}
           </div>
           <span class="badge {% if m.type_mouvement == 'entree' %}bg-gr{% elif m.type_mouvement == 'sortie' %}bg-re{% else %}bg-bl{% endif %}" style="font-size:10px;">{{ m.get_type_mouvement_display }}</span>
         </div>

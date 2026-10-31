@@ -99,3 +99,12 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
   - erreurs 500 sur champs vides ou invalides : sélection « — Sélectionner — » dans les formulaires de mouvement et de bon de commande, paramètres achats, API de scan, étapes de l'inscription (saut d'étape impossible).
 - **Tests** : 93.
 
+## 31/10/2026 (suite 3) — Retours, réapprovisionnement, seuils
+
+- `a7227c4` poussé sur GitHub (paramètres, ajustements, formulaires secondaires).
+- **Retours** : le type « Retour » n'avait aucun effet sur le stock. Le formulaire demande maintenant s'il s'agit d'un retour client (la marchandise revient : entrée) ou d'un retour fournisseur (elle repart : sortie, avec contrôle du stock disponible). Même convention que l'ajustement (entrepôt de destination = +, source = −). Les historiques affichent le signe réel de chaque mouvement. Un type de mouvement inconnu est refusé.
+- **Quantité suggérée** : elle valait `seuil × 2 − stock`, sans lien avec la consommation. Nouveau calcul commun (`apps/stock/reappro.py`) aux suggestions, à la liste des prédictions et à la fiche produit : consommation journalière (prédiction IA, sinon moyenne des sorties sur 28 jours) × (délai de réappro + 30 jours) + stock de sécurité − stock − commandes en cours, arrondi et au moins égal à la quantité minimale de commande. « Urgent » = rupture avant qu'une commande passée aujourd'hui soit livrée. Le bouton « Commander » pré-remplit le bon de commande.
+- Au passage : la prédiction IA enregistrée est la consommation **totale** sur 30 jours (une ligne par produit) ; elle est désormais convertie en débit journalier, et la confiance est normalisée (0-1 ou 0-100 selon la source).
+- **Seuils** : vérifiés aussi après une réception de bon de commande, une validation d'inventaire, un mouvement via l'API mobile et la création d'un produit avec stock initial (qui passe désormais par la règle commune de mise à jour du stock). Quand le stock remonte au-dessus du seuil, les alertes de rupture / seuil bas devenues sans objet sont clôturées automatiquement.
+- **Tests** : 111.
+

@@ -24,7 +24,7 @@ from .serializers import (
     CategorieMinimalSerializer, EntrepotMinimalSerializer, FournisseurMinimalSerializer,
 )
 from .permissions import IsMagasinier, IsGestionnaire, ReadOnlyOrGestionnaire
-from apps.gestionnaire.views import _appliquer_mouvement
+from apps.gestionnaire.views import _appliquer_mouvement, _verifier_seuil
 
 User = get_user_model()
 
@@ -239,6 +239,7 @@ class MouvementViewSet(viewsets.ModelViewSet):
                 _appliquer_mouvement(mvt)
         except ValidationError as e:
             return Response({"detail": e.messages[0] if hasattr(e, 'messages') else str(e)}, status=400)
+        _verifier_seuil(produit, entrepot)
         return Response({
             "succes": True,
             "mouvement_id": mvt.pk,

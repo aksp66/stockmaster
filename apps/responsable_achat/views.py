@@ -7,7 +7,7 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.views.decorators.http import require_POST
 from apps.accounts.decorators import role_required
-from apps.gestionnaire.views import _appliquer_mouvement
+from apps.gestionnaire.views import _appliquer_mouvement, _verifier_seuil
 from apps.stock.models import (
     Fournisseur, BonCommande, LigneCommande, StatutBonCommande,
     Produit, Entrepot, Mouvement, TypeMouvement, Alerte
@@ -26,6 +26,7 @@ from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.db.models import OuterRef, Subquery
 from apps.core.models import ExportLog
+from apps.stock.reappro import calculer_reappro
 
 def _entreprise(request):
     return request.user.entreprise
@@ -209,6 +210,19 @@ def _lignes_depuis_post(post):
     return resultat
 
 
+def _ligne_depuis_suggestion(request, ent):
+    """Ligne pré-remplie quand on arrive depuis une suggestion d'achat (?produit=<id>&qte=<quantité>)."""
+    try:
+        produit = Produit.objects.filter(pk=request.GET.get('produit') or None, entreprise=ent).first()
+        quantite = Decimal(request.GET.get('qte') or 0)
+    except (ValidationError, InvalidOperation):
+        return []
+    if not produit or quantite <= 0:
+        return []
+    return [{'produit_id': produit.pk, 'quantite_commandee': quantite, 'prix_unitaire_ht': produit.prix_unitaire,
+             'montant_ht': quantite * produit.prix_unitaire}]
+
+
 def _enregistrer_lignes(bc, post, ent):
     for pid, qte, prix in _lignes_depuis_post(post):
         prod = Produit.objects.filter(pk=pid, entreprise=ent).first()
@@ -289,6 +303,7 @@ def boncommande_create(request):
         'fournisseurs': Fournisseur.objects.filter(entreprise=ent, est_actif=True),
         'produits': Produit.objects.filter(entreprise=ent, est_actif=True),
         'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True),
+        'lignes': _ligne_depuis_suggestion(request, ent),
     }
     return render(request, 'responsable_achat/boncommande_form.html', context)
 
@@ -317,6 +332,7 @@ def boncommande_edit(request, pk):
         return redirect('responsable_achat:boncommande_detail', pk=pk)
     context = {
         'bc': bc,
+        'lignes': bc.lignes.select_related('produit'),
         'fournisseurs': Fournisseur.objects.filter(entreprise=ent, est_actif=True),
         'produits': Produit.objects.filter(entreprise=ent, est_actif=True),
         'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True),
@@ -500,6 +516,9 @@ def boncommande_reception(request, pk):
         except ValidationError as e:
             messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
             return redirect('responsable_achat:boncommande_reception', pk=pk)
+        # Le stock a augmenté : clôt les alertes de rupture / seuil bas devenues sans objet
+        for ligne in bc.lignes.select_related('produit'):
+            _verifier_seuil(ligne.produit, entrepot)
         messages.success(request, "Réception enregistrée.")
         return redirect('responsable_achat:boncommande_detail', pk=pk)
     return render(request, 'responsable_achat/boncommande_reception.html', {'bc': bc, 'entrepots': entrepots})
@@ -635,7 +654,7 @@ def exports_view(request):
         writer = csv.writer(response)
         writer.writerow(['Produit', 'Stock actuel', 'Jours avant rupture', 'Quantité suggérée', 'Urgence'])
         for s in suggestions:
-            writer.writerow([s['produit'].nom, s['stock_actuel'], s['jours_rupture'], s['quantite_suggeree'], 'Urgent' if s['jours_rupture'] <= 7 else 'À planifier'])
+            writer.writerow([s['produit'].nom, s['stock_actuel'], '' if s['jours_rupture'] is None else s['jours_rupture'], s['quantite_suggeree'], 'Urgent' if s['urgent'] else 'À planifier'])
         
         ExportLog.objects.create(
             utilisateur=request.user,
@@ -689,28 +708,14 @@ def predictions_list(request):
     produits_data = []
     for pred in predictions:
         produit = pred.produit
-        stock_actuel = produit.quantite_totale()
-        
-        # Consommation prévue sur 30 jours (somme des prédictions futures pour ce produit)
-        futures = PredictionStock.objects.filter(
-            produit=produit,
-            date_cible__gte=timezone.now().date()
-        ).order_by('date_cible')[:30]
-        conso_prevue = sum(p.quantite_prevue for p in futures)
+        # Consommation prévue, rupture et quantité à commander : calcul commun (apps/stock/reappro.py)
+        reappro = calculer_reappro(produit)
+        conso_prevue = reappro['consommation_prevue']
+        stock_prevu_j30 = reappro['stock_prevu_j30']
         intervalle_confiance = (pred.borne_superieure - pred.borne_inferieure) if pred.borne_superieure else 0
-        
-        stock_prevu_j30 = stock_actuel - conso_prevue
-        if stock_prevu_j30 < 0 and conso_prevue > 0:
-            jours_avant_rupture = int(stock_actuel / (conso_prevue / 30))
-        else:
-            jours_avant_rupture = None
-        
-        # Quantité à commander (recommandation)
-        qte_a_commander = 0
-        if stock_prevu_j30 < 0:
-            qte_a_commander = abs(stock_prevu_j30) + produit.seuil_alerte
-        elif stock_prevu_j30 < produit.seuil_alerte:
-            qte_a_commander = produit.seuil_alerte - stock_prevu_j30
+        # Rupture affichée seulement si elle survient dans l'horizon des prédictions
+        jours_avant_rupture = reappro['jours_rupture'] if stock_prevu_j30 < 0 else None
+        qte_a_commander = reappro['quantite_suggeree']
         
         score_confiance = pred.confiance if pred.confiance else 70
         
@@ -767,35 +772,15 @@ def predictions_list(request):
 
 # ---------- Suggestions d'achat ----------
 def _calculer_suggestions(entreprise):
-    """Retourne une liste de suggestions (dict) basée sur les prédictions et les seuils."""
-    suggestions = []
-    produits = Produit.objects.filter(entreprise=entreprise, est_actif=True)
-    for produit in produits:
-        stock_actuel = produit.quantite_totale()
-        # Récupérer la prédiction la plus récente pour ce produit
-        pred = PredictionStock.objects.filter(produit=produit, date_cible__gte=date.today()).order_by('date_cible').first()
-        if not pred:
-            # Si pas de prédiction, utiliser une estimation basée sur l'historique des sorties
-            # (simplifié : on ignore)
-            continue
-        # Consommation prévue sur 30 jours
-        futures = PredictionStock.objects.filter(produit=produit, date_cible__gte=date.today()).order_by('date_cible')[:30]
-        conso_prevue = sum(p.quantite_prevue for p in futures)
-        if conso_prevue <= 0:
-            continue
-        jours_rupture = int(stock_actuel / (conso_prevue / 30)) if stock_actuel > 0 else 0
-        if jours_rupture <= 30:  # Seuil pour suggérer
-            quantite_suggeree = max(produit.seuil_alerte * 2 - stock_actuel, 0) if jours_rupture <= 7 else max(produit.seuil_alerte - stock_actuel, 0)
-            if quantite_suggeree > 0:
-                suggestions.append({
-                    'produit': produit,
-                    'stock_actuel': stock_actuel,
-                    'jours_rupture': jours_rupture,
-                    'quantite_suggeree': quantite_suggeree,
-                    'confiance': pred.confiance if pred.confiance else 70,
-                })
-    # Trier par urgence (jours_rupture croissant)
-    suggestions.sort(key=lambda x: x['jours_rupture'])
+    """
+    Produits actifs à commander (quantité suggérée > 0), les plus proches de la rupture d'abord.
+    Calcul : apps/stock/reappro.py (consommation prévue, délai de réappro, commandes en cours).
+    """
+    suggestions = [
+        r for r in (calculer_reappro(p) for p in Produit.objects.filter(entreprise=entreprise, est_actif=True))
+        if r['quantite_suggeree'] > 0
+    ]
+    suggestions.sort(key=lambda s: (s['jours_rupture'] is None, s['jours_rupture'] or 0))
     return suggestions
 
 @login_required
@@ -810,8 +795,8 @@ def suggestions_list(request):
         return redirect('responsable_achat:suggestions_list')
     
     suggestions = _calculer_suggestions(ent)
-    suggestions_urgentes = [s for s in suggestions if s['jours_rupture'] <= 7]
-    suggestions_planifier = [s for s in suggestions if 7 < s['jours_rupture'] <= 30]
+    suggestions_urgentes = [s for s in suggestions if s['urgent']]
+    suggestions_planifier = [s for s in suggestions if not s['urgent']]
     
     montant_estime = sum((Decimal(s['quantite_suggeree']) * s['produit'].prix_unitaire for s in suggestions), Decimal(0))
     

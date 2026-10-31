@@ -84,7 +84,7 @@
             </tr>
           </thead>
           <tbody id="lignes-body">
-            {% for l in bc.lignes.all %}
+            {% for l in lignes %}
             <tr class="ligne-row" data-idx="{{ forloop.counter0 }}">
               <td>
                 <select name="lignes[{{ forloop.counter0 }}][produit]" class="fin sel-produit" style="font-size:13px;padding:7px 10px;" onchange="majLigne(this)" required>
@@ -170,7 +170,7 @@
 
 {% block xjs %}
 <script>
-let idx = {{ bc.lignes.count|default:0 }};
+let idx = {{ lignes|length }};
 
 function ajouterLigne() {
   document.getElementById('tr-vide')?.remove();

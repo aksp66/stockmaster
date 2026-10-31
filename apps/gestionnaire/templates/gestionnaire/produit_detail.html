@@ -207,8 +207,8 @@
               {% endif %}
             </td>
             <td>
-              <span class="mono" style="font-size:16px;font-weight:800;color:{% if m.type_mouvement == 'sortie' %}var(--red){% elif m.type_mouvement == 'entree' %}var(--green){% else %}var(--or){% endif %};">
-                {% if m.type_mouvement == 'entree' %}+{% elif m.type_mouvement == 'sortie' %}−{% endif %}{{ m.quantite }}
+              <span class="mono" style="font-size:16px;font-weight:800;color:{% if m.signe == '+' %}var(--green){% elif m.signe == '−' %}var(--red){% else %}var(--or){% endif %};">
+                {{ m.signe }}{{ m.quantite }}
               </span>
             </td>
             <td>

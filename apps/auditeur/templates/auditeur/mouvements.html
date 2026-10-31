@@ -94,8 +94,8 @@
           {% elif m.type_mouvement == 'transfert' %}<span class="badge bg-bl">Transfert</span>
           {% else %}<span class="badge bg-ye">{{ m.get_type_mouvement_display }}</span>{% endif %}
         </td>
-        <td class="mono" style="font-weight:800;font-size:15px;color:{% if m.type_mouvement == 'sortie' %}var(--red){% elif m.type_mouvement == 'entree' %}var(--green){% else %}var(--or){% endif %};">
-          {% if m.type_mouvement == 'entree' %}+{% elif m.type_mouvement == 'sortie' %}−{% endif %}{{ m.quantite }}
+        <td class="mono" style="font-weight:800;font-size:15px;color:{% if m.signe == '+' %}var(--green){% elif m.signe == '−' %}var(--red){% else %}var(--or){% endif %};">
+          {{ m.signe }}{{ m.quantite }}
         </td>
         <td class="mono" style="font-size:12px;">{{ m.produit.prix_unitaire|floatformat:2 }} FCFA</td>
         <td class="mono" style="font-weight:700;color:var(--or);">{{ m.valeur_totale|floatformat:2 }} FCFA</td>
