@@ -73,7 +73,7 @@ def rejouer(produit, mouvements, stock_reel, debut=None, fin=None):
 
     qte, valeur = ouverture, max(ouverture, ZERO) * prix_defaut
     res = {cle: ZERO for cle in FLUX}
-    res.update(qte_ventes=ZERO, ca=ZERO, qte_debut=None, valeur_debut=None)
+    res.update(qte_ventes=ZERO, qte_retours_clients=ZERO, ca=ZERO, qte_debut=None, valeur_debut=None)
 
     def cump():
         return valeur / qte if qte > 0 else prix_defaut
@@ -101,8 +101,10 @@ def rejouer(produit, mouvements, stock_reel, debut=None, fin=None):
                 res['qte_ventes'] += quantite
                 if produit.prix_vente:
                     res['ca'] += quantite * produit.prix_vente
-            elif flux == 'retours_clients' and produit.prix_vente:
-                res['ca'] -= quantite * produit.prix_vente  # un retour client annule une vente
+            elif flux == 'retours_clients':
+                res['qte_retours_clients'] += quantite
+                if produit.prix_vente:
+                    res['ca'] -= quantite * produit.prix_vente  # un retour client annule une vente
 
     if res['qte_debut'] is None:  # aucun mouvement dans la période
         res['qte_debut'], res['valeur_debut'] = qte, valeur
@@ -111,6 +113,9 @@ def rejouer(produit, mouvements, stock_reel, debut=None, fin=None):
 
 
 CACHE_DUREE = 24 * 3600
+# À incrémenter à chaque changement de la règle de calcul ou du contenu du résultat : sans cela,
+# des résultats calculés par l'ancienne version du code resteraient servis depuis le cache.
+VERSION_CALCUL = 2
 
 
 def _version(ids):
@@ -133,7 +138,7 @@ def valoriser_produits(produits, debut=None, fin=None):
     produits = list(produits)
     ids = sorted(str(p.pk) for p in produits)
     empreinte = hashlib.md5(f"{','.join(ids)}|{debut}|{fin}|{_version(ids)}".encode()).hexdigest()
-    cle = f"stockmaster:valorisation:{empreinte}"
+    cle = f"stockmaster:valorisation:v{VERSION_CALCUL}:{empreinte}"
     resultat = cache.get(cle)
     if resultat is None:
         resultat = _valoriser(produits, debut, fin)

@@ -128,3 +128,11 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - **Retours clients** : déduits des quantités vendues et du chiffre d'affaires (marges, exports, rapport périodique où le coût des ventes est également net des retours).
 - **Tests** : 122.
 
+## 31/10/2026 (suite 6) — Anciennes prédictions, marges au coût réel
+
+- `95c87d8` poussé sur GitHub (cache, unités des prédictions, retours dans les marges).
+- **Anciennes prédictions** : migration de données `stock.0007`. Les prédictions dont la borne haute est inférieure à la consommation prévue (bornes journalières de l'ancienne tâche IA) gardent leur consommation prévue, mais leurs bornes passent à « inconnues » et leur quantité recommandée (ancienne formule) est effacée ; les confiances exprimées entre 0 et 1 (ancien script de démonstration) sont ramenées sur 100. Base de dev : 400 prédictions mises à jour. Nouvelle commande `nettoyer_predictions` (avec `--apercu`) pour ne garder que la prédiction la plus récente de chaque produit — non exécutée.
+- **Marges au coût réel** : chaque vente est valorisée au coût moyen du moment où elle a eu lieu (rejeu au CUMP permanent) au lieu du CUMP actuel appliqué à tout l'historique. Sur les données de démonstration, la page Marges et le rapport périodique sur tout l'historique donnent exactement le même chiffre d'affaires et le même coût des ventes.
+- **Cache versionné** : le robot de parcours a révélé qu'après la modification du calcul, le cache servait encore des résultats de l'ancienne version (erreur 500 sur la page Marges). La clé de cache inclut désormais une version du calcul, à incrémenter à chaque changement de règle.
+- **Tests** : 125.
+

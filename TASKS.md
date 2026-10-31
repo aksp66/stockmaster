@@ -71,6 +71,13 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [x] Retours clients déduits du chiffre d'affaires et des quantités vendues (marges, rapport, exports)
 - [x] 122 tests
 
+### Octobre 2026 (suite 6) — anciennes prédictions, marges au coût réel
+- [x] Migration de données : prédictions à l'ancienne convention mises à jour (bornes journalières → inconnues, recommandation obsolète effacée, confiance sur 100)
+- [x] Commande `python manage.py nettoyer_predictions [--apercu]` : ne garde que la prédiction la plus récente de chaque produit
+- [x] Page Marges au coût réel de chaque vente (CUMP du moment), cohérente au centime avec le rapport périodique
+- [x] Cache de valorisation versionné (`VERSION_CALCUL`) : un changement de code ne sert plus d'anciens résultats
+- [x] 125 tests
+
 ---
 
 ## À faire
@@ -92,8 +99,8 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 
 ### P3 — Améliorations
 - [ ] Étendre les tests : API REST (JWT, scan, mouvements hors ligne), exports CSV/PDF, valorisation CUMP/FIFO du comptable, tâches IA.
-- [ ] Prédictions déjà en base calculées avant le 31/10/2026 : leurs bornes sont journalières (ancienne convention). Elles sont remplacées au fil des analyses nocturnes ; les supprimer ou relancer une analyse pour repartir proprement.
-- [ ] Marges du comptable : coût d'achat = CUMP actuel appliqué à toutes les ventes de l'historique (approximation) ; le rapport périodique, lui, utilise le coût réel au moment de chaque vente.
+- [ ] Chiffre d'affaires (marges, rapport) : calculé avec le prix de vente **actuel** du produit, car le prix de vente n'est pas enregistré sur chaque sortie. Ajouter un `prix_vente_snapshot` au mouvement si les prix de vente évoluent.
+- [ ] Prédictions : la tâche IA en ajoute une par produit chaque nuit ; planifier `nettoyer_predictions` (par exemple chaque semaine) si l'historique n'est pas utile.
 - [ ] Performance : `_calculer_suggestions` exécute plusieurs requêtes par produit (appelée sur le tableau de bord achats) ; à optimiser ou mettre en cache si le catalogue dépasse quelques centaines de produits.
 - [ ] Interface de modération des avis dans l'espace super admin (aujourd'hui : admin Django).
 - [ ] Ménage : dossier `.venv/` en double de `env/` (non versionné), `GUIDE_*.txt` à relire et éventuellement convertir en Markdown.

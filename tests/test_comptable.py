@@ -147,3 +147,60 @@ class CacheEtMargesTests(EntrepriseTestCase):
         csv = self.client.get(reverse('comptable:marges'), {'export': 'csv'}).content.decode('utf-8-sig')
         self.assertIn('dont retours clients', csv)
 
+
+class MargesAuCoutReelTests(EntrepriseTestCase):
+
+    def test_marge_au_cout_du_moment_de_la_vente(self):
+        p = creer_produit(self.ent, nom="Huile", prix="100")
+        p.prix_vente = Decimal('250')
+        p.save()
+        for type_m, q, prix, jours, dest in [(TypeMouvement.ENTREE, 10, '100', 40, True),
+                                             (TypeMouvement.SORTIE, 5, None, 30, False),
+                                             (TypeMouvement.ENTREE, 5, '300', 20, True)]:
+            m = Mouvement.objects.create(type_mouvement=type_m, produit=p, quantite=q,
+                                         prix_unitaire_snapshot=Decimal(prix) if prix else None,
+                                         entrepot_destination=self.entrepot if dest else None,
+                                         entrepot_source=None if dest else self.entrepot,
+                                         date_mouvement=timezone.now() - timedelta(days=jours))
+            _appliquer_mouvement(m)
+        self.connecter('comptable')
+        ligne = next(m for m in self.client.get(reverse('comptable:marges')).context['marges'] if m['nom'] == 'Huile')
+        # Les 5 ventes ont eu lieu quand le coût moyen était de 100 (il vaut 200 aujourd'hui)
+        self.assertEqual((ligne['prix_achat_cump'], ligne['marge_totale']), (Decimal(100), Decimal(750)))
+        self.assertEqual(ligne['marge_pct'], Decimal(60))
+
+
+class AnciennesPredictionsTests(EntrepriseTestCase):
+
+    def test_migration_vers_la_convention_actuelle(self):
+        import importlib
+        from django.apps import apps as django_apps
+        from apps.stock.models import PredictionStock
+        migration = importlib.import_module('apps.stock.migrations.0007_predictions_ancienne_convention')
+        cible = timezone.localdate() + timedelta(days=30)
+        ancienne = PredictionStock.objects.create(produit=self.produit, date_cible=cible, quantite_prevue=600,
+                                                  borne_inferieure=12, borne_superieure=31, confiance=80,
+                                                  quantite_recommandee_commande=40, modele_utilise='prophet')
+        actuelle = PredictionStock.objects.create(produit=self.produit, date_cible=cible + timedelta(days=1),
+                                                  quantite_prevue=600, borne_inferieure=450, borne_superieure=750,
+                                                  confiance=0.9, modele_utilise='prophet')
+        migration.vers_convention_actuelle(django_apps, None)
+        ancienne.refresh_from_db()
+        actuelle.refresh_from_db()
+        self.assertEqual((ancienne.borne_inferieure, ancienne.borne_superieure, ancienne.quantite_recommandee_commande,
+                          ancienne.quantite_prevue), (None, None, None, 600))
+        self.assertEqual((actuelle.borne_superieure, actuelle.confiance), (750, 90))
+
+    def test_nettoyage_garde_la_plus_recente_par_produit(self):
+        from io import StringIO
+        from django.core.management import call_command
+        from apps.stock.models import PredictionStock
+        for i in range(3):
+            PredictionStock.objects.create(produit=self.produit, date_cible=timezone.localdate() + timedelta(days=28 + i),
+                                           quantite_prevue=60, modele_utilise='prophet')
+        recente = PredictionStock.objects.order_by('-created_at', '-date_cible').first()
+        call_command('nettoyer_predictions', '--apercu', stdout=StringIO())
+        self.assertEqual(PredictionStock.objects.count(), 3)  # l'aperçu ne supprime rien
+        call_command('nettoyer_predictions', stdout=StringIO())
+        self.assertEqual(list(PredictionStock.objects.all()), [recente])
+

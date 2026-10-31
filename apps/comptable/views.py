@@ -56,22 +56,37 @@ def _cumps(produits):
     return {pid: v['cump'] for pid, v in valoriser_produits(produits).items()}
 
 
-def _ventes_nettes(produits):
+def _lignes_marges(produits):
     """
-    {produit_id: (quantité vendue, quantité retournée par les clients)} en une requête.
-    Un retour client (retour vers un entrepôt) annule une vente : il se déduit du chiffre d'affaires.
+    Marge réalisée par produit, sur tout l'historique :
+    - coût des ventes au coût moyen du moment de chaque vente (rejeu au CUMP permanent) ;
+    - quantités et chiffre d'affaires nets des retours clients (un retour annule une vente).
+    Produit jamais vendu : coût unitaire = CUMP actuel (marge théorique), quantités à zéro.
     """
-    ventes = defaultdict(lambda: [Decimal('0'), Decimal('0')])
-    for pid, type_m, vers_destination, total in (
-        Mouvement.objects.filter(produit__in=list(produits), type_mouvement__in=['sortie', 'retour'])
-        .annotate(vers_destination=Q(entrepot_destination__isnull=False))
-        .values_list('produit', 'type_mouvement', 'vers_destination').annotate(total=Sum('quantite'))
-    ):
-        if type_m == 'sortie':
-            ventes[pid][0] += total
-        elif vers_destination:
-            ventes[pid][1] += total
-    return {pid: tuple(v) for pid, v in ventes.items()}
+    produits = list(produits)
+    valeurs = valoriser_produits(produits)
+    lignes = []
+    for p in produits:
+        v = valeurs[p.pk]
+        prix_vente = p.prix_vente or Decimal('0')
+        qte_nette = v['qte_ventes'] - v['qte_retours_clients']
+        cout_ventes = v['sorties'] - v['retours_clients']
+        cout_unitaire = cout_ventes / qte_nette if qte_nette > 0 else v['cump']
+        marge_u = prix_vente - cout_unitaire
+        lignes.append({
+            'nom': p.nom,
+            'sku': p.sku,
+            'prix_achat_cump': cout_unitaire,
+            'prix_vente': prix_vente,
+            'marge_unitaire': marge_u,
+            'marge_pct': (marge_u / prix_vente * 100) if prix_vente else Decimal('0'),
+            'qte_vendue': qte_nette,
+            'qte_retournee': v['qte_retours_clients'],
+            'chiffre_affaires': v['ca'] if qte_nette > 0 else Decimal('0'),
+            'cout_ventes': cout_ventes if qte_nette > 0 else Decimal('0'),
+            'marge_totale': (v['ca'] - cout_ventes) if qte_nette > 0 else Decimal('0'),
+        })
+    return lignes
 
 
 def _csv(filename, headers, rows):
@@ -378,36 +393,14 @@ def marges(request):
     if categorie_id:
         produits_qs = produits_qs.filter(categorie_id=categorie_id)
 
-    marges_data = []
-    cumps = _cumps(produits_qs)
-    ventes = _ventes_nettes(produits_qs)
-    for p in produits_qs:
-        vendues, retournees = ventes.get(p.pk, (Decimal('0'), Decimal('0')))
-        qte_vendue = vendues - retournees  # ventes nettes des retours clients
-        prix_achat = cumps[p.pk]
-        prix_vente = p.prix_vente or Decimal('0')
-        marge_u = prix_vente - prix_achat
-        marge_pct = (marge_u / prix_vente * 100) if prix_vente else Decimal('0')
-        marge_tot = marge_u * qte_vendue
-
-        marges_data.append({
-            'nom': p.nom,
-            'sku': p.sku,
-            'prix_achat_cump': prix_achat,
-            'prix_vente': prix_vente,
-            'marge_unitaire': marge_u,
-            'marge_pct': marge_pct,
-            'qte_vendue': qte_vendue,
-            'qte_retournee': retournees,
-            'marge_totale': marge_tot,
-        })
+    marges_data = _lignes_marges(produits_qs)
 
     cle = 'marge_pct' if 'marge' in tri else 'marge_totale'
     reverse = not tri.endswith('asc')
     marges_data.sort(key=lambda x: x[cle], reverse=reverse)
 
-    ca_total = sum(m['prix_vente'] * m['qte_vendue'] for m in marges_data)
-    cout_total = sum(m['prix_achat_cump'] * m['qte_vendue'] for m in marges_data)
+    ca_total = sum(m['chiffre_affaires'] for m in marges_data)
+    cout_total = sum(m['cout_ventes'] for m in marges_data)
     marge_brute_glob = (ca_total - cout_total) / ca_total * 100 if ca_total else Decimal('0')
     marge_nette_tot = ca_total - cout_total
 
@@ -431,7 +424,7 @@ def marges(request):
         ]
         return _csv(
             f'marges_{date.today()}.csv',
-            ['Produit', 'SKU', 'PU achat CUMP (FCFA)', 'PU vente (FCFA)',
+            ['Produit', 'SKU', 'Coût unitaire réel (FCFA)', 'PU vente (FCFA)',
              'Marge U. (FCFA)', 'Marge %', 'Qté vendue nette', 'dont retours clients', 'Marge totale (FCFA)'],
             rows,
         )
@@ -658,26 +651,15 @@ def exports(request):
         )
 
     if type_export == 'marges_csv':
-        rows = []
-        produits = list(Produit.objects.filter(entreprise=entreprise, est_actif=True, prix_vente__isnull=False).exclude(prix_vente=0))
-        cumps = _cumps(produits)
-        ventes = _ventes_nettes(produits)
-        for p in produits:
-            vendues, retournees = ventes.get(p.pk, (Decimal('0'), Decimal('0')))
-            qte_v = vendues - retournees  # ventes nettes des retours clients
-            pa = cumps[p.pk]
-            pv = p.prix_vente or Decimal('0')
-            mu = pv - pa
-            mp = (mu / pv * 100) if pv else Decimal('0')
-            rows.append((
-                p.nom, p.sku,
-                float(pa), float(pv),
-                float(mu), f"{float(mp):.1f}%",
-                qte_v, float(mu * qte_v),
-            ))
+        produits = Produit.objects.filter(entreprise=entreprise, est_actif=True, prix_vente__isnull=False).exclude(prix_vente=0)
+        rows = [
+            (m['nom'], m['sku'], float(m['prix_achat_cump']), float(m['prix_vente']), float(m['marge_unitaire']),
+             f"{float(m['marge_pct']):.1f}%", m['qte_vendue'], float(m['marge_totale']))
+            for m in _lignes_marges(produits)
+        ]
         return _csv(
             f'marges_{date.today()}.csv',
-            ['Produit', 'SKU', 'PU achat (FCFA)', 'PU vente (FCFA)',
+            ['Produit', 'SKU', 'Coût unitaire réel (FCFA)', 'PU vente (FCFA)',
              'Marge U. (FCFA)', 'Marge %', 'Qté vendue nette', 'Marge totale (FCFA)'],
             rows,
         )
