@@ -1,4 +1,5 @@
 {% extends 'admin_entreprise/base_admin.html' %}
+{% load l10n %}
 <!-- Pas de sous-titre pour cette page -->
 {% block title %}Paramètres{% endblock %}
 <!-- Pas de sous-titre pour cette page -->
@@ -24,30 +25,17 @@
       <form method="post" action="{% url 'admin_entreprise:parametres' %}">
         {% csrf_token %}
         <input type="hidden" name="section" value="notifications">
-        {% for label, key in notif_options %}
+        {% for label, key, actif in notif_options %}
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
           <div>
             <div style="font-size:13.5px;font-weight:500;">{{ label }}</div>
           </div>
           <label style="position:relative;display:inline-block;width:42px;height:24px;">
-            <input type="checkbox" name="{{ key }}" {% if notif_prefs|default:dict %}checked{% endif %}
+            <input type="checkbox" name="{{ key }}" {% if actif %}checked{% endif %}
                    style="opacity:0;width:0;height:0;position:absolute;">
             <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked;this.style.background=this.previousElementSibling.checked?'var(--orange)':'#d1d5db';"
-                  style="position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:24px;transition:.2s;"></span>
+                  style="position:absolute;cursor:pointer;inset:0;background:{% if actif %}var(--orange){% else %}#d1d5db{% endif %};border-radius:24px;transition:.2s;"></span>
           </label>
-        </div>
-        {% empty %}
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
-          <div style="font-size:13.5px;font-weight:500;">Alertes stock par email</div>
-          <input type="checkbox" name="alerte_email" checked style="accent-color:var(--orange);width:18px;height:18px;">
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
-          <div style="font-size:13.5px;font-weight:500;">Rapports hebdomadaires</div>
-          <input type="checkbox" name="rapport_hebdo" style="accent-color:var(--orange);width:18px;height:18px;">
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
-          <div style="font-size:13.5px;font-weight:500;">Prédictions IA par email</div>
-          <input type="checkbox" name="ia_email" checked style="accent-color:var(--orange);width:18px;height:18px;">
         </div>
         {% endfor %}
         <div style="margin-top:16px;display:flex;justify-content:flex-end;">
@@ -74,12 +62,12 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div class="form-group">
             <label class="form-label">Seuil d'alerte par défaut</label>
-            <input type="number" name="seuil_defaut" value="{{ seuil_defaut|default:'10' }}" class="form-input" min="0">
+            <input type="number" name="seuil_defaut" value="{{ seuil_defaut|unlocalize }}" class="form-input" min="0">
             <div class="form-hint">Quantité minimale déclenchant une alerte</div>
           </div>
           <div class="form-group">
             <label class="form-label">Jours avant expiration (alerte)</label>
-            <input type="number" name="jours_expiration" value="{{ jours_expiration|default:'30' }}" class="form-input" min="1">
+            <input type="number" name="jours_expiration" value="{{ jours_expiration|unlocalize }}" max="365" class="form-input" min="1">
             <div class="form-hint">Alerte N jours avant la date d'expiration</div>
           </div>
         </div>

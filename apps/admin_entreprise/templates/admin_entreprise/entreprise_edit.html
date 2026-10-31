@@ -1,4 +1,5 @@
 {% extends 'admin_entreprise/base_admin.html' %}
+{% load l10n %}
 <!-- Pas de sous-titre pour cette page -->
 {% block title %}Mon entreprise{% endblock %}
 <!-- Pas de sous-titre pour cette page -->
@@ -46,7 +47,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">Nombre d'entrepôts déclarés</label>
-            <input type="number" name="nb_entrepots" value="{{ entreprise.nb_entrepots }}" class="form-input" min="0">
+            <input type="number" name="nb_entrepots" value="{{ entreprise.nb_entrepots|unlocalize }}" class="form-input" min="0">
           </div>
         </div>
 

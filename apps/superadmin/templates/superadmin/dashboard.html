@@ -194,9 +194,9 @@
         <div style="font-size:13px;font-weight:600;">{{ e.nom }}</div>
         <div style="font-size:11px;color:var(--text-muted);">{{ e.created_at|date:"d/m/Y" }}</div>
       </div>
-      <a href="{% url 'superadmin:activer_entreprise' e.id %}" class="btn btn-success btn-sm">
+      <form method="post" action="{% url 'superadmin:activer_entreprise' e.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-success btn-sm">
         <i class="fas fa-check"></i> Activer
-      </a>
+      </button></form>
     </div>
     {% endfor %}
   </div>

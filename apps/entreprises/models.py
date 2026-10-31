@@ -33,3 +33,41 @@ class Entreprise(TimeStampedModel):
 
     def __str__(self):
         return self.nom
+
+
+class ParametresEntreprise(models.Model):
+    """
+    Réglages d'une entreprise, modifiables par son admin (page Paramètres).
+    Créés à la volée avec les valeurs par défaut : utiliser ParametresEntreprise.pour(entreprise).
+    """
+    entreprise = models.OneToOneField(Entreprise, on_delete=models.CASCADE, related_name='parametres')
+    # Notifications par email
+    alertes_email = models.BooleanField(
+        default=True, verbose_name="Alertes de stock par email",
+        help_text="Email aux admins et gestionnaires à chaque nouvelle rupture, seuil bas ou produit proche de l'expiration.")
+    rapport_hebdo = models.BooleanField(
+        default=False, verbose_name="Rapport hebdomadaire",
+        help_text="Synthèse envoyée chaque lundi matin aux admins de l'entreprise.")
+    ia_email = models.BooleanField(
+        default=True, verbose_name="Suggestions d'achat IA par email",
+        help_text="Liste quotidienne des produits à commander, envoyée aux responsables achat.")
+    # Seuils
+    seuil_alerte_defaut = models.DecimalField(
+        max_digits=14, decimal_places=2, default=10, verbose_name="Seuil d'alerte par défaut",
+        help_text="Proposé à la création d'un produit.")
+    jours_alerte_expiration = models.PositiveSmallIntegerField(
+        default=30, verbose_name="Jours avant expiration (alerte)",
+        help_text="Une alerte est créée pour les lots en stock qui expirent dans ce délai.")
+    modifie_le = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Paramètres d'entreprise"
+        verbose_name_plural = "Paramètres d'entreprise"
+
+    def __str__(self):
+        return f"Paramètres — {self.entreprise}"
+
+    @classmethod
+    def pour(cls, entreprise):
+        """Paramètres de l'entreprise, créés avec les valeurs par défaut s'ils n'existent pas encore."""
+        return cls.objects.get_or_create(entreprise=entreprise)[0]

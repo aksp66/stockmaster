@@ -24,6 +24,7 @@ from apps.stock.models import (
     Alerte, TypeAlerte, PrioriteAlerte, ScanLog, Fournisseur
 )
 from apps.core.models import AuditLog, TypeAction
+from apps.entreprises.models import ParametresEntreprise
 import uuid
 
 def get_entreprise(request):
@@ -163,8 +164,8 @@ def produit_form(request, pk=None):
                 prix_unitaire=Decimal(data.get('prix_unitaire', 0)),
                 prix_vente=Decimal(data.get('prix_vente', 0)) if data.get('prix_vente') else None,
                 description=data.get('description', ''),
-                categorie=categories.filter(pk=data.get('categorie')).first(),
-                fournisseur_principal=fournisseurs.filter(pk=data.get('fournisseur')).first(),
+                categorie=categories.filter(pk=data.get('categorie') or None).first(),
+                fournisseur_principal=fournisseurs.filter(pk=data.get('fournisseur') or None).first(),
                 delai_reappro=int(data.get('delai_reappro', 7)),
                 qte_min_commande=int(data.get('qte_min_commande', 1)),
                 est_actif=True,
@@ -214,6 +215,7 @@ def produit_form(request, pk=None):
         'fournisseurs': fournisseurs,
         'entrepots': entrepots,
         'unites': unites,
+        'seuil_defaut': ParametresEntreprise.pour(ent).seuil_alerte_defaut,
         'stocks_par_entrepot': stocks_par_entrepot,
         'valeur_stock': valeur_stock,
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
@@ -335,40 +337,79 @@ def _resume_prediction(produit, stock_actuel):
 @login_required
 @role_required('gestionnaire', 'admin_ent', 'super_admin')
 def produit_import(request):
-    """Import CSV de produits."""
+    """Import CSV de produits (options du formulaire : séparateur et gestion des doublons)."""
     ent = get_entreprise(request)
     if request.method == 'POST' and request.FILES.get('fichier'):
-        fichier = request.FILES['fichier']
         import io
-        decoded = fichier.read().decode('utf-8-sig')
-        reader  = csv.DictReader(io.StringIO(decoded))
-        crees, erreurs = 0, []
-        for i, row in enumerate(reader, 1):
-            try:
-                Produit.objects.get_or_create(
-                    sku=row.get('sku', '').strip(),
-                    entreprise=ent,
-                    defaults={
-                        'nom':          row.get('nom', '').strip(),
-                        'code_barres':  row.get('code_barres', '').strip(),
-                        'prix_unitaire': float(row.get('prix_unitaire', 0) or 0),
-                        'seuil_alerte':  float(row.get('seuil_alerte', 0) or 0),
-                        'unite_mesure':  row.get('unite_mesure', 'unite').strip(),
-                    }
-                )
-                crees += 1
-            except Exception as e:
-                erreurs.append(f"Ligne {i} : {e}")
-        messages.success(request, f"{crees} produit(s) importé(s).")
+        try:
+            decoded = request.FILES['fichier'].read().decode('utf-8-sig')
+        except UnicodeDecodeError:
+            messages.error(request, "Le fichier doit être encodé en UTF-8 (CSV UTF-8 dans Excel).")
+            return redirect('gestionnaire:produit_import')
+        separateur = {'tab': '\t', ';': ';', ',': ','}.get(request.POST.get('separateur'), ',')
+        doublon = request.POST.get('doublon', 'ignorer')
+        reader = csv.DictReader(io.StringIO(decoded), delimiter=separateur)
+        if not reader.fieldnames or not {'sku', 'nom'} <= {c.strip() for c in reader.fieldnames}:
+            messages.error(request, "Colonnes « sku » et « nom » introuvables : vérifiez le séparateur choisi.")
+            return redirect('gestionnaire:produit_import')
+
+        unites = {code for code, _ in Produit._meta.get_field('unite_mesure').choices}
+        categories = {c.nom.lower(): c for c in Categorie.objects.filter(entreprise=ent)}
+        fournisseurs = {f.nom.lower(): f for f in Fournisseur.objects.filter(entreprise=ent)}
+        crees = maj = ignores = 0
+        erreurs = []
+        try:
+            with transaction.atomic():
+                for i, brute in enumerate(reader, 2):  # ligne 1 = en-têtes
+                    row = {(k or '').strip(): (v or '').strip() for k, v in brute.items()}
+                    if not row.get('sku') or not row.get('nom'):
+                        erreurs.append(f"Ligne {i} : sku et nom sont obligatoires")
+                        continue
+                    unite = row.get('unite_mesure') or 'unite'
+                    if unite not in unites:
+                        erreurs.append(f"Ligne {i} : unité « {unite} » inconnue")
+                        continue
+                    try:
+                        valeurs = {
+                            'nom': row['nom'],
+                            'code_barres': row.get('code_barres', ''),
+                            'prix_unitaire': Decimal(row.get('prix_unitaire') or 0),
+                            'seuil_alerte': Decimal(row.get('seuil_alerte') or 0),
+                            'unite_mesure': unite,
+                            'description': row.get('description', ''),
+                            'categorie': categories.get(row.get('categorie', '').lower()),
+                            'fournisseur_principal': fournisseurs.get(row.get('fournisseur_principal', '').lower()),
+                        }
+                    except ArithmeticError:
+                        erreurs.append(f"Ligne {i} : prix ou seuil non numérique")
+                        continue
+                    existant = Produit.objects.filter(sku=row['sku'], entreprise=ent).first()
+                    if existant is None:
+                        Produit.objects.create(sku=row['sku'], entreprise=ent, **valeurs)
+                        crees += 1
+                    elif doublon == 'mettre_a_jour':
+                        for champ, valeur in valeurs.items():
+                            if valeur not in ('', None):
+                                setattr(existant, champ, valeur)
+                        existant.save()
+                        maj += 1
+                    elif doublon == 'erreur':
+                        erreurs.append(f"Ligne {i} : le SKU {row['sku']} existe déjà")
+                    else:
+                        ignores += 1
+                if doublon == 'erreur' and erreurs:
+                    raise ValueError  # mode « bloquer » : rien n'est importé s'il y a une erreur
+        except ValueError:
+            messages.error(request, f"Import annulé : {len(erreurs)} erreur(s). " + " | ".join(erreurs[:5]))
+            return redirect('gestionnaire:produit_import')
+        messages.success(request, f"{crees} produit(s) créé(s), {maj} mis à jour, {ignores} ignoré(s) (déjà existants).")
         if erreurs:
-            messages.warning(request, f"{len(erreurs)} erreur(s) : " + " | ".join(erreurs[:3]))
+            messages.warning(request, f"{len(erreurs)} ligne(s) rejetée(s) : " + " | ".join(erreurs[:5]))
         return redirect('gestionnaire:produits')
     return render(request, 'gestionnaire/produit_import.html', {
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count()
     })
 
-
-# ── MOUVEMENTS ─────────────────────────────────────────────────────────────────
 @login_required
 @role_required('gestionnaire', 'admin_ent', 'super_admin')
 def mouvements_liste(request):
@@ -470,13 +511,16 @@ def _verifier_seuil(produit, entrepot):
     if total <= produit.seuil_alerte:
         type_a = TypeAlerte.RUPTURE if total == 0 else TypeAlerte.SEUIL_BAS
         prio   = PrioriteAlerte.CRITIQUE if total == 0 else PrioriteAlerte.HAUTE
-        Alerte.objects.get_or_create(
+        alerte, creee = Alerte.objects.get_or_create(
             produit=produit, entrepot=entrepot, type_alerte=type_a, lue=False,
             defaults={
                 'priorite': prio,
                 'message': f"Stock de « {produit.nom} » : {total} {produit.unite_mesure} (seuil : {produit.seuil_alerte})"
             }
         )
+        if creee:
+            from apps.admin_entreprise.notifications import notifier_alerte
+            notifier_alerte(alerte)
 
 
 # ── SCAN CODE-BARRES ───────────────────────────────────────────────────────────
@@ -554,7 +598,7 @@ def inventaires_liste(request):
 def inventaire_creer(request):
     ent = get_entreprise(request)
     if request.method == 'POST':
-        entrepot = get_object_or_404(Entrepot, pk=request.POST.get('entrepot'), entreprise=ent)
+        entrepot = get_object_or_404(Entrepot, pk=request.POST.get('entrepot') or None, entreprise=ent)
         note = '\n'.join(t for t in (request.POST.get('nom', '').strip(), request.POST.get('commentaire', '').strip()) if t)
         session  = InventaireSession.objects.create(
             entrepot=entrepot,
@@ -779,10 +823,16 @@ def transfert_view(request):
     ent = get_entreprise(request)
     if request.method == 'POST':
         data    = request.POST
-        produit = get_object_or_404(Produit, pk=data.get('produit'), entreprise=ent)
-        src     = get_object_or_404(Entrepot, pk=data.get('entrepot_source'), entreprise=ent)
-        dst     = get_object_or_404(Entrepot, pk=data.get('entrepot_destination'), entreprise=ent)
-        quantite = float(data.get('quantite', 0))
+        produit = get_object_or_404(Produit, pk=data.get('produit') or None, entreprise=ent)
+        src     = get_object_or_404(Entrepot, pk=data.get('entrepot_source') or None, entreprise=ent)
+        dst     = get_object_or_404(Entrepot, pk=data.get('entrepot_destination') or None, entreprise=ent)
+        try:
+            quantite = Decimal(data.get('quantite') or 0)
+        except ArithmeticError:
+            quantite = Decimal(0)
+        if quantite <= 0 or src == dst:
+            messages.error(request, "Indiquez une quantité positive et deux entrepôts différents.")
+            return redirect('gestionnaire:transfert')
 
         try:
             with transaction.atomic():
@@ -805,7 +855,7 @@ def transfert_view(request):
         'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True),
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
     }
-    return redirect('gestionnaire:mouvement_form')
+    return render(request, 'gestionnaire/transfert.html', context)
 
 
 # ── RAPPORTS ───────────────────────────────────────────────────────────────────
@@ -1103,12 +1153,27 @@ def mouvement_form(request):
         ent_src = None
         ent_dst = None
         if type_m == 'transfert':
-            ent_src = Entrepot.objects.filter(pk=data.get('entrepot'), entreprise=ent).first()
-            ent_dst = Entrepot.objects.filter(pk=data.get('entrepot_destination'), entreprise=ent).first()
-        elif type_m in ('sortie', 'ajustement', 'perte'):
-            ent_src = Entrepot.objects.filter(pk=data.get('entrepot'), entreprise=ent).first()
+            ent_src = Entrepot.objects.filter(pk=data.get('entrepot') or None, entreprise=ent).first()
+            ent_dst = Entrepot.objects.filter(pk=data.get('entrepot_destination') or None, entreprise=ent).first()
+        elif type_m == 'ajustement':
+            # Surplus = ajout dans l'entrepôt (destination), manque = retrait (source)
+            entrepot_ajuste = Entrepot.objects.filter(pk=data.get('entrepot') or None, entreprise=ent).first()
+            if data.get('sens_ajustement') == 'surplus':
+                ent_dst = entrepot_ajuste
+            else:
+                ent_src = entrepot_ajuste
+        elif type_m in ('sortie', 'perte'):
+            ent_src = Entrepot.objects.filter(pk=data.get('entrepot') or None, entreprise=ent).first()
         elif type_m == 'entree':
-            ent_dst = Entrepot.objects.filter(pk=data.get('entrepot'), entreprise=ent).first()
+            ent_dst = Entrepot.objects.filter(pk=data.get('entrepot') or None, entreprise=ent).first()
+
+        # Sans entrepôt valide, le mouvement serait enregistré sans aucun effet sur le stock
+        if type_m in ('entree', 'sortie', 'perte', 'ajustement') and not (ent_src or ent_dst):
+            messages.error(request, "Choisissez un entrepôt.")
+            return redirect('gestionnaire:mouvement_form')
+        if type_m == 'transfert' and (not ent_src or not ent_dst or ent_src == ent_dst):
+            messages.error(request, "Un transfert demande deux entrepôts différents (source et destination).")
+            return redirect('gestionnaire:mouvement_form')
 
         try:
             with transaction.atomic():

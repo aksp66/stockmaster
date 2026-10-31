@@ -6,7 +6,8 @@ from django.urls import reverse
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from apps.accounts.models import Utilisateur, RoleUtilisateur
-from apps.entreprises.models import Entreprise
+from apps.entreprises.models import Entreprise, ParametresEntreprise
+from decimal import Decimal, InvalidOperation
 from apps.accounts.decorators import role_required
 from .forms import EntrepotForm
 from django.db import models
@@ -123,15 +124,21 @@ def ajouter_utilisateur(request):
             'lien': lien,
         })
         plain_message = strip_tags(html_message)
-        send_mail(
-            subject=sujet,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
+        try:
+            send_mail(
+                subject=sujet,
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+        except Exception:
+            # Le compte existe déjà : on donne le lien à transmettre manuellement
+            messages.warning(request, f"Compte créé, mais l'email n'a pas pu être envoyé. "
+                                      f"Transmettez ce lien d'activation à {email} : {lien}")
+            return redirect('admin_entreprise:utilisateurs')
+
         messages.success(request, f"Invitation envoyée à {email}.")
         return redirect('admin_entreprise:utilisateurs')
     
@@ -150,30 +157,30 @@ def modifier_utilisateur(request, user_id):
         utilisateur.first_name = request.POST.get('first_name')
         utilisateur.last_name = request.POST.get('last_name')
         nouveau_role = request.POST.get('role')
+        if utilisateur == request.user and nouveau_role != ancien_role:
+            messages.error(request, "Vous ne pouvez pas modifier votre propre rôle.")
+            nouveau_role = ancien_role
         if nouveau_role in request.user.entreprise.get_roles_disponibles():
             utilisateur.role = nouveau_role
         utilisateur.save()
         messages.success(request, f"Utilisateur {utilisateur.email} modifié.")
         
-        # Si l'utilisateur modifié est celui qui est connecté, on l'informe que son rôle a changé
-        if request.user == utilisateur:
-            messages.info(request, f"Votre rôle a été modifié : {dict(RoleUtilisateur.choices).get(ancien_role)} → {dict(RoleUtilisateur.choices).get(nouveau_role)}. Déconnectez-vous et reconnectez-vous pour voir les changements complets.")
-        else:
-            if request.user != utilisateur:
-                html_message = render_to_string('emails/role_changed.html', {
-                    'first_name': utilisateur.first_name,
-                    'nouveau_role': dict(RoleUtilisateur.choices).get(nouveau_role),
-                    'entreprise': utilisateur.entreprise.nom,
-                })
-                plain_message = strip_tags(html_message)
-                send_mail(
-                    subject="Changement de rôle sur StockMaster",
-                    message=plain_message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[utilisateur.email],
-                    html_message=html_message,
-                    fail_silently=True,
-                )
+        # Prévenir l'utilisateur par email si son rôle a changé
+        if request.user != utilisateur and nouveau_role != ancien_role:
+            html_message = render_to_string('emails/role_changed.html', {
+                'first_name': utilisateur.first_name,
+                'nouveau_role': dict(RoleUtilisateur.choices).get(nouveau_role),
+                'entreprise': utilisateur.entreprise.nom,
+            })
+            plain_message = strip_tags(html_message)
+            send_mail(
+                subject="Changement de rôle sur StockMaster",
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[utilisateur.email],
+                html_message=html_message,
+                fail_silently=True,
+            )
         
         return redirect('admin_entreprise:utilisateurs')
     else:
@@ -188,6 +195,9 @@ def modifier_utilisateur(request, user_id):
 @role_required('admin_ent', 'super_admin')
 def supprimer_utilisateur(request, user_id):
     user = get_object_or_404(Utilisateur, id=user_id, entreprise=request.user.entreprise)
+    if user == request.user:
+        messages.error(request, "Vous ne pouvez pas supprimer votre propre compte.")
+        return redirect('admin_entreprise:utilisateurs')
     if request.method == 'POST':
         user.delete()
         messages.success(request, f"L'utilisateur {user.email} a été supprimé.")
@@ -199,6 +209,11 @@ def supprimer_utilisateur(request, user_id):
 @role_required('super_admin', 'admin_ent')
 def desactiver_utilisateur(request, user_id):
     utilisateur = get_object_or_404(Utilisateur, id=user_id, entreprise=request.user.entreprise)
+    if request.method != 'POST':
+        return redirect('admin_entreprise:utilisateurs')
+    if utilisateur == request.user:
+        messages.error(request, "Vous ne pouvez pas désactiver votre propre compte.")
+        return redirect('admin_entreprise:utilisateurs')
     utilisateur.is_active = not utilisateur.is_active
     utilisateur.est_actif = utilisateur.is_active
     utilisateur.save()
@@ -210,11 +225,19 @@ def desactiver_utilisateur(request, user_id):
 def modifier_entreprise(request):
     entreprise = request.user.entreprise
     if request.method == 'POST':
-        entreprise.nom = request.POST.get('nom')
-        entreprise.pays = request.POST.get('pays')
-        entreprise.ville = request.POST.get('ville')
-        entreprise.taille = request.POST.get('taille')
-        entreprise.nb_entrepots = request.POST.get('nb_entrepots')
+        nom = request.POST.get('nom', '').strip()
+        try:
+            nb_entrepots = int(request.POST.get('nb_entrepots') or 1)
+        except ValueError:
+            nb_entrepots = -1
+        if not nom or nb_entrepots < 0:
+            messages.error(request, "Le nom est obligatoire et le nombre d'entrepôts doit être un entier positif.")
+            return redirect('admin_entreprise:entreprise_edit')
+        entreprise.nom = nom
+        entreprise.pays = request.POST.get('pays', '').strip()
+        entreprise.ville = request.POST.get('ville', '').strip()
+        entreprise.taille = request.POST.get('taille', '').strip()
+        entreprise.nb_entrepots = nb_entrepots
         entreprise.save()
         messages.success(request, "Informations mises à jour.")
         return redirect('admin_entreprise:entreprise_edit')
@@ -223,7 +246,37 @@ def modifier_entreprise(request):
 @login_required
 @role_required('super_admin', 'admin_ent')
 def parametres(request):
-    return render(request, 'admin_entreprise/parametres.html')
+    params = ParametresEntreprise.pour(request.user.entreprise)
+    options = [
+        ("Alertes de stock par email (rupture, seuil bas, expiration)", 'alertes_email'),
+        ("Rapport hebdomadaire (chaque lundi)", 'rapport_hebdo'),
+        ("Suggestions d'achat IA par email (chaque matin)", 'ia_email'),
+    ]
+    if request.method == 'POST':
+        section = request.POST.get('section')
+        if section == 'notifications':
+            for _, champ in options:
+                setattr(params, champ, request.POST.get(champ) == 'on')
+            params.save()
+            messages.success(request, "Préférences de notification enregistrées.")
+        elif section == 'seuils':
+            try:
+                seuil = Decimal(request.POST.get('seuil_defaut', ''))
+                jours = int(request.POST.get('jours_expiration', ''))
+            except (InvalidOperation, ValueError):
+                seuil = jours = None
+            if seuil is None or seuil < 0 or not 1 <= jours <= 365:
+                messages.error(request, "Seuil (≥ 0) et délai d'expiration (1 à 365 jours) invalides.")
+            else:
+                params.seuil_alerte_defaut, params.jours_alerte_expiration = seuil, jours
+                params.save()
+                messages.success(request, "Seuils par défaut enregistrés.")
+        return redirect('admin_entreprise:parametres')
+    return render(request, 'admin_entreprise/parametres.html', {
+        'notif_options': [(label, champ, getattr(params, champ)) for label, champ in options],
+        'seuil_defaut': params.seuil_alerte_defaut,
+        'jours_expiration': params.jours_alerte_expiration,
+    })
 
 @role_required('admin_ent', 'super_admin')
 def entrepot_list(request):
@@ -261,8 +314,15 @@ def entrepot_edit(request, pk):
 def entrepot_delete(request, pk):
     entrepot = get_object_or_404(Entrepot, pk=pk, entreprise=request.user.entreprise)
     if request.method == 'POST':
-        entrepot.delete()
-        messages.success(request, "Entrepôt supprimé.")
+        a_historique = (entrepot.mouvements_entrants.exists() or entrepot.mouvements_sortants.exists()
+                        or entrepot.stocks.filter(quantite__gt=0).exists())
+        if a_historique:
+            entrepot.est_actif = False
+            entrepot.save(update_fields=['est_actif', 'updated_at'])
+            messages.warning(request, "Cet entrepôt a un historique de stock : il a été désactivé au lieu d'être supprimé.")
+        else:
+            entrepot.delete()
+            messages.success(request, "Entrepôt supprimé.")
         return redirect('admin_entreprise:entrepot_list')
     return render(request, 'admin_entreprise/entrepot_confirm_delete.html', {'entrepot': entrepot})
 
@@ -309,6 +369,8 @@ from apps.ia.tasks import analyser_entreprise_immediate
 @role_required('admin_ent', 'super_admin')
 def ia_lancer(request):
     entreprise = request.user.entreprise
+    if request.method != 'POST':
+        return redirect('admin_entreprise:ia_dashboard')
     try:
         # Vérifier que Celery peut se connecter au broker
         current_app.control.ping(timeout=1.0)
@@ -381,7 +443,7 @@ def categories_view(request):
         if nom:
             categorie = Categorie(nom=nom, entreprise=entreprise)
             if parent_id:
-                categorie.parent_id = parent_id
+                categorie.parent = categories.filter(pk=parent_id).first()
             categorie.save()
             messages.success(request, "Catégorie ajoutée.")
             return redirect('admin_entreprise:categories')

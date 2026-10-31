@@ -1,4 +1,5 @@
 {% extends 'responsable_achat/base_achat.html' %}
+{% load l10n %}
 {% block title %}Réception · {{ bc.numero }}{% endblock %}
 {% block page_title %}Réceptionner la livraison{% endblock %}
 {% block page_sub %}{{ bc.numero }} · {{ bc.fournisseur.nom }}{% endblock %}
@@ -59,7 +60,7 @@
                      name="recu_{{ l.pk }}"
                      class="fin" min="0"
                      max="{{ l.quantite_restante }}"
-                     value="{{ l.quantite_restante }}"
+                     value="{{ l.quantite_restante|unlocalize }}"
                      style="text-align:center;font-size:16px;font-weight:800;padding:7px;">
               {% else %}
               <input type="number" class="fin" value="0" disabled style="background:#f9fafb;text-align:center;">

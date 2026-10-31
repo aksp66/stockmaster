@@ -1,4 +1,5 @@
 {% extends 'responsable_achat/base_achat.html' %}
+{% load l10n %}
 {% block title %}{% if bc %}Modifier BC {{ bc.numero }}{% else %}Nouveau bon de commande{% endif %}{% endblock %}
 {% block page_title %}{% if bc %}Modifier le bon de commande{% else %}Nouveau bon de commande{% endif %}{% endblock %}
 {% block page_sub %}Achats · {{ user.entreprise.nom }}{% endblock %}
@@ -89,13 +90,13 @@
                 <select name="lignes[{{ forloop.counter0 }}][produit]" class="fin sel-produit" style="font-size:13px;padding:7px 10px;" onchange="majLigne(this)" required>
                   <option value="">— Sélectionner —</option>
                   {% for p in produits %}
-                  <option value="{{ p.id }}" data-prix="{{ p.prix_unitaire }}" {% if l.produit_id == p.id %}selected{% endif %}>{{ p.nom }} ({{ p.sku }})</option>
+                  <option value="{{ p.id }}" data-prix="{{ p.prix_unitaire|unlocalize }}" {% if l.produit_id == p.id %}selected{% endif %}>{{ p.nom }} ({{ p.sku }})</option>
                   {% endfor %}
                 </select>
               </td>
-              <td><input type="number" name="lignes[{{ forloop.counter0 }}][quantite]" class="fin inp-qte" value="{{ l.quantite_commandee }}" min="1" style="text-align:center;font-size:14px;font-weight:700;width:90px;" oninput="calcTotal(this)" required></td>
-              <td><input type="number" name="lignes[{{ forloop.counter0 }}][prix_unitaire]" class="fin inp-prix" value="{{ l.prix_unitaire_ht }}" step="0.01" min="0" style="width:110px;" oninput="calcTotal(this)" required></td>
-              <td><input type="number" name="lignes[{{ forloop.counter0 }}][remise]" class="fin inp-remise" value="{{ l.remise|default:0 }}" min="0" max="100" step="0.1" style="width:80px;" oninput="calcTotal(this)"></td>
+              <td><input type="number" name="lignes[{{ forloop.counter0 }}][quantite]" class="fin inp-qte" value="{{ l.quantite_commandee|unlocalize }}" min="1" style="text-align:center;font-size:14px;font-weight:700;width:90px;" oninput="calcTotal(this)" required></td>
+              <td><input type="number" name="lignes[{{ forloop.counter0 }}][prix_unitaire]" class="fin inp-prix" value="{{ l.prix_unitaire_ht|unlocalize }}" step="0.01" min="0" style="width:110px;" oninput="calcTotal(this)" required></td>
+              <td><input type="number" name="lignes[{{ forloop.counter0 }}][remise]" class="fin inp-remise" value="{{ l.remise|default:0|unlocalize }}" min="0" max="100" step="0.1" style="width:80px;" oninput="calcTotal(this)"></td>
               <td><span class="mono total-ht" style="font-weight:800;font-size:14px;color:var(--or);">{{ l.montant_ht|floatformat:2 }} FCFA</span></td>
               <td><button type="button" onclick="this.closest('tr').remove(); majTotalGlobal();" class="btn b-re b-sm"><i class="fas fa-trash"></i></button></td>
             </tr>
@@ -153,7 +154,7 @@
       <select name="lignes[IDX][produit]" class="fin sel-produit" style="font-size:13px;padding:7px 10px;" onchange="majLigne(this)" required>
         <option value="">— Sélectionner un produit —</option>
         {% for p in produits %}
-        <option value="{{ p.id }}" data-prix="{{ p.prix_unitaire }}">{{ p.nom }} ({{ p.sku }})</option>
+        <option value="{{ p.id }}" data-prix="{{ p.prix_unitaire|unlocalize }}">{{ p.nom }} ({{ p.sku }})</option>
         {% endfor %}
       </select>
     </td>

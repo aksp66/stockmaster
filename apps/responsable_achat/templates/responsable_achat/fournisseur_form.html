@@ -1,4 +1,5 @@
 {% extends 'responsable_achat/base_achat.html' %}
+{% load l10n %}
 {% block title %}{% if fournisseur %}Modifier {{ fournisseur.nom }}{% else %}Nouveau fournisseur{% endif %}{% endblock %}
 {% block page_title %}{% if fournisseur %}Modifier le fournisseur{% else %}Nouveau fournisseur{% endif %}{% endblock %}
 {% block page_sub %}Fournisseurs · {{ user.entreprise.nom }}{% endblock %}
@@ -89,15 +90,15 @@
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Délai de livraison (jours)</label>
-            <input type="number" name="delai_livraison" value="{{ fournisseur.delai_moyen_jours|default:'7' }}" class="fin" min="0">
+            <input type="number" name="delai_livraison" value="{{ fournisseur.delai_moyen_jours|default:'7'|unlocalize }}" class="fin" min="0">
           </div>
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Délai de paiement (jours)</label>
-            <input type="number" name="delai_paiement" value="{{ fournisseur.delai_paiement|default:'30' }}" class="fin" min="0">
+            <input type="number" name="delai_paiement" value="{{ fournisseur.delai_paiement|default:'30'|unlocalize }}" class="fin" min="0">
           </div>
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Remise habituelle (%)</label>
-            <input type="number" name="remise" value="{{ fournisseur.remise|default:'0' }}" class="fin" min="0" max="100" step="0.1">
+            <input type="number" name="remise" value="{{ fournisseur.remise|default:'0'|unlocalize }}" class="fin" min="0" max="100" step="0.1">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">

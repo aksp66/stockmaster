@@ -200,15 +200,18 @@
             >
               <i class="fas fa-pen"></i>
             </a>
-            <a
-              href="{% url 'admin_entreprise:desactiver_utilisateur' u.id %}"
-              class="btn {% if u.est_actif %}btn-danger{% else %}btn-success{% endif %} btn-sm"
-              title="{% if u.est_actif %}Désactiver{% else %}Activer{% endif %}"
-            >
-              <i
-                class="fas fa-{% if u.est_actif %}ban{% else %}check{% endif %}"
-              ></i>
-            </a>
+            <form method="post" action="{% url 'admin_entreprise:desactiver_utilisateur' u.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="btn {% if u.est_actif %}btn-danger{% else %}btn-success{% endif %} btn-sm"
+                title="{% if u.est_actif %}Désactiver{% else %}Activer{% endif %}"
+              >
+                <i
+                  class="fas fa-{% if u.est_actif %}ban{% else %}check{% endif %}"
+                ></i>
+              </button>
+            </form>
             <form
               method="post"
               action="{% url 'admin_entreprise:supprimer_utilisateur' u.id %}"

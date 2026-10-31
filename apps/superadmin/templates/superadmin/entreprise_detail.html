@@ -31,13 +31,13 @@
       <i class="fas fa-arrow-left"></i> Retour
     </a>
     {% if entreprise.est_active %}
-    <a href="{% url 'superadmin:desactiver_entreprise' entreprise.id %}" class="btn btn-danger">
+    <form method="post" action="{% url 'superadmin:desactiver_entreprise' entreprise.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger">
       <i class="fas fa-ban"></i> Désactiver
-    </a>
+    </button></form>
     {% else %}
-    <a href="{% url 'superadmin:activer_entreprise' entreprise.id %}" class="btn btn-success">
+    <form method="post" action="{% url 'superadmin:activer_entreprise' entreprise.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-success">
       <i class="fas fa-check"></i> Activer
-    </a>
+    </button></form>
     {% endif %}
     <button onclick="document.getElementById('deleteModal').classList.add('open')" class="btn btn-danger">
       <i class="fas fa-trash-can"></i> Supprimer
@@ -168,13 +168,13 @@
             <i class="fas fa-user-pen"></i> Changer rôle
           </button>
           {% if u.est_actif %}
-          <a href="{% url 'superadmin:desactiver_utilisateur' u.id %}" class="btn btn-danger btn-sm">
+          <form method="post" action="{% url 'superadmin:desactiver_utilisateur' u.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm">
             <i class="fas fa-ban"></i>
-          </a>
+          </button></form>
           {% else %}
-          <a href="{% url 'superadmin:activer_utilisateur' u.id %}" class="btn btn-success btn-sm">
+          <form method="post" action="{% url 'superadmin:activer_utilisateur' u.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-success btn-sm">
             <i class="fas fa-check"></i>
-          </a>
+          </button></form>
           {% endif %}
         </td>
       </tr>

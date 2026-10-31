@@ -28,8 +28,25 @@ app.conf.beat_schedule = {
         "options":  {"expires": 3600},
     },
 
+    # ── Notifications (selon les Paramètres de chaque entreprise) ──────────
+    "verifier-expirations": {
+        "task":     "apps.admin_entreprise.tasks.verifier_expirations",
+        "schedule": crontab(hour=6, minute=0),   # Chaque matin à 6h00
+        "options":  {"expires": 3600},
+    },
+    "envoyer-suggestions-ia": {
+        "task":     "apps.admin_entreprise.tasks.envoyer_suggestions_ia",
+        "schedule": crontab(hour=6, minute=30),  # Après les prédictions de la nuit
+        "options":  {"expires": 3600},
+    },
+    "envoyer-rapports-hebdo": {
+        "task":     "apps.admin_entreprise.tasks.envoyer_rapports_hebdo",
+        "schedule": crontab(hour=7, minute=0, day_of_week="1"),  # Lundi 7h00
+        "options":  {"expires": 7200},
+    },
+
     # Tâches prévues mais pas encore écrites (voir TASKS.md) : vérification périodique
-    # des seuils d'alerte, statistiques fournisseurs, notification des stocks critiques.
+    # des seuils d'alerte, statistiques fournisseurs.
 }
 
 # Fuseau horaire : CELERY_TIMEZONE dans config/settings/base.py

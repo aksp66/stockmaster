@@ -273,6 +273,23 @@
           </div>
         </div>
 
+        {# Sens de l'ajustement (ajustement uniquement) #}
+        <div id="ajustement-wrap" style="display: none; margin-top: 14px">
+          <div class="fi" style="margin-bottom: 0">
+            <label class="fl">Sens de l'ajustement <span style="color: var(--red)">*</span></label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+              <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13.5px;">
+                <input type="radio" name="sens_ajustement" value="surplus" style="accent-color:var(--green);">
+                <span><strong style="color:var(--green);">+ Surplus</strong> — stock réel supérieur</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13.5px;">
+                <input type="radio" name="sens_ajustement" value="manque" checked style="accent-color:var(--red);">
+                <span><strong style="color:var(--red);">− Manque</strong> — stock réel inférieur</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         {# Entrepôt destination (transfert uniquement) #}
         <div id="transfert-wrap" style="display: none; margin-top: 14px">
           <div class="fi" style="margin-bottom: 0">
@@ -477,6 +494,8 @@
         : "none";
       document.getElementById("prix-wrap").style.display =
         radio.value === "entree" ? "block" : "none";
+      document.getElementById("ajustement-wrap").style.display =
+        radio.value === "ajustement" ? "block" : "none";
       document.getElementById("entrepot-label").innerHTML = isTransfert
         ? "Entrepôt source <span style='color:var(--red);'>*</span>"
         : "Entrepôt <span style='color:var(--red);'>*</span>";

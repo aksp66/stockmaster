@@ -1,4 +1,5 @@
 {% extends 'gestionnaire/base_gestionnaire.html' %}
+{% load l10n %}
 {% block title %}Session · {{ session.entrepot.nom }}{% endblock %}
 {% block page_title %}Inventaire en cours{% endblock %}
 {% block page_sub %}{{ session.entrepot.nom }} · {{ user.entreprise.nom }}{% endblock %}
@@ -110,10 +111,10 @@
             {% if session.statut == 'en_cours' %}
             <input type="number"
                    name="ligne_{{ ligne.pk }}"
-                   value="{{ ligne.quantite_comptee|default:'' }}"
+                   value="{{ ligne.quantite_comptee|default:''|unlocalize }}"
                    class="fin qte-input" min="0" step="1"
                    style="text-align:center;font-size:16px;font-weight:800;padding:7px;width:100%;"
-                   data-theorique="{{ ligne.quantite_theorique|floatformat:0 }}"
+                   data-theorique="{{ ligne.quantite_theorique|unlocalize }}"
                    data-pk="{{ ligne.pk }}"
                    placeholder="—"
                    onchange="calcEcart(this)">

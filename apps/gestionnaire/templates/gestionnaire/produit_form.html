@@ -1,4 +1,5 @@
 {% extends 'gestionnaire/base_gestionnaire.html' %}
+{% load l10n %}
 {% block title %}{% if produit %}Modifier {{ produit.nom }}{% else %}Nouveau produit{% endif %}{% endblock %}
 {% block page_title %}{% if produit %}Modifier le produit{% else %}Nouveau produit{% endif %}{% endblock %}
 {% block page_sub %}{% if produit %}{{ produit.nom }} · {{ user.entreprise.nom }}{% else %}Catalogue · {{ user.entreprise.nom }}{% endif %}{% endblock %}
@@ -88,16 +89,16 @@
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
             <div class="fi" style="margin-bottom:0;">
               <label class="fl">Seuil d'alerte <span style="color:var(--red);">*</span></label>
-              <input type="number" name="seuil_alerte" value="{{ produit.seuil_alerte|default:'5' }}" class="fin" min="0" required>
+              <input type="number" name="seuil_alerte" value="{% if produit %}{{ produit.seuil_alerte|unlocalize }}{% else %}{{ seuil_defaut|unlocalize }}{% endif %}" step="0.01" class="fin" min="0" required>
               <div class="fh">Alerte déclenchée en dessous de cette valeur</div>
             </div>
             <div class="fi" style="margin-bottom:0;">
               <label class="fl">Prix unitaire (FCFA) <span style="color:var(--red);">*</span></label>
-              <input type="number" name="prix_unitaire" value="{{ produit.prix_unitaire|default:'0' }}" class="fin" step="0.01" min="0" required>
+              <input type="number" name="prix_unitaire" value="{{ produit.prix_unitaire|default:'0'|unlocalize }}" class="fin" step="0.01" min="0" required>
             </div>
             <div class="fi" style="margin-bottom:0;">
               <label class="fl">Prix de vente (FCFA)</label>
-              <input type="number" name="prix_vente" value="{{ produit.prix_vente|default:'' }}" class="fin" step="0.01" min="0" placeholder="Optionnel">
+              <input type="number" name="prix_vente" value="{{ produit.prix_vente|default:''|unlocalize }}" class="fin" step="0.01" min="0" placeholder="Optionnel">
             </div>
           </div>
           {% if not produit %}
@@ -148,11 +149,11 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
             <div class="fi" style="margin-bottom:0;">
               <label class="fl">Délai de réapprovisionnement (jours)</label>
-              <input type="number" name="delai_reappro" value="{{ produit.delai_reappro|default:'7' }}" class="fin" min="0">
+              <input type="number" name="delai_reappro" value="{{ produit.delai_reappro|default:'7'|unlocalize }}" class="fin" min="0">
             </div>
             <div class="fi" style="margin-bottom:0;">
               <label class="fl">Quantité minimale de commande</label>
-              <input type="number" name="qte_min_commande" value="{{ produit.qte_min_commande|default:'1' }}" class="fin" min="1">
+              <input type="number" name="qte_min_commande" value="{{ produit.qte_min_commande|default:'1'|unlocalize }}" class="fin" min="1">
             </div>
           </div>
         </div>

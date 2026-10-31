@@ -104,15 +104,15 @@
               <i class="fas fa-eye"></i>
             </a>
             {% if not e.est_active %}
-            <a href="{% url 'superadmin:activer_entreprise' e.id %}"
+            <form method="post" action="{% url 'superadmin:activer_entreprise' e.id %}" style="display:inline;">{% csrf_token %}<button type="submit"
                class="btn btn-success btn-sm" title="Activer">
               <i class="fas fa-check"></i>
-            </a>
+            </button></form>
             {% else %}
-            <a href="{% url 'superadmin:desactiver_entreprise' e.id %}"
+            <form method="post" action="{% url 'superadmin:desactiver_entreprise' e.id %}" style="display:inline;">{% csrf_token %}<button type="submit"
                class="btn btn-danger btn-sm" title="Désactiver">
               <i class="fas fa-ban"></i>
-            </a>
+            </button></form>
             {% endif %}
             <button onclick="openDeleteModal('{{ e.id }}', '{{ e.nom }}')"
                     class="btn btn-danger btn-sm" title="Supprimer (soft)">

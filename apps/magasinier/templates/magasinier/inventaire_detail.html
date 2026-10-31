@@ -1,4 +1,5 @@
 {% extends 'magasinier/base_magasinier.html' %}
+{% load l10n %}
 {% block title %}Inventaire · {{ session.entrepot.nom }}{% endblock %}
 {% block n_inv %}active{% endblock %}
 
@@ -72,8 +73,8 @@
         <button type="button" onclick="chgQte(this,-1)" style="width:36px;height:36px;border:1.5px solid var(--border);border-radius:9px;background:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-m);">−</button>
         <input type="number" name="qte_{{ ligne.pk }}"
                class="fin mono qte-inp" min="0"
-               value="{{ ligne.quantite_comptee|default:'' }}"
-               data-theorique="{{ ligne.quantite_theorique }}"
+               value="{{ ligne.quantite_comptee|default:''|unlocalize }}"
+               data-theorique="{{ ligne.quantite_theorique|unlocalize }}"
                data-pk="{{ ligne.pk }}"
                placeholder="—"
                oninput="majEcart(this)"
@@ -123,14 +124,14 @@
 function chgQte(btn, delta) {
   const row = btn.closest('.inv-ligne');
   const inp = row.querySelector('.qte-inp');
-  const cur = inp.value === '' ? 0 : parseInt(inp.value);
+  const cur = inp.value === '' ? 0 : parseFloat(inp.value);
   inp.value = Math.max(0, cur + delta);
   majEcart(inp);
 }
 
 function majEcart(inp) {
-  const th = parseInt(inp.dataset.theorique) || 0;
-  const v = inp.value === '' ? null : parseInt(inp.value);
+  const th = parseFloat(inp.dataset.theorique) || 0;
+  const v = inp.value === '' ? null : parseFloat(inp.value);
   const el = document.getElementById('ecart-' + inp.dataset.pk);
   const row = inp.closest('.inv-ligne');
   if (v === null) { el.innerHTML = '<span style="font-size:12px;color:var(--text-m);">—</span>'; row.dataset.statut = 'restant'; return; }

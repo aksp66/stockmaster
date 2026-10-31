@@ -151,6 +151,7 @@ puis faire pointer `/etc/caddy/Caddyfile` vers celui du projet (`import /srv/sto
 - [ ] L'installation de la PWA est proposée sur mobile (nécessite HTTPS).
 - [ ] Lancement manuel d'une analyse IA (espace responsable achat → Prédictions) : la fenêtre ou le journal Celery montre la tâche.
 - [ ] Un email (invitation d'utilisateur) arrive bien.
+- [ ] Celery Beat tourne : il déclenche chaque jour l'analyse IA (2 h), les alertes d'expiration (6 h) et les suggestions d'achat par email (6 h 30), et le rapport hebdomadaire le lundi (7 h). Ces emails ne partent que si l'entreprise les a activés dans **Admin entreprise → Paramètres**.
 - [ ] Sauvegarde PostgreSQL planifiée (`pg_dump -Fc stockmaster > stockmaster_AAAAMMJJ.dump`, tâche planifiée Windows ou cron), ainsi que du dossier `media\`.
 
 ## Points de sécurité déjà en place

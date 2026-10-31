@@ -270,8 +270,8 @@ def boncommande_create(request):
     ent = _entreprise(request)
     if request.method == 'POST':
         d = request.POST
-        four = get_object_or_404(Fournisseur, pk=d.get('fournisseur'), entreprise=ent)
-        entrepot_dst = Entrepot.objects.filter(pk=d.get('entrepot_destination'), entreprise=ent).first()
+        four = get_object_or_404(Fournisseur, pk=d.get('fournisseur') or None, entreprise=ent)
+        entrepot_dst = Entrepot.objects.filter(pk=d.get('entrepot_destination') or None, entreprise=ent).first()
         bc = BonCommande.objects.create(
             entreprise=ent,
             fournisseur=four,
@@ -302,10 +302,10 @@ def boncommande_edit(request, pk):
         return redirect('responsable_achat:boncommande_detail', pk=pk)
     if request.method == 'POST':
         d = request.POST
-        bc.fournisseur = get_object_or_404(Fournisseur, pk=d.get('fournisseur'), entreprise=ent)
+        bc.fournisseur = get_object_or_404(Fournisseur, pk=d.get('fournisseur') or None, entreprise=ent)
         bc.date_livraison_prevue = d.get('date_livraison_prevue') or None
         bc.note = d.get('commentaire', d.get('note', ''))
-        bc.entrepot_destination = Entrepot.objects.filter(pk=d.get('entrepot_destination'), entreprise=ent).first()
+        bc.entrepot_destination = Entrepot.objects.filter(pk=d.get('entrepot_destination') or None, entreprise=ent).first()
         with transaction.atomic():
             bc.save()
             # Supprimer les anciennes lignes et recréer
@@ -526,8 +526,13 @@ def settings_view(request):
             prefs.entrepot_defaut = Entrepot.objects.filter(pk=entrepot_id, entreprise=ent).first()
         else:
             prefs.entrepot_defaut = None
-        prefs.seuil_alerte_jours = int(request.POST.get('seuil_alerte_jours', 7))
-        prefs.budget_mensuel = request.POST.get('budget_mensuel') or None
+        try:
+            prefs.seuil_alerte_jours = max(1, min(int(request.POST.get('seuil_alerte_jours') or 7), 90))
+            budget = request.POST.get('budget_mensuel')
+            prefs.budget_mensuel = Decimal(budget) if budget else None
+        except (ValueError, InvalidOperation):
+            messages.error(request, "Délai d'alerte ou budget invalide.")
+            return redirect('responsable_achat:settings')
         prefs.save()
         messages.success(request, "Paramètres enregistrés.")
         return redirect('responsable_achat:settings')

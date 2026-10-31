@@ -115,10 +115,13 @@ def api_scan(request):
 
     elif request.method == 'POST':
         # Enregistrement du mouvement (votre code existant)
-        data = json.loads(request.body)
-        code = data.get('code', '').strip()
+        try:
+            data = json.loads(request.body)
+            quantite = float(data.get('quantite', 1))
+        except (ValueError, TypeError, AttributeError):
+            return JsonResponse({'success': False, 'error': 'Requête invalide'}, status=400)
+        code = str(data.get('code', '')).strip()
         action = data.get('action', '')  # 'entree' ou 'sortie'
-        quantite = float(data.get('quantite', 1))
         entrepot_id = data.get('entrepot_id')
         produit = Produit.objects.filter(
             Q(code_barres=code) | Q(sku=code), entreprise=_entreprise(request)

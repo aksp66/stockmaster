@@ -37,8 +37,12 @@ def inscription_wizard(request):
 
     # Gestion du paramètre GET step
     if request.GET.get('step'):
-        step = int(request.GET.get('step'))
-        request.session['inscription_step'] = step
+        # Retour à une étape précédente uniquement (jamais au-delà de celle atteinte)
+        try:
+            demande = int(request.GET.get('step'))
+        except ValueError:
+            demande = 1
+        request.session['inscription_step'] = max(1, min(demande, request.session.get('inscription_step', 1)))
         return redirect('accounts:inscription')
 
     step = request.session.get('inscription_step', 1)

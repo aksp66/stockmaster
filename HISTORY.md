@@ -84,3 +84,18 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 **Tailwind** : le script `cdn.tailwindcss.com` (outil de développement, dépendance externe) est remplacé dans les 11 templates par `static/css/output.css`, compilé avec Tailwind 3.4.17 (même famille que le CDN). Rendu vérifié identique au pixel près sur les pages publiques, et contrôle de couverture des classes. Le Service Worker de la PWA passe en `v1.1.0` et met le CSS en cache.
 
 **Tests** : 55 (contre 39), dont l'affichage de chaque page de chaque espace et les régressions ci-dessus.
+
+## 31/10/2026 (suite 2) — Paramètres d'entreprise, ajustements, formulaires secondaires
+
+- `46ccc6d` poussé sur GitHub (travail des deux étapes précédentes).
+- **Paramètres de l'admin entreprise** : la page n'enregistrait rien. Nouveau modèle `ParametresEntreprise`, et chaque réglage a maintenant un effet : seuil d'alerte proposé à la création d'un produit, email aux admins et gestionnaires à chaque nouvelle alerte, alertes « proche de l'expiration » (tâche quotidienne), rapport hebdomadaire et suggestions d'achat IA par email (tâches Celery Beat).
+- **Ajustement de stock** : le formulaire du gestionnaire propose « surplus / manque » (tout ajustement était auparavant un retrait). Un mouvement sans entrepôt valide est refusé (il était enregistré sans effet sur le stock).
+- **Formulaires secondaires soumis un par un** (38 nouveaux tests). Corrigé au passage :
+  - import CSV : séparateur et gestion des doublons ignorés (un CSV Excel à point-virgule créait un produit vide), colonnes catégorie / description / fournisseur ignorées, existants comptés comme importés, lignes invalides acceptées ;
+  - transfert : quantité négative acceptée (transfert inversé sans contrôle de stock), page dédiée jamais affichée ;
+  - champs numériques : Django affichait « 368,00 », valeur rejetée par le navigateur — **le prix disparaissait à chaque modification de produit** (19 champs corrigés) ;
+  - super admin : **changement de rôle en erreur 500** ; activation / désactivation d'entreprises et d'utilisateurs par simple lien (passées en POST) ;
+  - admin entreprise : un admin pouvait se supprimer, se désactiver ou changer son propre rôle ; suppression d'un entrepôt avec historique en erreur 500 (désormais désactivé) ; fiche entreprise en erreur 500 si le nombre d'entrepôts est vide ; échec d'envoi d'invitation en erreur 500 ;
+  - erreurs 500 sur champs vides ou invalides : sélection « — Sélectionner — » dans les formulaires de mouvement et de bon de commande, paramètres achats, API de scan, étapes de l'inscription (saut d'étape impossible).
+- **Tests** : 93.
+

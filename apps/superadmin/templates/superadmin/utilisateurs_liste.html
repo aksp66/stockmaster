@@ -131,13 +131,13 @@
             </button>
             {% endif %}
             {% if u.est_actif %}
-            <a href="{% url 'superadmin:desactiver_utilisateur' u.id %}" class="btn btn-danger btn-sm" title="Désactiver">
+            <form method="post" action="{% url 'superadmin:desactiver_utilisateur' u.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm" title="Désactiver">
               <i class="fas fa-ban"></i>
-            </a>
+            </button></form>
             {% else %}
-            <a href="{% url 'superadmin:activer_utilisateur' u.id %}" class="btn btn-success btn-sm" title="Activer">
+            <form method="post" action="{% url 'superadmin:activer_utilisateur' u.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-success btn-sm" title="Activer">
               <i class="fas fa-check"></i>
-            </a>
+            </button></form>
             {% endif %}
           </div>
         </td>

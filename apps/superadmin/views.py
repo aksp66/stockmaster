@@ -3,7 +3,8 @@ from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from apps.entreprises.models import Entreprise, TypeEntreprise
-from apps.accounts.models import Utilisateur
+from apps.accounts.models import Utilisateur, RoleUtilisateur
+from django.views.decorators.http import require_POST
 from apps.accounts.decorators import superadmin_required
 from .models import AuditLog
 
@@ -57,6 +58,7 @@ def liste_entreprises(request):
     return render(request, 'superadmin/entreprise_liste.html', context)
 
 @superadmin_required
+@require_POST
 def activer_entreprise(request, entreprise_id):
     entreprise = get_object_or_404(Entreprise, id=entreprise_id)
     entreprise.est_active = True
@@ -65,6 +67,7 @@ def activer_entreprise(request, entreprise_id):
     return redirect('superadmin:entreprises')
 
 @superadmin_required
+@require_POST
 def desactiver_entreprise(request, entreprise_id):
     entreprise = get_object_or_404(Entreprise, id=entreprise_id)
     entreprise.est_active = False
@@ -133,6 +136,7 @@ def liste_utilisateurs(request):
     return render(request, 'superadmin/utilisateurs_liste.html', context)
 
 @superadmin_required
+@require_POST
 def activer_utilisateur(request, user_id):
     user = get_object_or_404(Utilisateur, id=user_id)
     user.is_active = True
@@ -142,8 +146,12 @@ def activer_utilisateur(request, user_id):
     return redirect('superadmin:utilisateurs')
 
 @superadmin_required
+@require_POST
 def desactiver_utilisateur(request, user_id):
     user = get_object_or_404(Utilisateur, id=user_id)
+    if user == request.user:
+        messages.error(request, "Vous ne pouvez pas désactiver votre propre compte.")
+        return redirect('superadmin:utilisateurs')
     user.is_active = False
     user.est_actif = False
     user.save()
@@ -155,7 +163,7 @@ def changer_role_view(request, pk):
     user = get_object_or_404(Utilisateur, id=pk)
     if request.method == 'POST':
         new_role = request.POST.get('role')
-        if new_role in dict(Utilisateur.RoleUtilisateur.choices):
+        if new_role in dict(RoleUtilisateur.choices):
             user.role = new_role
             user.save()
             messages.success(request, f"Rôle de {user.get_full_name()} mis à jour : {user.get_role_display()}.")

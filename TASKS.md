@@ -44,6 +44,13 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [x] Tailwind compilé (`static/css/output.css`, v3.4.17) à la place du CDN, rendu vérifié identique
 - [x] 55 tests (dont affichage de chaque page de chaque espace)
 
+### Octobre 2026 (suite 2) — paramètres, ajustements, formulaires secondaires
+- [x] Paramètres de l'admin entreprise enregistrés (modèle `ParametresEntreprise`) et réellement utilisés : seuil par défaut des nouveaux produits, emails d'alerte, alertes d'expiration, rapport hebdomadaire, suggestions IA par email (tâches Celery Beat)
+- [x] Ajustement de stock : choix « surplus / manque » ; mouvement sans entrepôt refusé
+- [x] Tous les formulaires secondaires soumis et testés (catégories, emplacements, transferts, import CSV, inventaires, alertes, utilisateurs, invitations, entreprise, entrepôts, fournisseurs, paramètres achats, API de scan, super admin, inscription)
+- [x] Champs numériques des formulaires : plus de virgule décimale qui vidait les champs prix / quantités en modification
+- [x] 93 tests
+
 ---
 
 ## À faire
@@ -52,17 +59,17 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [ ] Sauvegardes automatiques PostgreSQL + dossier `media/` (voir la liste de vérification de [DEPLOIEMENT.md](DEPLOIEMENT.md)).
 - [ ] Premier déploiement réel avec Caddy, puis dérouler la liste de vérification de `DEPLOIEMENT.md`.
 - [ ] Valider les deux promesses restantes de la page d'accueil, qui ne sont pas des chiffres mesurés : « Support 7j/7 » et « Opérationnel en moins de 15 minutes ». Les garder seulement si elles sont vraies.
-- [ ] **Formulaires de soumission non vérifiés en conditions réelles** : le robot a contrôlé l'affichage de toutes les pages et la correspondance des champs ; les formulaires critiques sont couverts par des tests, mais pas tous (catégories, emplacements, transferts, entrepôts, invitations). Les soumettre une fois chacun avec la base de démonstration.
+- [ ] Configurer le SMTP en production (`EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD`) et vérifier la réception des emails d'alerte, du rapport hebdomadaire et des suggestions IA (ils dépendent aussi de Celery Beat).
 
 ### P2 — Fonctionnalités incomplètes
 - [ ] **Module `apps/ia/views.py` (routes `/ia/…`)** : code hérité, inutilisable en l'état (templates `ia/*.html` absents ; champs et modèles inexistants : `date_prediction`, `consommation_prevue`, `actif`, `MouvementStock`, `LigneBonCommande`). Les écrans IA réellement utilisés sont `admin_entreprise` → IA et `responsable_achat` → Prédictions / Suggestions. Décider : supprimer ces routes ou les réécrire. Les tâches Celery (`apps/ia/tasks.py`) ne sont pas concernées.
-- [ ] Tâches planifiées prévues mais jamais écrites (retirées de `config/celery.py`) : vérification des seuils d'alerte toutes les 4 h, statistiques fournisseurs hebdomadaires, email quotidien des stocks critiques.
+- [ ] Tâches planifiées prévues mais jamais écrites : vérification périodique des seuils d'alerte (aujourd'hui vérifiés à chaque mouvement saisi, pas après une réception de BC ou une validation d'inventaire), statistiques fournisseurs hebdomadaires.
+- [ ] Type de mouvement « Retour » : proposé dans le formulaire mais sans effet sur le stock (retour fournisseur = sortie ? retour client = entrée ?). Définir la règle ou retirer le type.
+- [ ] Suggestions d'achat : la quantité suggérée dépend seulement du seuil d'alerte (seuil × 2 − stock), pas de la consommation prévue ; un produit très consommé avec un seuil bas n'est pas suggéré.
 - [ ] Formulaire fournisseur : champs sans colonne en base (code, description longue, site web, ville, code postal, délai de paiement, remise, devise). Les ajouter au modèle `Fournisseur` (migration) ou les retirer du formulaire.
 - [ ] Remise par ligne de BC : appliquée au prix net à l'enregistrement mais non conservée. Ajouter un champ `remise` à `LigneCommande` si elle doit apparaître sur le PDF.
 - [ ] `boncommande_changer_statut` (`/commandes/<id>/statut/<statut>/`) change l'état sur une requête GET. Le passer en POST ou le supprimer (les nouvelles actions envoyer / clôturer / annuler le remplacent).
 - [ ] Création de BC depuis une suggestion IA (lien `?produit=…&qte=…` du tableau de bord) : le formulaire ne pré-remplit pas encore la ligne.
-- [ ] **Paramètres de l'admin entreprise** (`/admin-entreprise/parametres/`) : page purement visuelle, rien n'est enregistré (notifications, seuil d'alerte par défaut, délai d'expiration). Créer un modèle de réglages par entreprise.
-- [ ] **Ajustement depuis le formulaire de mouvement du gestionnaire** : toujours appliqué en retrait de stock (pas de choix « surplus / manque »). Ajouter le sens de l'ajustement au formulaire.
 - [ ] Options d'inventaire affichées mais non implémentées : « masquer le stock théorique aux compteurs » et « ajustement automatique ».
 - [ ] Bon de commande : « Envoyé le » toujours vide (pas de champ `date_envoi`). L'ajouter, et l'enregistrer lors de l'envoi.
 
