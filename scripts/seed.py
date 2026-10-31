@@ -17,6 +17,7 @@ django.setup()
 
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Sum
 from django.contrib.auth import get_user_model
 
 from apps.entreprises.models import Entreprise, TypeEntreprise
@@ -587,25 +588,48 @@ def creer_inventaires_et_scans(produits, users, entrepots):
 
 @transaction.atomic
 def creer_predictions_ia(produits):
-    print("\n🤖 Génération de prédictions IA...")
+    """
+    Prédictions au même format que la tâche IA réelle (apps/ia/tasks.py, predire_produit) :
+    une ligne par produit, date_cible = aujourd'hui + 30 j, quantite_prevue = consommation TOTALE
+    prévue sur 30 jours, bornes = min / max des prévisions journalières, confiance sur 100.
+    La « prévision » est ici la consommation moyenne des 90 derniers jours, légèrement bruitée.
+    """
+    print("\n🤖 Génération de prédictions IA (format de la tâche apps/ia/tasks.py)...")
+    horizon = 30
+    depuis = timezone.now() - timedelta(days=90)
+    types_sortie = [TypeMouvement.SORTIE, TypeMouvement.PERTE]  # comme la tâche IA
     nb = 0
-    for p in random.sample(produits, min(50, len(produits))):
-        for delta in [7, 30, 60]:
-            date_cible = DATE_FIN + timedelta(days=delta)
-            qte_actuelle = p.quantite_totale()
-            qte_prevue = max(Decimal(0), qte_actuelle * Decimal(random.uniform(0.7, 1.3)))
-            PredictionStock.objects.create(
-                produit=p,
-                date_cible=date_cible,
-                quantite_prevue=qte_prevue,
-                borne_inferieure=qte_prevue * Decimal(0.8),
-                borne_superieure=qte_prevue * Decimal(1.2),
-                confiance=round(random.uniform(0.65, 0.95), 2),
-                modele_utilise="prophet",
-                quantite_recommandee_commande=max(Decimal(0), (qte_prevue - qte_actuelle) * Decimal(1.2))
-            )
-            nb += 1
-    print(f"   ✅ {nb} prédictions générées")
+    for p in produits:
+        par_jour = (Mouvement.objects
+                    .filter(produit=p, type_mouvement__in=types_sortie, date_mouvement__gte=depuis)
+                    .values('date_mouvement__date').annotate(q=Sum('quantite')))
+        if par_jour.count() < 14:  # même seuil que la tâche : données insuffisantes
+            continue
+        moyenne = float(sum(r['q'] for r in par_jour)) / 90
+        journalier = [moyenne * random.uniform(0.75, 1.25) for _ in range(horizon)]
+        consommation_prevue = sum(journalier)
+        stock_actuel = float(p.quantite_totale())
+        stock_prevu_fin = max(0, stock_actuel - consommation_prevue)
+        seuil = float(p.seuil_alerte or 0)
+        recommandee = None
+        if stock_prevu_fin < seuil:
+            recommandee = max(0, round(seuil - stock_prevu_fin + seuil * 0.2, 0))
+        PredictionStock.objects.update_or_create(
+            produit=p,
+            date_cible=DATE_FIN + timedelta(days=horizon),
+            defaults={
+                "quantite_prevue": Decimal(str(round(consommation_prevue, 2))),
+                "borne_inferieure": Decimal(str(round(min(journalier) * 0.8, 2))),
+                "borne_superieure": Decimal(str(round(max(journalier) * 1.2, 2))),
+                "confiance": round(random.uniform(65, 95), 1),
+                "precision_mape": round(random.uniform(5, 30), 1),
+                "modele_utilise": random.choice(["prophet", "random_forest"]),
+                "quantite_recommandee_commande": Decimal(recommandee) if recommandee else None,
+            },
+        )
+        nb += 1
+    print(f"   ✅ {nb} prédictions générées (une par produit ayant assez d'historique)")
+
 
 @transaction.atomic
 def creer_auditlogs_notifications(users, entreprise):
@@ -684,7 +708,7 @@ def run():
   - Bons de commande : 200
   - Scans : 300
   - Inventaires : 3 sessions
-  - Prédictions IA : 150
+  - Prédictions IA : une par produit (format de la tâche IA)
   - Logs audit : 500
   - Notifications : ~20
   """)

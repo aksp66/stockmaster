@@ -17,12 +17,7 @@ from apps.accounts.decorators import role_required
 from apps.stock.models import Produit, Stock, Mouvement, Categorie, Entrepot
 from apps.core.models import AuditLog
 from apps.core.models import ExportLog  # centralisé
-
-try:
-    from responsable_achat.models import LigneCommande
-    HAS_ACHATS = True
-except ImportError:
-    HAS_ACHATS = False
+from .valorisation import FLUX, cump_permanent, prix_fifo, valoriser_produits
 
 try:
     from reportlab.pdfgen import canvas as rl_canvas
@@ -51,52 +46,24 @@ def _stocks_dict(entreprise):
     return {
         s['produit']: s['total']
         for s in Stock.objects.filter(
-            emplacement__entrepot__entreprise=entreprise
+            entrepot__entreprise=entreprise
         ).values('produit').annotate(total=Sum('quantite'))
     }
 
 
 def _cump(produit):
-    """
-    Coût Unitaire Moyen Pondéré calculé depuis les mouvements d'entrée
-    qui ont un prix_unitaire_snapshot renseigné.
-    """
-    agg = Mouvement.objects.filter(
-        produit=produit,
-        type_mouvement='entree',
-        prix_unitaire_snapshot__isnull=False,
-    ).aggregate(
-        total_qte=Sum('quantite'),
-        total_val=Sum(
-            ExpressionWrapper(
-                F('quantite') * F('prix_unitaire_snapshot'),
-                output_field=DecimalField()
-            )
-        ),
-    )
-    if agg['total_qte'] and agg['total_qte'] > 0:
-        return (agg['total_val'] or Decimal('0')) / agg['total_qte']
-    return produit.prix_unitaire or Decimal('0')
+    """CUMP permanent : rejeu chronologique des mouvements du produit (voir valorisation.py)."""
+    return cump_permanent(produit)
+
+
+def _cumps(produits):
+    """CUMP permanent de plusieurs produits en un seul rejeu (une requête au lieu d'une par produit)."""
+    return {pid: v['cump'] for pid, v in valoriser_produits(produits).items()}
 
 
 def _fifo(produit):
-    """
-    FIFO simplifié : prix du lot le plus ancien (premier mouvement d'entrée
-    avec prix, ou premier bon de commande reçu).
-    """
-    if HAS_ACHATS:
-        ligne = LigneCommande.objects.filter(
-            produit=produit,
-            bon_commande__statut__in=['recu', 'cloture'],
-        ).order_by('bon_commande__date_creation').first()
-        if ligne:
-            return ligne.prix_unitaire
-    entry = Mouvement.objects.filter(
-        produit=produit,
-        type_mouvement='entree',
-        prix_unitaire_snapshot__isnull=False,
-    ).order_by('date_mouvement').first()
-    return entry.prix_unitaire_snapshot if entry else (produit.prix_unitaire or Decimal('0'))
+    """Coût unitaire du stock restant en FIFO (valorisé aux prix des entrées les plus récentes)."""
+    return prix_fifo(produit)
 
 
 def _csv(filename, headers, rows):
@@ -164,11 +131,12 @@ def dashboard(request):
     valeur_fifo = Decimal('0')
     top_valeur = []
 
+    cumps = _cumps(produits)
     for p in produits:
         qte = stocks.get(p.id, 0)
         if qte <= 0:
             continue
-        vc = qte * _cump(p)
+        vc = qte * cumps[p.pk]
         vf = qte * _fifo(p)
         valeur_cump += vc
         valeur_fifo += vf
@@ -235,11 +203,12 @@ def valorisation(request):
         produits_qs = produits_qs.filter(categorie_id=categorie_id)
 
     valorisations = []
+    cumps = _cumps(produits_qs) if methode == 'cump' else {}
     for p in produits_qs:
         qte = stocks.get(p.id, 0)
         if qte <= 0:
             continue
-        prix = _cump(p) if methode == 'cump' else _fifo(p)
+        prix = cumps[p.pk] if methode == 'cump' else _fifo(p)
         valeur = qte * prix
         valorisations.append({
             'nom': p.nom,
@@ -275,22 +244,22 @@ def valorisation(request):
         return _csv(
             f'valorisation_{methode}_{date.today()}.csv',
             ['Produit', 'SKU', 'Catégorie', 'Quantité',
-             f'PU {methode.upper()} (€)', 'Valeur (€)', 'N° Compte', '% Total'],
+             f'PU {methode.upper()} (FCFA)', 'Valeur (FCFA)', 'N° Compte', '% Total'],
             rows,
         )
     if export == 'pdf':
         rows = [
             (
                 v['nom'][:20], v['quantite_totale'],
-                f"{float(v['prix_unitaire_calcule']):.2f}€",
-                f"{float(v['valeur_totale']):.2f}€",
+                f"{float(v['prix_unitaire_calcule']):.2f} FCFA",
+                f"{float(v['valeur_totale']):.2f} FCFA",
                 '370000',
             )
             for v in valorisations
         ]
         return _pdf(
             f'Valorisation {methode.upper()} — {date.today()}',
-            ['Produit', 'Qté', f'PU {methode.upper()}', 'Valeur (€)', 'N° Compte'],
+            ['Produit', 'Qté', f'PU {methode.upper()}', 'Valeur (FCFA)', 'N° Compte'],
             rows,
         )
 
@@ -366,7 +335,7 @@ def prix(request):
         ]
         return _csv(
             f'historique_prix_{debut}_{fin}.csv',
-            ['Produit', 'SKU', 'Date', 'Prix achat (€)',
+            ['Produit', 'SKU', 'Date', 'Prix achat (FCFA)',
              'Quantité', 'Référence BC', 'Variation'],
             rows,
         )
@@ -401,12 +370,13 @@ def marges(request):
         produits_qs = produits_qs.filter(categorie_id=categorie_id)
 
     marges_data = []
+    cumps = _cumps(produits_qs)
     for p in produits_qs:
         qte_vendue = (
             Mouvement.objects.filter(produit=p, type_mouvement='sortie')
             .aggregate(total=Sum('quantite'))['total'] or 0
         )
-        prix_achat = _cump(p)
+        prix_achat = cumps[p.pk]
         prix_vente = p.prix_vente or Decimal('0')
         marge_u = prix_vente - prix_achat
         marge_pct = (marge_u / prix_vente * 100) if prix_vente else Decimal('0')
@@ -451,8 +421,8 @@ def marges(request):
         ]
         return _csv(
             f'marges_{date.today()}.csv',
-            ['Produit', 'SKU', 'PU achat CUMP (€)', 'PU vente (€)',
-             'Marge U. (€)', 'Marge %', 'Qté vendue', 'Marge totale (€)'],
+            ['Produit', 'SKU', 'PU achat CUMP (FCFA)', 'PU vente (FCFA)',
+             'Marge U. (FCFA)', 'Marge %', 'Qté vendue', 'Marge totale (FCFA)'],
             rows,
         )
 
@@ -530,8 +500,8 @@ def depreciation(request):
         ]
         return _csv(
             f'depreciation_{date.today()}.csv',
-            ['Produit', 'SKU', 'Valeur init. (€)', 'Valeur actuelle (€)',
-             'Dépréciation (€)', 'Taux', 'Dernier mouvement', 'Motif'],
+            ['Produit', 'SKU', 'Valeur init. (FCFA)', 'Valeur actuelle (FCFA)',
+             'Dépréciation (FCFA)', 'Taux', 'Dernier mouvement', 'Motif'],
             rows,
         )
 
@@ -574,152 +544,66 @@ def rapports(request):
         fin = today
         periode_label = today.strftime('%B %Y')
 
-    stocks = _stocks_dict(entreprise)
-    produits = list(
-        Produit.objects.filter(entreprise=entreprise, est_actif=True)
-        .select_related('categorie')
-    )
+    # Tous les produits (y compris inactifs : ils peuvent avoir du stock ou des mouvements sur la période)
+    produits = list(Produit.objects.filter(entreprise=entreprise).select_related('categorie'))
+    valeurs = valoriser_produits(produits, debut, fin)
 
-    valeur_finale = sum(
-        stocks.get(p.id, 0) * _cump(p) for p in produits
-    )
+    def cumuler(liste):
+        total = {cle: Decimal('0') for cle in ('debut', 'fin', 'ca', 'cout_ventes_pv', *FLUX)}
+        for p in liste:
+            v = valeurs[p.pk]
+            total['debut'] += v['valeur_debut']
+            total['fin'] += v['valeur_fin']
+            for cle in FLUX:
+                total[cle] += v[cle]
+            if p.prix_vente:
+                total['ca'] += v['ca']
+                total['cout_ventes_pv'] += v['sorties']
+        total['entrees_total'] = sum(total[c] for c, sens in FLUX.items() if sens > 0)
+        total['sorties_total'] = sum(total[c] for c, sens in FLUX.items() if sens < 0)
+        total['marge_pct'] = ((total['ca'] - total['cout_ventes_pv']) / total['ca'] * 100) if total['ca'] else None
+        return total
 
-    entrees_periode = Mouvement.objects.filter(
-        produit__entreprise=entreprise,
-        type_mouvement='entree',
-        date_mouvement__date__range=(debut, fin),
-    ).aggregate(
-        val=Sum(
-            ExpressionWrapper(
-                F('quantite') * F('prix_unitaire_snapshot'),
-                output_field=DecimalField()
-            )
-        )
-    )['val'] or Decimal('0')
+    groupes = defaultdict(list)
+    for p in produits:
+        groupes[p.categorie.nom if p.categorie else 'Sans catégorie'].append(p)
+    rapport_categories = [
+        {'nom': nom, 'nb_produits': len(liste), 'compte_comptable': '370000', **cumuler(liste)}
+        for nom, liste in sorted(groupes.items(), key=lambda g: (g[0] == 'Sans catégorie', g[0].lower()))
+    ]
+    totaux = cumuler(produits)
+    sans_pv = sum(1 for p in produits if not p.prix_vente and valeurs[p.pk]['qte_ventes'])
+    marge_brute = totaux['ca'] - totaux['cout_ventes_pv']
 
-    sorties_periode = Mouvement.objects.filter(
-        produit__entreprise=entreprise,
-        type_mouvement='sortie',
-        date_mouvement__date__range=(debut, fin),
-    ).aggregate(
-        val=Sum(
-            ExpressionWrapper(
-                F('quantite') * F('produit__prix_unitaire'),
-                output_field=DecimalField()
-            )
-        )
-    )['val'] or Decimal('0')
-
-    stock_initial = valeur_finale - entrees_periode + sorties_periode
-    ca_estime = sorties_periode * Decimal('1.30')
-    marge_brute = ca_estime - sorties_periode
-    taux_marge = (marge_brute / ca_estime * 100) if ca_estime else Decimal('0')
-
-    cats = Categorie.objects.filter(entreprise=entreprise)
-    rapport_categories = []
-    totaux = {
-        'debut': Decimal('0'),
-        'entrees': Decimal('0'),
-        'sorties': Decimal('0'),
-        'fin': Decimal('0'),
-        'marge_pct': Decimal('0'),
-    }
-
-    for cat in cats:
-        prods_cat = [p for p in produits if p.categorie_id == cat.id]
-        val_fin = sum(stocks.get(p.id, 0) * _cump(p) for p in prods_cat)
-
-        ent_cat = Mouvement.objects.filter(
-            produit__categorie=cat,
-            produit__entreprise=entreprise,
-            type_mouvement='entree',
-            date_mouvement__date__range=(debut, fin),
-        ).aggregate(
-            val=Sum(
-                ExpressionWrapper(
-                    F('quantite') * F('prix_unitaire_snapshot'),
-                    output_field=DecimalField()
-                )
-            )
-        )['val'] or Decimal('0')
-
-        sor_cat = Mouvement.objects.filter(
-            produit__categorie=cat,
-            produit__entreprise=entreprise,
-            type_mouvement='sortie',
-            date_mouvement__date__range=(debut, fin),
-        ).aggregate(
-            val=Sum(
-                ExpressionWrapper(
-                    F('quantite') * F('produit__prix_unitaire'),
-                    output_field=DecimalField()
-                )
-            )
-        )['val'] or Decimal('0')
-
-        val_debut = val_fin - ent_cat + sor_cat
-        ca_cat = sor_cat * Decimal('1.30')
-        marge_p = ((ca_cat - sor_cat) / ca_cat * 100) if ca_cat else Decimal('0')
-
-        rapport_categories.append({
-            'nom': cat.nom,
-            'nb_produits': len(prods_cat),
-            'valeur_debut': val_debut,
-            'entrees': ent_cat,
-            'sorties': sor_cat,
-            'valeur_fin': val_fin,
-            'marge_pct': marge_p,
-            'compte_comptable': '370000',
-        })
-        totaux['debut'] += val_debut
-        totaux['entrees'] += ent_cat
-        totaux['sorties'] += sor_cat
-        totaux['fin'] += val_fin
-
-    tot_ca = totaux['sorties'] * Decimal('1.30')
-    totaux['marge_pct'] = (
-        (tot_ca - totaux['sorties']) / tot_ca * 100
-        if tot_ca else Decimal('0')
-    )
-
-    if request.GET.get('export') == 'pdf':
-        rows = [
-            (
-                c['nom'],
-                f"{float(c['valeur_debut']):.2f}€",
-                f"+{float(c['entrees']):.2f}€",
-                f"-{float(c['sorties']):.2f}€",
-                f"{float(c['valeur_fin']):.2f}€",
-                f"{float(c['marge_pct']):.1f}%",
-            )
-            for c in rapport_categories
+    if request.GET.get('export') in ('pdf', 'csv'):
+        def montant(v):
+            return f"{v:,.0f}".replace(',', ' ')
+        entetes = ['Catégorie', 'Stock début', 'Achats', 'Retours clients', 'Ajust. +', 'Ventes (coût)',
+                   'Pertes', 'Retours fourn.', 'Ajust. −', 'Stock fin', 'Marge']
+        lignes = [
+            [c['nom'], montant(c['debut']), montant(c['entrees']), montant(c['retours_clients']),
+             montant(c['ajustements_plus']), montant(c['sorties']), montant(c['pertes']),
+             montant(c['retours_fournisseurs']), montant(c['ajustements_moins']), montant(c['fin']),
+             '—' if c['marge_pct'] is None else f"{c['marge_pct']:.1f} %"]
+            for c in rapport_categories + [{'nom': 'TOTAL', **totaux}]
         ]
-        rows.append((
-            'TOTAL',
-            f"{float(totaux['debut']):.2f}€",
-            f"+{float(totaux['entrees']):.2f}€",
-            f"-{float(totaux['sorties']):.2f}€",
-            f"{float(totaux['fin']):.2f}€",
-            f"{float(totaux['marge_pct']):.1f}%",
-        ))
-        return _pdf(
-            f'Rapport Comptable Stock — {periode_label}',
-            ['Catégorie', 'Stock début', 'Entrées', 'Sorties', 'Stock fin', 'Marge'],
-            rows,
-        )
+        if request.GET['export'] == 'csv':
+            return _csv(f"rapport_stock_{debut}_{fin}.csv", entetes, lignes)
+        return _pdf(f'Rapport de stock (FCFA) — {periode_label}', entetes, lignes)
 
     context = {
         'rapport_categories': rapport_categories,
         'totaux': totaux,
-        'stock_initial': stock_initial,
-        'entrees_periode': entrees_periode,
-        'sorties_periode': sorties_periode,
-        'depreciations_periode': Decimal('0'),
-        'stock_final': valeur_finale,
-        'ca_estime': ca_estime,
-        'cout_ventes': sorties_periode,
+        'stock_initial': totaux['debut'],
+        'stock_final': totaux['fin'],
+        'flux': totaux,
+        'ca': totaux['ca'],
+        'cout_ventes': totaux['cout_ventes_pv'],
         'marge_brute': marge_brute,
-        'taux_marge': taux_marge,
+        'taux_marge': totaux['marge_pct'],
+        'nb_produits_sans_pv': sans_pv,
+        'debut': debut,
+        'fin': fin,
         'periode_label': periode_label,
         'exercice': today.year,
         'today': today,
@@ -741,11 +625,13 @@ def exports(request):
     if type_export == 'valorisation_cump_csv':
         stocks = _stocks_dict(entreprise)
         rows = []
-        for p in Produit.objects.filter(entreprise=entreprise, est_actif=True).select_related('categorie'):
+        produits = list(Produit.objects.filter(entreprise=entreprise, est_actif=True).select_related('categorie'))
+        cumps = _cumps(produits)
+        for p in produits:
             qte = stocks.get(p.id, 0)
             if qte <= 0:
                 continue
-            prix = _cump(p)
+            prix = cumps[p.pk]
             rows.append((
                 p.nom, p.sku,
                 p.categorie.nom if p.categorie else '',
@@ -757,15 +643,17 @@ def exports(request):
         return _csv(
             f'valorisation_cump_{date.today()}.csv',
             ['Produit', 'SKU', 'Catégorie', 'Quantité',
-             'PU CUMP (€)', 'Valeur (€)', 'N° Compte'],
+             'PU CUMP (FCFA)', 'Valeur (FCFA)', 'N° Compte'],
             rows,
         )
 
     if type_export == 'marges_csv':
         rows = []
-        for p in Produit.objects.filter(entreprise=entreprise, est_actif=True, prix_vente__isnull=False).exclude(prix_vente=0):
+        produits = list(Produit.objects.filter(entreprise=entreprise, est_actif=True, prix_vente__isnull=False).exclude(prix_vente=0))
+        cumps = _cumps(produits)
+        for p in produits:
             qte_v = Mouvement.objects.filter(produit=p, type_mouvement='sortie').aggregate(t=Sum('quantite'))['t'] or 0
-            pa = _cump(p)
+            pa = cumps[p.pk]
             pv = p.prix_vente or Decimal('0')
             mu = pv - pa
             mp = (mu / pv * 100) if pv else Decimal('0')
@@ -777,20 +665,19 @@ def exports(request):
             ))
         return _csv(
             f'marges_{date.today()}.csv',
-            ['Produit', 'SKU', 'PU achat (€)', 'PU vente (€)',
-             'Marge U. (€)', 'Marge %', 'Qté vendue', 'Marge totale (€)'],
+            ['Produit', 'SKU', 'PU achat (FCFA)', 'PU vente (FCFA)',
+             'Marge U. (FCFA)', 'Marge %', 'Qté vendue', 'Marge totale (FCFA)'],
             rows,
         )
 
     if type_export == 'rapport_comptable_pdf':
         stocks = _stocks_dict(entreprise)
-        val = sum(
-            stocks.get(p.id, 0) * _cump(p)
-            for p in Produit.objects.filter(entreprise=entreprise, est_actif=True)
-        )
+        produits = list(Produit.objects.filter(entreprise=entreprise, est_actif=True))
+        cumps = _cumps(produits)
+        val = sum(stocks.get(p.id, 0) * cumps[p.pk] for p in produits)
         return _pdf(
             f'Rapport Comptable Stock — {date.today()}',
-            ['Désignation', 'Montant (€)', 'N° Compte'],
+            ['Désignation', 'Montant (FCFA)', 'N° Compte'],
             [('Stock total valorisé CUMP', f"{float(val):.2f}", '370000')],
         )
 
@@ -816,8 +703,8 @@ def exports(request):
             ))
         return _csv(
             f'depreciation_{date.today()}.csv',
-            ['Produit', 'SKU', 'Valeur init. (€)', 'Valeur actuelle (€)',
-             'Dépréciation (€)', 'Taux', 'Dernier mouvement'],
+            ['Produit', 'SKU', 'Valeur init. (FCFA)', 'Valeur actuelle (FCFA)',
+             'Dépréciation (FCFA)', 'Taux', 'Dernier mouvement'],
             rows,
         )
 

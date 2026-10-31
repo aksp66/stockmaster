@@ -108,3 +108,15 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - **Seuils** : vérifiés aussi après une réception de bon de commande, une validation d'inventaire, un mouvement via l'API mobile et la création d'un produit avec stock initial (qui passe désormais par la règle commune de mise à jour du stock). Quand le stock remonte au-dessus du seuil, les alertes de rupture / seuil bas devenues sans objet sont clôturées automatiquement.
 - **Tests** : 111.
 
+## 31/10/2026 (suite 4) — Rapports du comptable, données de démonstration
+
+- `ce4e28b` poussé sur GitHub (retours, réapprovisionnement, seuils).
+- **Rapport comptable périodique** réécrit sur une valorisation en inventaire permanent au CUMP (`apps/comptable/valorisation.py`) : les mouvements sont rejoués dans l'ordre, chaque achat recalcule le coût moyen, chaque sortie part au coût moyen du moment. Le rapport présente désormais tous les flux (achats, retours clients, ajustements +, coût des ventes, pertes, retours fournisseurs, ajustements −), un stock de début et de fin calculés **à la date de la période** (auparavant : stock actuel, même pour une période passée), et se réconcilie exactement.
+- Corrigé au passage dans l'espace comptable :
+  - le **chiffre d'affaires était inventé** (sorties × 1,30) : il est maintenant calculé aux prix de vente, les produits sans prix de vente étant signalés et exclus ;
+  - la valorisation **ignorait tous les stocks sans emplacement** (filtre sur `emplacement__entrepot`), c'est-à-dire la plupart ;
+  - le « FIFO » prenait le prix du lot le plus ancien (et une branche reposait sur un import inexistant) : vrai FIFO, stock restant valorisé aux prix des entrées les plus récentes ;
+  - catégorie « Sans catégorie » ajoutée (ces produits manquaient au total), export CSV du rapport (le bouton existait sans effet), montants en FCFA au lieu d'euros dans les exports et le PDF, ligne « Dépréciations » toujours à 0 retirée du compte de stock.
+- **Script de démonstration** (`scripts/seed.py`) : les prédictions IA reprennent le format de la vraie tâche (une ligne par produit, consommation totale sur 30 jours issue de l'historique, confiance sur 100), au lieu de valeurs proches du stock.
+- **Tests** : 118.
+

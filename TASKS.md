@@ -58,6 +58,13 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [x] Seuils vérifiés après réception de commande, validation d'inventaire, API mobile et stock initial ; alertes clôturées quand le stock remonte
 - [x] 111 tests
 
+### Octobre 2026 (suite 4) — comptabilité, données de démonstration
+- [x] Valorisation en inventaire permanent au CUMP (`apps/comptable/valorisation.py`) : rapport périodique avec tous les flux (achats, ventes, pertes, retours clients et fournisseurs, ajustements), stock de début et de fin à la date, réconciliation exacte
+- [x] Chiffre d'affaires réel (prix de vente) au lieu d'un coefficient fixe de 1,30 ; export CSV du rapport ; montants en FCFA
+- [x] Stocks sans emplacement de nouveau pris en compte dans la valorisation ; vrai FIFO (stock restant aux prix des entrées récentes)
+- [x] Script de démonstration : prédictions IA au format de la vraie tâche
+- [x] 118 tests
+
 ---
 
 ## À faire
@@ -71,8 +78,8 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 ### P2 — Fonctionnalités incomplètes
 - [ ] **Module `apps/ia/views.py` (routes `/ia/…`)** : code hérité, inutilisable en l'état (templates `ia/*.html` absents ; champs et modèles inexistants : `date_prediction`, `consommation_prevue`, `actif`, `MouvementStock`, `LigneBonCommande`). Les écrans IA réellement utilisés sont `admin_entreprise` → IA et `responsable_achat` → Prédictions / Suggestions. Décider : supprimer ces routes ou les réécrire. Les tâches Celery (`apps/ia/tasks.py`) ne sont pas concernées.
 - [ ] Statistiques fournisseurs hebdomadaires (tâche prévue, jamais écrite).
-- [ ] Rapports du comptable (stock début / entrées / sorties / stock fin, valorisation) : ne comptent que les types « entrée » et « sortie » ; les retours, pertes et ajustements n'y figurent pas.
-- [ ] Prédictions IA : une seule prédiction (total sur 30 jours) est conservée par produit ; les écrans IA de l'admin entreprise et le script de démonstration (`scripts/seed.py`, qui génère des valeurs proches du stock) n'utilisent pas tous cette convention.
+- [ ] Écrans IA de l'admin entreprise : vérifier qu'ils interprètent bien une prédiction comme la consommation totale sur 30 jours (et non journalière). Les bornes enregistrées par la tâche IA sont, elles, journalières : unités à harmoniser.
+- [ ] Marges du comptable : calculées sur les seules sorties (ventes) ; les retours clients ne viennent pas en déduction du chiffre d'affaires.
 - [ ] Formulaire fournisseur : champs sans colonne en base (code, description longue, site web, ville, code postal, délai de paiement, remise, devise). Les ajouter au modèle `Fournisseur` (migration) ou les retirer du formulaire.
 - [ ] Remise par ligne de BC : appliquée au prix net à l'enregistrement mais non conservée. Ajouter un champ `remise` à `LigneCommande` si elle doit apparaître sur le PDF.
 - [ ] `boncommande_changer_statut` (`/commandes/<id>/statut/<statut>/`) change l'état sur une requête GET. Le passer en POST ou le supprimer (les nouvelles actions envoyer / clôturer / annuler le remplacent).
@@ -81,6 +88,7 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 
 ### P3 — Améliorations
 - [ ] Étendre les tests : API REST (JWT, scan, mouvements hors ligne), exports CSV/PDF, valorisation CUMP/FIFO du comptable, tâches IA.
+- [ ] Performance de la valorisation : chaque page du comptable rejoue tout l'historique (≈ 1 s pour 63 000 mouvements) ; mettre en cache les valeurs ou enregistrer le CUMP au fil des mouvements si le volume grossit.
 - [ ] Performance : `_calculer_suggestions` exécute plusieurs requêtes par produit (appelée sur le tableau de bord achats) ; à optimiser ou mettre en cache si le catalogue dépasse quelques centaines de produits.
 - [ ] Interface de modération des avis dans l'espace super admin (aujourd'hui : admin Django).
 - [ ] Ménage : dossier `.venv/` en double de `env/` (non versionné), `GUIDE_*.txt` à relire et éventuellement convertir en Markdown.

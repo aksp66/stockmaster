@@ -239,7 +239,7 @@ def mouvements(request):
         return _csv(
             f'mouvements_{debut}_{fin}.csv',
             ['Date', 'Produit', 'SKU', 'Type', 'Quantité',
-             'Prix U. (€)', 'Valeur (€)', 'Entrepôt', 'Opérateur', 'Référence'],
+             'Prix U. (FCFA)', 'Valeur (FCFA)', 'Entrepôt', 'Opérateur', 'Référence'],
             rows,
         )
     if export == 'pdf':
@@ -250,7 +250,7 @@ def mouvements(request):
                 m.produit.nom[:20],
                 m.get_type_mouvement_display(),
                 m.quantite,
-                f"{float(m.valeur_totale or 0):.2f}€",
+                f"{float(m.valeur_totale or 0):.2f} FCFA",
             ))
         return _pdf(
             f'Mouvements Audit {debut} – {fin}',
@@ -342,7 +342,7 @@ def ecarts(request):
         return _csv(
             f'ecarts_inventaire_{date.today()}.csv',
             ['Entrepôt', 'Session', 'Produit', 'SKU',
-             'Théorique', 'Compté', 'Écart', 'Valeur écart (€)', '% écart'],
+             'Théorique', 'Compté', 'Écart', 'Valeur écart (FCFA)', '% écart'],
             rows,
         )
 
@@ -454,19 +454,19 @@ def valorisation(request):
         return _csv(
             f'valorisation_{methode}_{date.today()}.csv',
             ['Produit', 'SKU', 'Catégorie', 'Quantité',
-             f'PU {methode.upper()} (€)', 'Valeur totale (€)'],
+             f'PU {methode.upper()} (FCFA)', 'Valeur totale (FCFA)'],
             rows,
         )
     if export == 'pdf':
         rows = [
             (v['nom'][:20], v['quantite_totale'],
-             f"{float(v['prix_unitaire_calcule']):.2f}€",
-             f"{float(v['valeur_totale']):.2f}€")
+             f"{float(v['prix_unitaire_calcule']):.2f} FCFA",
+             f"{float(v['valeur_totale']):.2f} FCFA")
             for v in valorisations
         ]
         return _pdf(
             f'Valorisation {methode.upper()} — {date.today()}',
-            ['Produit', 'Qté', f'PU {methode.upper()}', 'Valeur (€)'],
+            ['Produit', 'Qté', f'PU {methode.upper()}', 'Valeur (FCFA)'],
             rows,
         )
 
@@ -755,7 +755,7 @@ def exports(request):
         return _csv(
             f'mouvements_{debut}_{fin}.csv',
             ['Date', 'Produit', 'SKU', 'Type', 'Quantité',
-             'Valeur (€)', 'Entrepôt', 'Opérateur'],
+             'Valeur (FCFA)', 'Entrepôt', 'Opérateur'],
             rows,
         )
 
@@ -780,7 +780,7 @@ def exports(request):
         return _csv(
             f'ecarts_{debut}_{fin}.csv',
             ['Produit', 'SKU', 'Théorique', 'Compté',
-             'Écart', 'Valeur écart (€)', 'Entrepôt', 'Date validation'],
+             'Écart', 'Valeur écart (FCFA)', 'Entrepôt', 'Date validation'],
             rows,
         )
 
@@ -822,7 +822,7 @@ def exports(request):
                 m.produit.nom[:20],
                 m.get_type_mouvement_display(),
                 m.quantite,
-                f"{float(m.valeur_totale or 0):.2f}€",
+                f"{float(m.valeur_totale or 0):.2f} FCFA",
             ))
         return _pdf(
             f'Rapport Mouvements {debut} – {fin}',
