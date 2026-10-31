@@ -97,12 +97,6 @@ def predire_produit(self, produit_id: int, modele: str = "prophet", horizon_jour
     consommation_prevue = sum(p["yhat"] for p in predictions)  # float
     stock_actuel = float(produit.quantite_totale())
     stock_prevu_fin = max(0, stock_actuel - consommation_prevue)
-    
-    seuil = float(produit.seuil_alerte) if produit.seuil_alerte else 0
-    quantite_recommandee = None
-    if stock_prevu_fin < seuil:
-        # Quantité recommandée = (seuil - stock prévu) + 20% de marge de sécurité
-        quantite_recommandee = max(0, round(seuil - stock_prevu_fin + (seuil * 0.2), 0))
 
     # ── 4. Calculer la confiance et la précision ──────────────────────────────
     confiance, mape = _calculer_confiance_et_precision(
@@ -111,19 +105,25 @@ def predire_produit(self, produit_id: int, modele: str = "prophet", horizon_jour
     # (Pour une meilleure précision, vous pourriez appeler une fonction qui refait une prédiction sur une fenêtre glissante)
 
     # ── 5. Sauvegarde ─────────────────────────────────────────────────────────
-    PredictionStock.objects.update_or_create(
+    # Convention : quantité prévue ET bornes sont des TOTAUX sur l'horizon (somme des prévisions
+    # journalières), pour être directement comparables entre elles et au stock.
+    prediction, _ = PredictionStock.objects.update_or_create(
         produit=produit,
         date_cible=date.today() + timedelta(days=horizon_jours),
         defaults={
             "quantite_prevue": Decimal(str(round(consommation_prevue, 2))),
-            "borne_inferieure": Decimal(str(round(min(p["yhat_lower"] for p in predictions), 2))),
-            "borne_superieure": Decimal(str(round(max(p["yhat_upper"] for p in predictions), 2))),
+            "borne_inferieure": Decimal(str(round(sum(p["yhat_lower"] for p in predictions), 2))),
+            "borne_superieure": Decimal(str(round(sum(p["yhat_upper"] for p in predictions), 2))),
             "confiance": Decimal(str(confiance)),   # valeur de 0-100
             "precision_mape": Decimal(str(mape)),   # Stocké en base
             "modele_utilise": modele,
-            "quantite_recommandee_commande": Decimal(quantite_recommandee) if quantite_recommandee else None,
         }
     )
+    # Quantité à commander : même calcul que les suggestions d'achat (apps/stock/reappro.py)
+    from apps.stock.reappro import calculer_reappro
+    quantite = calculer_reappro(produit)['quantite_suggeree']
+    prediction.quantite_recommandee_commande = quantite or None
+    prediction.save(update_fields=['quantite_recommandee_commande'])
 
     logger.info(f"[IA] ✅ {produit.nom} — conso prévue: {consommation_prevue:.0f}, stock fin: {stock_prevu_fin:.0f}")
     return {"statut": "succès", "produit": produit.nom, "consommation_prevue": round(consommation_prevue, 1), "stock_prevu_fin": round(stock_prevu_fin, 1), "nb_points": len(series)}

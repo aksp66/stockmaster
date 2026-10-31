@@ -18,6 +18,8 @@ django.setup()
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum
+
+from apps.stock.reappro import calculer_reappro
 from django.contrib.auth import get_user_model
 
 from apps.entreprises.models import Entreprise, TypeEntreprise
@@ -591,7 +593,8 @@ def creer_predictions_ia(produits):
     """
     Prédictions au même format que la tâche IA réelle (apps/ia/tasks.py, predire_produit) :
     une ligne par produit, date_cible = aujourd'hui + 30 j, quantite_prevue = consommation TOTALE
-    prévue sur 30 jours, bornes = min / max des prévisions journalières, confiance sur 100.
+    prévue sur 30 jours, bornes = totaux sur la même période, confiance sur 100, quantité
+    recommandée = calcul commun des suggestions d'achat (apps/stock/reappro.py).
     La « prévision » est ici la consommation moyenne des 90 derniers jours, légèrement bruitée.
     """
     print("\n🤖 Génération de prédictions IA (format de la tâche apps/ia/tasks.py)...")
@@ -608,25 +611,20 @@ def creer_predictions_ia(produits):
         moyenne = float(sum(r['q'] for r in par_jour)) / 90
         journalier = [moyenne * random.uniform(0.75, 1.25) for _ in range(horizon)]
         consommation_prevue = sum(journalier)
-        stock_actuel = float(p.quantite_totale())
-        stock_prevu_fin = max(0, stock_actuel - consommation_prevue)
-        seuil = float(p.seuil_alerte or 0)
-        recommandee = None
-        if stock_prevu_fin < seuil:
-            recommandee = max(0, round(seuil - stock_prevu_fin + seuil * 0.2, 0))
-        PredictionStock.objects.update_or_create(
+        prediction, _ = PredictionStock.objects.update_or_create(
             produit=p,
             date_cible=DATE_FIN + timedelta(days=horizon),
             defaults={
                 "quantite_prevue": Decimal(str(round(consommation_prevue, 2))),
-                "borne_inferieure": Decimal(str(round(min(journalier) * 0.8, 2))),
-                "borne_superieure": Decimal(str(round(max(journalier) * 1.2, 2))),
+                "borne_inferieure": Decimal(str(round(sum(j * 0.8 for j in journalier), 2))),
+                "borne_superieure": Decimal(str(round(sum(j * 1.2 for j in journalier), 2))),
                 "confiance": round(random.uniform(65, 95), 1),
                 "precision_mape": round(random.uniform(5, 30), 1),
                 "modele_utilise": random.choice(["prophet", "random_forest"]),
-                "quantite_recommandee_commande": Decimal(recommandee) if recommandee else None,
             },
         )
+        prediction.quantite_recommandee_commande = calculer_reappro(p)['quantite_suggeree'] or None
+        prediction.save(update_fields=['quantite_recommandee_commande'])
         nb += 1
     print(f"   ✅ {nb} prédictions générées (une par produit ayant assez d'historique)")
 

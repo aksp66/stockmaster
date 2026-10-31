@@ -47,7 +47,7 @@ class ValorisationTests(EntrepriseTestCase):
         self.assertEqual((v['sorties'], v['pertes'], v['retours_clients'], v['retours_fournisseurs'],
                           v['ajustements_moins']), (Decimal(750), Decimal(150), Decimal(300), Decimal(450), Decimal(150)))
         self.assertEqual((v['qte_fin'], v['valeur_fin'], v['cump']), (12, Decimal(1800), Decimal(150)))
-        self.assertEqual(v['ca'], Decimal(7500))  # 5 vendus × 1 500
+        self.assertEqual(v['ca'], Decimal(4500))  # (5 vendus − 2 retournés) × 1 500
         # Réconciliation : début + entrées − sorties = fin
         flux = sum(v[c] * sens for c, sens in FLUX.items())
         self.assertEqual(v['valeur_debut'] + flux, v['valeur_fin'])
@@ -98,7 +98,8 @@ class RapportComptableTests(EntrepriseTestCase):
                          (Decimal(2000), Decimal(1000), Decimal(1000), Decimal(5000)))
         self.assertEqual(ctx['stock_initial'] + sum(flux[c] * s for c, s in FLUX.items()), ctx['stock_final'])
         self.assertEqual(ctx['stock_final'], Decimal(13000))  # 13 en stock au coût moyen de 1 000
-        self.assertEqual((ctx['ca'], ctx['marge_brute']), (Decimal(2600), Decimal(600)))
+        # (2 vendus − 1 retourné) × 1 300 ; coût net = 2 000 − 1 000
+        self.assertEqual((ctx['ca'], ctx['marge_brute']), (Decimal(1300), Decimal(300)))
         self.assertContains(response, 'Pertes / casse')
         csv = self.client.get(reverse('comptable:rapports'), {'export': 'csv'})
         self.assertIn('Retours clients', csv.content.decode('utf-8-sig'))
@@ -110,3 +111,39 @@ class RapportComptableTests(EntrepriseTestCase):
                                  entrepot_source=self.entrepot)
         ctx = self.client.get(reverse('comptable:rapports')).context
         self.assertEqual((ctx['ca'], ctx['taux_marge'], ctx['nb_produits_sans_pv']), (0, None, 1))
+
+
+class CacheEtMargesTests(EntrepriseTestCase):
+
+    def _mvt(self, type_m, quantite, vers_destination):
+        m = Mouvement.objects.create(type_mouvement=type_m, produit=self.produit, quantite=quantite,
+                                     prix_unitaire_snapshot=Decimal('1000'),
+                                     entrepot_destination=self.entrepot if vers_destination else None,
+                                     entrepot_source=None if vers_destination else self.entrepot)
+        _appliquer_mouvement(m)
+
+    def test_cache_invalide_par_un_nouveau_mouvement(self):
+        avant = valoriser_produits([self.produit])[self.produit.pk]['qte_fin']
+        self.assertEqual(valoriser_produits([self.produit])[self.produit.pk]['qte_fin'], avant)  # servi par le cache
+        self._mvt(TypeMouvement.SORTIE, 3, False)
+        self.assertEqual(valoriser_produits([self.produit])[self.produit.pk]['qte_fin'], avant - 3)
+
+    def test_cache_invalide_par_un_changement_de_prix(self):
+        Stock.objects.filter(produit=self.produit).update(quantite=10)
+        avant = valoriser_produits([self.produit])[self.produit.pk]['valeur_fin']
+        self.produit.prix_unitaire = Decimal('2000')
+        self.produit.save()
+        self.assertEqual(valoriser_produits([self.produit])[self.produit.pk]['valeur_fin'], avant * 2)
+
+    def test_marges_nettes_des_retours_clients(self):
+        self.produit.prix_vente = Decimal('1500')
+        self.produit.save()
+        self._mvt(TypeMouvement.SORTIE, 4, False)
+        self._mvt(TypeMouvement.RETOUR, 1, True)    # retour client : annule une vente
+        self._mvt(TypeMouvement.RETOUR, 2, False)   # retour fournisseur : sans effet sur les ventes
+        self.connecter('comptable')
+        ligne = self.client.get(reverse('comptable:marges')).context['marges'][0]
+        self.assertEqual((ligne['qte_vendue'], ligne['qte_retournee']), (3, 1))
+        csv = self.client.get(reverse('comptable:marges'), {'export': 'csv'}).content.decode('utf-8-sig')
+        self.assertIn('dont retours clients', csv)
+

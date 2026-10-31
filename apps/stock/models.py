@@ -855,23 +855,28 @@ class PredictionStock(TimestampMixin):
         verbose_name=_("Entrepôt")
     )
     date_cible = models.DateField(verbose_name=_("Date cible de la prédiction"))
+    # Convention (apps/ia/tasks.py) : quantité prévue et bornes sont des TOTAUX de consommation
+    # entre la date du calcul (created_at) et date_cible, pas des valeurs journalières.
     quantite_prevue = models.DecimalField(
         max_digits=14, decimal_places=2,
-        verbose_name=_("Quantité prévue")
+        verbose_name=_("Consommation prévue"),
+        help_text=_("Total prévu entre la date du calcul et la date cible.")
     )
     borne_inferieure = models.DecimalField(
         max_digits=14, decimal_places=2,
         null=True, blank=True,
-        verbose_name=_("Borne inférieure (intervalle de confiance)")
+        verbose_name=_("Borne inférieure (intervalle de confiance)"),
+        help_text=_("Total sur la même période que la consommation prévue.")
     )
     borne_superieure = models.DecimalField(
         max_digits=14, decimal_places=2,
         null=True, blank=True,
-        verbose_name=_("Borne supérieure (intervalle de confiance)")
+        verbose_name=_("Borne supérieure (intervalle de confiance)"),
+        help_text=_("Total sur la même période que la consommation prévue.")
     )
     confiance = models.FloatField(
         null=True, blank=True,
-        verbose_name=_("Score de confiance (0 à 1)")
+        verbose_name=_("Score de confiance (0 à 100)")
     )
     modele_utilise = models.CharField(
         max_length=50, blank=True,

@@ -692,7 +692,7 @@ def predictions_list(request):
     latest_per_product = PredictionStock.objects.filter(
         produit=OuterRef('produit'),
         produit__entreprise=ent
-    ).order_by('-date_cible').values('id')[:1]
+    ).order_by('-created_at', '-date_cible').values('id')[:1]
     
     predictions = PredictionStock.objects.filter(
         id__in=Subquery(latest_per_product)
@@ -712,12 +712,15 @@ def predictions_list(request):
         reappro = calculer_reappro(produit)
         conso_prevue = reappro['consommation_prevue']
         stock_prevu_j30 = reappro['stock_prevu_j30']
-        intervalle_confiance = (pred.borne_superieure - pred.borne_inferieure) if pred.borne_superieure else 0
+        # Bornes = totaux sur la période de la prédiction : demi-largeur ramenée aux 30 jours affichés
+        horizon = max((pred.date_cible - timezone.localdate(pred.created_at)).days, 1)
+        intervalle_confiance = ((pred.borne_superieure - pred.borne_inferieure) / 2 * 30 / horizon
+                                if pred.borne_superieure is not None and pred.borne_inferieure is not None else 0)
         # Rupture affichée seulement si elle survient dans l'horizon des prédictions
         jours_avant_rupture = reappro['jours_rupture'] if stock_prevu_j30 < 0 else None
         qte_a_commander = reappro['quantite_suggeree']
         
-        score_confiance = pred.confiance if pred.confiance else 70
+        score_confiance = reappro['confiance'] if reappro['confiance'] is not None else 70
         
         # Filtres
         if q and q.lower() not in produit.nom.lower() and q.lower() not in produit.sku.lower():

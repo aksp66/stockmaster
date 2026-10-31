@@ -39,7 +39,7 @@
   <div class="stat-card s-green">
     <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
     <div class="stat-value">{{ nb_predictions|default:"0" }}</div>
-    <div class="stat-label">Prédictions actives</div>
+    <div class="stat-label">Produits analysés</div>
     <i class="fas fa-chart-line stat-corner"></i>
   </div>
   <div class="stat-card s-orange">
@@ -50,8 +50,8 @@
   </div>
   <div class="stat-card s-blue">
     <div class="stat-icon"><i class="fas fa-bullseye"></i></div>
-    <div class="stat-value">{{ precision_moyenne|default:"—" }}%</div>
-    <div class="stat-label">Précision moyenne</div>
+    <div class="stat-value">{% if confiance_moyenne is None %}—{% else %}{{ confiance_moyenne }}%{% endif %}</div>
+    <div class="stat-label">Confiance moyenne</div>
     <i class="fas fa-bullseye stat-corner"></i>
   </div>
   <div class="stat-card s-purple">
@@ -75,12 +75,12 @@
     <thead>
       <tr>
         <th style="padding-left:20px;">Produit</th>
-        <th>Date cible</th>
-        <th>Qté prévue</th>
-        <th>Intervalle</th>
+        <th>Période prévue</th>
+        <th>Consommation prévue</th>
+        <th>Intervalle (même période)</th>
         <th>Confiance</th>
         <th>Modèle</th>
-        <th style="text-align:right;padding-right:20px;">Recommandation</th>
+        <th style="text-align:right;padding-right:20px;">À commander</th>
       </tr>
     </thead>
     <tbody>
@@ -91,23 +91,25 @@
           <div style="font-size:11px;color:var(--text-muted);font-family:'Fira Code',monospace;">{{ p.produit.sku }}</div>
         </td>
         <td style="font-family:'Fira Code',monospace;font-size:12px;color:var(--text-muted);">
-          {{ p.date_cible|date:"d/m/Y" }}
+          {{ p.created_at|date:"d/m" }} → {{ p.date_cible|date:"d/m/Y" }}
+          <div style="font-size:11px;">{{ p.horizon }} jours</div>
         </td>
         <td>
           <span style="font-family:'Fira Code',monospace;font-size:14px;font-weight:700;">
             {{ p.quantite_prevue|floatformat:0 }}
           </span>
+          <div style="font-size:11px;color:var(--text-muted);">≈ {{ p.conso_jour|floatformat:1 }} / jour</div>
         </td>
         <td style="font-size:12px;color:var(--text-muted);font-family:'Fira Code',monospace;">
           [{{ p.borne_inferieure|floatformat:0|default:"—" }} – {{ p.borne_superieure|floatformat:0|default:"—" }}]
         </td>
         <td>
-          {% if p.confiance %}
+          {% if p.confiance_pct is not None %}
           <div style="display:flex;align-items:center;gap:8px;">
             <div style="flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;">
-              <div style="height:100%;width:{{ p.confiance|floatformat:0 }}%;background:{% if p.confiance >= 80 %}var(--green){% elif p.confiance >= 50 %}var(--yellow){% else %}var(--red){% endif %};border-radius:3px;"></div>
+              <div style="height:100%;width:{{ p.confiance_pct }}%;background:{% if p.confiance_pct >= 80 %}var(--green){% elif p.confiance_pct >= 50 %}var(--yellow){% else %}var(--red){% endif %};border-radius:3px;"></div>
             </div>
-            <span style="font-size:12px;font-family:'Fira Code',monospace;">{{ p.confiance|floatformat:0 }}%</span>
+            <span style="font-size:12px;font-family:'Fira Code',monospace;">{{ p.confiance_pct }}%</span>
           </div>
           {% else %}—{% endif %}
         </td>
@@ -115,10 +117,11 @@
           <span class="badge badge-blue" style="font-size:10px;font-family:'Fira Code',monospace;">{{ p.modele_utilise|default:"—" }}</span>
         </td>
         <td style="text-align:right;padding-right:20px;">
-          {% if p.quantite_recommandee_commande %}
+          {% if p.a_commander %}
           <span class="badge badge-green">
-            <i class="fas fa-cart-plus"></i> {{ p.quantite_recommandee_commande|floatformat:0 }} unités
+            <i class="fas fa-cart-plus"></i> {{ p.a_commander|floatformat:0 }} {{ p.produit.get_unite_mesure_display|lower }}
           </span>
+          {% if p.jours_rupture is not None %}<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">rupture dans {{ p.jours_rupture }} j</div>{% endif %}
           {% else %}
           <span style="font-size:12px;color:var(--text-muted);">Stock suffisant</span>
           {% endif %}

@@ -8,6 +8,9 @@ from django.utils.crypto import get_random_string
 from apps.accounts.models import Utilisateur, RoleUtilisateur
 from apps.entreprises.models import Entreprise, ParametresEntreprise
 from decimal import Decimal, InvalidOperation
+from django.db.models import OuterRef, Subquery
+from django.utils import timezone
+from apps.stock.reappro import calculer_reappro
 from apps.accounts.decorators import role_required
 from .forms import EntrepotForm
 from django.db import models
@@ -329,32 +332,28 @@ def entrepot_delete(request, pk):
 @role_required('admin_ent', 'super_admin')
 def ia_dashboard(request):
     entreprise = request.user.entreprise
-    # Queryset complet (non slicé)
-    qs = PredictionStock.objects.filter(produit__entreprise=entreprise)
-    
-    # Statistiques globales
-    nb_predictions = qs.count()
-    nb_recommandations = qs.filter(quantite_recommandee_commande__isnull=False).count()
-    
-    # Agrégation de la confiance moyenne
-    agg = qs.aggregate(avg_confiance=models.Avg('confiance'))
-    precision_moyenne = agg.get('avg_confiance')
-    if precision_moyenne is not None:
-        precision_moyenne = round(precision_moyenne)
-    
-    # Dernière analyse (date de la prédiction la plus récente)
-    derniere = qs.order_by('-created_at').first()
-    derniere_analyse = derniere.created_at if derniere else None
-    
-    # Prédictions pour l'affichage (slice uniquement à la fin)
-    predictions = qs.order_by('-date_cible')[:20]
-    
+    toutes = PredictionStock.objects.filter(produit__entreprise=entreprise)
+    # La tâche IA crée une nouvelle prédiction chaque jour : on n'affiche que la plus récente par produit
+    plus_recente = toutes.filter(produit=OuterRef('produit')).order_by('-created_at', '-date_cible').values('pk')[:1]
+    predictions = list(toutes.filter(pk=Subquery(plus_recente)).select_related('produit'))
+
+    for p in predictions:
+        # Quantité prévue et bornes = totaux entre la date du calcul et la date cible
+        p.horizon = max((p.date_cible - timezone.localdate(p.created_at)).days, 1)
+        p.conso_jour = p.quantite_prevue / p.horizon
+        p.confiance_pct = None if p.confiance is None else round(p.confiance * 100 if p.confiance <= 1 else p.confiance)
+        reappro = calculer_reappro(p.produit)  # même calcul que les suggestions d'achat
+        p.a_commander, p.jours_rupture = reappro['quantite_suggeree'], reappro['jours_rupture']
+    # Produits à commander d'abord, les plus proches de la rupture en tête
+    predictions.sort(key=lambda p: (not p.a_commander, p.jours_rupture is None, p.jours_rupture or 0, p.produit.nom))
+
+    confiances = [p.confiance_pct for p in predictions if p.confiance_pct is not None]
     context = {
-        'predictions': predictions,
-        'nb_predictions': nb_predictions,
-        'nb_recommandations': nb_recommandations,
-        'precision_moyenne': precision_moyenne,
-        'derniere_analyse': derniere_analyse,
+        'predictions': predictions[:20],
+        'nb_predictions': len(predictions),
+        'nb_recommandations': sum(1 for p in predictions if p.a_commander),
+        'confiance_moyenne': round(sum(confiances) / len(confiances)) if confiances else None,
+        'derniere_analyse': max((p.created_at for p in predictions), default=None),
         'modele_actif': 'Prophet / RandomForest',
         'steps_ia': [
             {'icon': 'database', 'titre': 'Collecte', 'desc': 'Analyse historique des mouvements'},
@@ -363,6 +362,7 @@ def ia_dashboard(request):
         ],
     }
     return render(request, 'admin_entreprise/ia_dashboard.html', context)
+
 
 from apps.ia.tasks import analyser_entreprise_immediate
 
@@ -419,16 +419,19 @@ def export_entrepots_csv(request):
 
 def export_predictions_csv(request):
     entreprise = request.user.entreprise
-    predictions = PredictionStock.objects.filter(produit__entreprise=entreprise)
-    response = HttpResponse(content_type='text/csv')
+    predictions = PredictionStock.objects.filter(produit__entreprise=entreprise).select_related('produit')         .order_by('produit__nom', '-created_at')
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="predictions_ia.csv"'
     writer = csv.writer(response)
-    writer.writerow(['Produit', 'Date cible', 'Quantité prévue', 'Borne inf', 'Borne sup', 'Confiance', 'Recommandation'])
+    writer.writerow(['Produit', 'Calculée le', 'Date cible', 'Consommation prévue (total)', 'Consommation / jour',
+                     'Borne basse (total)', 'Borne haute (total)', 'Confiance (%)', 'Quantité recommandée'])
     for p in predictions:
+        jours = max((p.date_cible - timezone.localdate(p.created_at)).days, 1)
+        confiance = None if p.confiance is None else round(p.confiance * 100 if p.confiance <= 1 else p.confiance)
         writer.writerow([
-            p.produit.nom, p.date_cible.strftime('%d/%m/%Y'), p.quantite_prevue,
-            p.borne_inferieure, p.borne_superieure, p.confiance,
-            p.quantite_recommandee_commande
+            p.produit.nom, timezone.localdate(p.created_at).strftime('%d/%m/%Y'), p.date_cible.strftime('%d/%m/%Y'),
+            p.quantite_prevue, round(p.quantite_prevue / jours, 2), p.borne_inferieure, p.borne_superieure,
+            confiance, p.quantite_recommandee_commande,
         ])
     return response
 

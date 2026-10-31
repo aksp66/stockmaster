@@ -65,6 +65,12 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [x] Script de démonstration : prédictions IA au format de la vraie tâche
 - [x] 118 tests
 
+### Octobre 2026 (suite 5) — cache, unités IA, retours dans les marges
+- [x] Cache de la valorisation (invalidé automatiquement à chaque mouvement, stock ou prix modifié) et FIFO groupé : pages du comptable de ~1,8 s à ~0,1 s ; fonctionnement sans Redis
+- [x] Prédictions IA : quantité prévue et bornes en totaux sur la période (convention documentée sur le modèle) ; écran IA de l'admin entreprise sur la dernière prédiction par produit, unités explicites, recommandation identique aux suggestions d'achat
+- [x] Retours clients déduits du chiffre d'affaires et des quantités vendues (marges, rapport, exports)
+- [x] 122 tests
+
 ---
 
 ## À faire
@@ -78,8 +84,6 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 ### P2 — Fonctionnalités incomplètes
 - [ ] **Module `apps/ia/views.py` (routes `/ia/…`)** : code hérité, inutilisable en l'état (templates `ia/*.html` absents ; champs et modèles inexistants : `date_prediction`, `consommation_prevue`, `actif`, `MouvementStock`, `LigneBonCommande`). Les écrans IA réellement utilisés sont `admin_entreprise` → IA et `responsable_achat` → Prédictions / Suggestions. Décider : supprimer ces routes ou les réécrire. Les tâches Celery (`apps/ia/tasks.py`) ne sont pas concernées.
 - [ ] Statistiques fournisseurs hebdomadaires (tâche prévue, jamais écrite).
-- [ ] Écrans IA de l'admin entreprise : vérifier qu'ils interprètent bien une prédiction comme la consommation totale sur 30 jours (et non journalière). Les bornes enregistrées par la tâche IA sont, elles, journalières : unités à harmoniser.
-- [ ] Marges du comptable : calculées sur les seules sorties (ventes) ; les retours clients ne viennent pas en déduction du chiffre d'affaires.
 - [ ] Formulaire fournisseur : champs sans colonne en base (code, description longue, site web, ville, code postal, délai de paiement, remise, devise). Les ajouter au modèle `Fournisseur` (migration) ou les retirer du formulaire.
 - [ ] Remise par ligne de BC : appliquée au prix net à l'enregistrement mais non conservée. Ajouter un champ `remise` à `LigneCommande` si elle doit apparaître sur le PDF.
 - [ ] `boncommande_changer_statut` (`/commandes/<id>/statut/<statut>/`) change l'état sur une requête GET. Le passer en POST ou le supprimer (les nouvelles actions envoyer / clôturer / annuler le remplacent).
@@ -88,7 +92,8 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 
 ### P3 — Améliorations
 - [ ] Étendre les tests : API REST (JWT, scan, mouvements hors ligne), exports CSV/PDF, valorisation CUMP/FIFO du comptable, tâches IA.
-- [ ] Performance de la valorisation : chaque page du comptable rejoue tout l'historique (≈ 1 s pour 63 000 mouvements) ; mettre en cache les valeurs ou enregistrer le CUMP au fil des mouvements si le volume grossit.
+- [ ] Prédictions déjà en base calculées avant le 31/10/2026 : leurs bornes sont journalières (ancienne convention). Elles sont remplacées au fil des analyses nocturnes ; les supprimer ou relancer une analyse pour repartir proprement.
+- [ ] Marges du comptable : coût d'achat = CUMP actuel appliqué à toutes les ventes de l'historique (approximation) ; le rapport périodique, lui, utilise le coût réel au moment de chaque vente.
 - [ ] Performance : `_calculer_suggestions` exécute plusieurs requêtes par produit (appelée sur le tableau de bord achats) ; à optimiser ou mettre en cache si le catalogue dépasse quelques centaines de produits.
 - [ ] Interface de modération des avis dans l'espace super admin (aujourd'hui : admin Django).
 - [ ] Ménage : dossier `.venv/` en double de `env/` (non versionné), `GUIDE_*.txt` à relire et éventuellement convertir en Markdown.

@@ -17,7 +17,7 @@ from apps.accounts.decorators import role_required
 from apps.stock.models import Produit, Stock, Mouvement, Categorie, Entrepot
 from apps.core.models import AuditLog
 from apps.core.models import ExportLog  # centralisé
-from .valorisation import FLUX, cump_permanent, prix_fifo, valoriser_produits
+from .valorisation import FLUX, prix_fifo_produits, valoriser_produits
 
 try:
     from reportlab.pdfgen import canvas as rl_canvas
@@ -51,19 +51,27 @@ def _stocks_dict(entreprise):
     }
 
 
-def _cump(produit):
-    """CUMP permanent : rejeu chronologique des mouvements du produit (voir valorisation.py)."""
-    return cump_permanent(produit)
-
-
 def _cumps(produits):
     """CUMP permanent de plusieurs produits en un seul rejeu (une requête au lieu d'une par produit)."""
     return {pid: v['cump'] for pid, v in valoriser_produits(produits).items()}
 
 
-def _fifo(produit):
-    """Coût unitaire du stock restant en FIFO (valorisé aux prix des entrées les plus récentes)."""
-    return prix_fifo(produit)
+def _ventes_nettes(produits):
+    """
+    {produit_id: (quantité vendue, quantité retournée par les clients)} en une requête.
+    Un retour client (retour vers un entrepôt) annule une vente : il se déduit du chiffre d'affaires.
+    """
+    ventes = defaultdict(lambda: [Decimal('0'), Decimal('0')])
+    for pid, type_m, vers_destination, total in (
+        Mouvement.objects.filter(produit__in=list(produits), type_mouvement__in=['sortie', 'retour'])
+        .annotate(vers_destination=Q(entrepot_destination__isnull=False))
+        .values_list('produit', 'type_mouvement', 'vers_destination').annotate(total=Sum('quantite'))
+    ):
+        if type_m == 'sortie':
+            ventes[pid][0] += total
+        elif vers_destination:
+            ventes[pid][1] += total
+    return {pid: tuple(v) for pid, v in ventes.items()}
 
 
 def _csv(filename, headers, rows):
@@ -132,12 +140,13 @@ def dashboard(request):
     top_valeur = []
 
     cumps = _cumps(produits)
+    fifos = prix_fifo_produits(produits)
     for p in produits:
         qte = stocks.get(p.id, 0)
         if qte <= 0:
             continue
         vc = qte * cumps[p.pk]
-        vf = qte * _fifo(p)
+        vf = qte * fifos[p.pk]
         valeur_cump += vc
         valeur_fifo += vf
         top_valeur.append({'nom': p.nom, 'sku': p.sku, 'valeur_totale': vc})
@@ -203,12 +212,12 @@ def valorisation(request):
         produits_qs = produits_qs.filter(categorie_id=categorie_id)
 
     valorisations = []
-    cumps = _cumps(produits_qs) if methode == 'cump' else {}
+    prix_unitaires = _cumps(produits_qs) if methode == 'cump' else prix_fifo_produits(produits_qs)
     for p in produits_qs:
         qte = stocks.get(p.id, 0)
         if qte <= 0:
             continue
-        prix = cumps[p.pk] if methode == 'cump' else _fifo(p)
+        prix = prix_unitaires[p.pk]
         valeur = qte * prix
         valorisations.append({
             'nom': p.nom,
@@ -371,11 +380,10 @@ def marges(request):
 
     marges_data = []
     cumps = _cumps(produits_qs)
+    ventes = _ventes_nettes(produits_qs)
     for p in produits_qs:
-        qte_vendue = (
-            Mouvement.objects.filter(produit=p, type_mouvement='sortie')
-            .aggregate(total=Sum('quantite'))['total'] or 0
-        )
+        vendues, retournees = ventes.get(p.pk, (Decimal('0'), Decimal('0')))
+        qte_vendue = vendues - retournees  # ventes nettes des retours clients
         prix_achat = cumps[p.pk]
         prix_vente = p.prix_vente or Decimal('0')
         marge_u = prix_vente - prix_achat
@@ -390,6 +398,7 @@ def marges(request):
             'marge_unitaire': marge_u,
             'marge_pct': marge_pct,
             'qte_vendue': qte_vendue,
+            'qte_retournee': retournees,
             'marge_totale': marge_tot,
         })
 
@@ -415,6 +424,7 @@ def marges(request):
                 float(m['marge_unitaire']),
                 f"{float(m['marge_pct']):.1f}%",
                 m['qte_vendue'],
+                m['qte_retournee'],
                 float(m['marge_totale']),
             )
             for m in marges_data
@@ -422,7 +432,7 @@ def marges(request):
         return _csv(
             f'marges_{date.today()}.csv',
             ['Produit', 'SKU', 'PU achat CUMP (FCFA)', 'PU vente (FCFA)',
-             'Marge U. (FCFA)', 'Marge %', 'Qté vendue', 'Marge totale (FCFA)'],
+             'Marge U. (FCFA)', 'Marge %', 'Qté vendue nette', 'dont retours clients', 'Marge totale (FCFA)'],
             rows,
         )
 
@@ -557,8 +567,8 @@ def rapports(request):
             for cle in FLUX:
                 total[cle] += v[cle]
             if p.prix_vente:
-                total['ca'] += v['ca']
-                total['cout_ventes_pv'] += v['sorties']
+                total['ca'] += v['ca']  # net des retours clients
+                total['cout_ventes_pv'] += v['sorties'] - v['retours_clients']
         total['entrees_total'] = sum(total[c] for c, sens in FLUX.items() if sens > 0)
         total['sorties_total'] = sum(total[c] for c, sens in FLUX.items() if sens < 0)
         total['marge_pct'] = ((total['ca'] - total['cout_ventes_pv']) / total['ca'] * 100) if total['ca'] else None
@@ -651,8 +661,10 @@ def exports(request):
         rows = []
         produits = list(Produit.objects.filter(entreprise=entreprise, est_actif=True, prix_vente__isnull=False).exclude(prix_vente=0))
         cumps = _cumps(produits)
+        ventes = _ventes_nettes(produits)
         for p in produits:
-            qte_v = Mouvement.objects.filter(produit=p, type_mouvement='sortie').aggregate(t=Sum('quantite'))['t'] or 0
+            vendues, retournees = ventes.get(p.pk, (Decimal('0'), Decimal('0')))
+            qte_v = vendues - retournees  # ventes nettes des retours clients
             pa = cumps[p.pk]
             pv = p.prix_vente or Decimal('0')
             mu = pv - pa
@@ -666,7 +678,7 @@ def exports(request):
         return _csv(
             f'marges_{date.today()}.csv',
             ['Produit', 'SKU', 'PU achat (FCFA)', 'PU vente (FCFA)',
-             'Marge U. (FCFA)', 'Marge %', 'Qté vendue', 'Marge totale (FCFA)'],
+             'Marge U. (FCFA)', 'Marge %', 'Qté vendue nette', 'Marge totale (FCFA)'],
             rows,
         )
 

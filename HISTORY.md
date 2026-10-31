@@ -120,3 +120,11 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - **Script de démonstration** (`scripts/seed.py`) : les prédictions IA reprennent le format de la vraie tâche (une ligne par produit, consommation totale sur 30 jours issue de l'historique, confiance sur 100), au lieu de valeurs proches du stock.
 - **Tests** : 118.
 
+## 31/10/2026 (suite 5) — Cache de valorisation, unités des prédictions, retours dans les marges
+
+- `33d9e6e` poussé sur GitHub (rapports du comptable, prédictions de démonstration).
+- **Cache** : le profilage a montré que 85 % du temps des pages du comptable était passé à recharger l'historique des mouvements. Le rejeu est désormais mis en cache, avec une clé construite sur l'état des données (nombre et dernière modification des mouvements, stocks, prix) : toute modification l'invalide d'elle-même. FIFO calculé en une requête au lieu d'une par produit. Tableau de bord du comptable : 1,8 s → 0,10 s ; rapport : 1,08 s → 0,04 s (cache chaud). Le cache Redis est configuré pour être ignoré s'il est indisponible.
+- **Unités des prédictions IA** : la quantité prévue était un total sur 30 jours mais les bornes des valeurs journalières (« 590 [12 – 31] »). Convention unique : tout est en totaux sur la période, documentée sur le modèle. La tâche IA enregistre la quantité recommandée avec le calcul commun des suggestions d'achat (au lieu d'une formule à part). L'écran IA de l'admin entreprise n'affiche plus que la dernière prédiction de chaque produit (il cumulait celles de chaque nuit), avec période, consommation par jour et confiance normalisée ; l'export CSV suit la même convention. Page des prédictions de l'espace achats : demi-intervalle correctement calculé.
+- **Retours clients** : déduits des quantités vendues et du chiffre d'affaires (marges, exports, rapport périodique où le coût des ventes est également net des retours).
+- **Tests** : 122.
+

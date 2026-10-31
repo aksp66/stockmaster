@@ -180,3 +180,24 @@ class SeuilsApresVariationTests(EntrepriseTestCase):
         self.assertEqual(lait.quantite_totale(), 4)
         self.assertTrue(Alerte.objects.filter(produit=lait, type_alerte='seuil_bas').exists())
         self.assertEqual(Mouvement.objects.get(produit=lait).type_mouvement, TypeMouvement.ENTREE)
+
+
+class EcranIaAdminTests(EntrepriseTestCase):
+
+    def test_une_prediction_par_produit_unites_explicites(self):
+        ancienne = PredictionStock.objects.create(produit=self.produit, date_cible=timezone.localdate() + timedelta(days=29),
+                                                  quantite_prevue=999, confiance=50, modele_utilise='prophet')
+        PredictionStock.objects.filter(pk=ancienne.pk).update(created_at=timezone.now() - timedelta(days=1))
+        PredictionStock.objects.create(produit=self.produit, date_cible=timezone.localdate() + timedelta(days=30),
+                                       quantite_prevue=60, borne_inferieure=45, borne_superieure=75,
+                                       confiance=0.85, modele_utilise='prophet')
+        self.connecter('admin_ent')
+        response = self.client.get(reverse('admin_entreprise:ia_dashboard'))
+        self.assertEqual(response.context['nb_predictions'], 1)  # l'ancienne prédiction n'est pas recomptée
+        p = response.context['predictions'][0]
+        self.assertEqual((p.quantite_prevue, p.horizon, p.conso_jour, p.confiance_pct), (60, 30, 2, 85))
+        self.assertEqual(p.a_commander, calculer_reappro(self.produit)['quantite_suggeree'])
+        self.assertContains(response, '/ jour')
+        csv = self.client.get(reverse('admin_entreprise:exports'), {'type': 'ia'}).content.decode()
+        self.assertIn('Consommation / jour', csv)
+

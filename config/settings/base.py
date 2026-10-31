@@ -221,6 +221,11 @@ CACHES = {
         "LOCATION": f"{REDIS_URL}/2",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            # Le cache n'est qu'une accélération : si Redis est arrêté, les pages fonctionnent
+            # sans lui (calcul direct) au lieu de lever une erreur.
+            "IGNORE_EXCEPTIONS": True,
+            "SOCKET_CONNECT_TIMEOUT": 0.5,
+            "SOCKET_TIMEOUT": 0.5,
         }
     }
 }
