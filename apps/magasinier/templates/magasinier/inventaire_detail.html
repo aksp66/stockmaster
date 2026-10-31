@@ -14,17 +14,17 @@
 
 <div style="margin-bottom:16px;" class="au a1">
   <h2 style="font-size:18px;font-weight:800;color:var(--text-p);">{{ session.entrepot.nom }}</h2>
-  <p style="font-size:12px;color:var(--text-m);margin-top:3px;">Créé le {{ session.date_creation|date:"d/m/Y H:i" }} par {{ session.createur.get_full_name }}</p>
+  <p style="font-size:12px;color:var(--text-m);margin-top:3px;">Créé le {{ session.date_debut|date:"d/m/Y H:i" }} par {{ session.utilisateur_demarrage.get_full_name }}</p>
 </div>
 
 {# Progression #}
 <div class="au a1" style="margin-bottom:14px;">
   <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px;">
-    <span style="color:var(--text-m);">{{ session.lignes_comptees }} / {{ session.total_lignes }} produits</span>
-    <span style="color:var(--or);">{{ session.progression }}%</span>
+    <span style="color:var(--text-m);">{{ lignes_comptees }} / {{ total_lignes }} produits</span>
+    <span style="color:var(--or);">{{ progression }}%</span>
   </div>
   <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-    <div style="width:{{ session.progression }}%;height:100%;background:{% if session.progression==100 %}var(--green){% elif session.progression>60 %}var(--or){% else %}var(--red){% endif %};border-radius:4px;transition:width .5s;"></div>
+    <div style="width:{{ progression }}%;height:100%;background:{% if progression == 100 %}var(--green){% elif progression > 60 %}var(--or){% else %}var(--red){% endif %};border-radius:4px;transition:width .5s;"></div>
   </div>
 </div>
 

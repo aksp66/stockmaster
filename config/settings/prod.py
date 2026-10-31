@@ -39,6 +39,9 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'StockMaster <no-reply@stockmaster.local>'
 
 # Sécurité production
+# Caddy termine le HTTPS et transmet la requête en HTTP local avec X-Forwarded-Proto :
+# sans cet en-tête, Django croirait chaque requête en HTTP et SECURE_SSL_REDIRECT bouclerait.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

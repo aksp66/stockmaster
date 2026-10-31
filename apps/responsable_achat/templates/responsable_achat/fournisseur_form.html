@@ -30,7 +30,7 @@
         </div>
         <div class="fi" style="margin-top:14px;margin-bottom:0;">
           <label class="fl">Description / Notes</label>
-          <textarea name="description" class="fin" rows="2" placeholder="Notes internes sur ce fournisseur…">{{ fournisseur.description|default:'' }}</textarea>
+          <textarea name="description" class="fin" rows="2" placeholder="Notes internes sur ce fournisseur…">{{ fournisseur.notes|default:'' }}</textarea>
         </div>
       </div>
     </div>
@@ -41,7 +41,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Nom du contact</label>
-            <input type="text" name="contact_nom" value="{{ fournisseur.contact_nom|default:'' }}" class="fin" placeholder="Jean Dupont">
+            <input type="text" name="contact_nom" value="{{ fournisseur.contact|default:'' }}" class="fin" placeholder="Jean Dupont">
           </div>
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Email <span style="color:var(--red);">*</span></label>
@@ -73,7 +73,7 @@
           </div>
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Ville</label>
-            <input type="text" name="ville" value="{{ fournisseur.ville|default:'' }}" class="fin" placeholder="Paris">
+            <input type="text" name="ville" value="" class="fin" placeholder="Paris">
           </div>
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Pays</label>
@@ -89,7 +89,7 @@
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Délai de livraison (jours)</label>
-            <input type="number" name="delai_livraison" value="{{ fournisseur.delai_livraison|default:'7' }}" class="fin" min="0">
+            <input type="number" name="delai_livraison" value="{{ fournisseur.delai_moyen_jours|default:'7' }}" class="fin" min="0">
           </div>
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Délai de paiement (jours)</label>
@@ -112,8 +112,8 @@
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Statut</label>
             <select name="actif" class="fin">
-              <option value="1" {% if fournisseur.actif or not fournisseur %}selected{% endif %}>Actif</option>
-              <option value="0" {% if fournisseur and not fournisseur.actif %}selected{% endif %}>Inactif</option>
+              <option value="1" {% if fournisseur.est_actif or not fournisseur %}selected{% endif %}>Actif</option>
+              <option value="0" {% if fournisseur and not fournisseur.est_actif %}selected{% endif %}>Inactif</option>
             </select>
           </div>
         </div>

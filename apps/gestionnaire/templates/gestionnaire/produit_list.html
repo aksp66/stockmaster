@@ -94,7 +94,7 @@
           <span class="mono" style="font-size:15px;font-weight:800;color:{% if p.quantite_totale == 0 %}var(--red){% elif p.quantite_totale <= p.seuil_alerte %}var(--or){% else %}var(--green){% endif %};">
             {{ p.quantite_totale }}
           </span>
-          <span style="font-size:11px;color:var(--text-m);"> {{ p.unite|default:"unité" }}</span>
+          <span style="font-size:11px;color:var(--text-m);"> {{ p.get_unite_mesure_display|lower|default:"unité" }}</span>
         </td>
         <td><span class="mono" style="font-size:13px;color:var(--text-m);">{{ p.seuil_alerte }}</span></td>
         <td><span class="mono" style="font-size:13px;font-weight:600;">{{ p.prix_unitaire|floatformat:2 }} FCFA</span></td>

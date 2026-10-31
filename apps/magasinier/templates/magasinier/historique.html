@@ -52,8 +52,8 @@
           <span class="badge {% if m.type_mouvement == 'entree' %}bg-gr{% elif m.type_mouvement == 'sortie' %}bg-re{% else %}bg-bl{% endif %}" style="font-size:10px;">{{ m.get_type_mouvement_display }}</span>
         </div>
       </div>
-      {% if m.motif %}
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-m);"><i class="fas fa-comment" style="margin-right:4px;"></i>{{ m.motif }}</div>
+      {% if m.note %}
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text-m);"><i class="fas fa-comment" style="margin-right:4px;"></i>{{ m.note }}</div>
       {% endif %}
     </div>
     {% endfor %}

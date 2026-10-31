@@ -686,6 +686,17 @@ def conformite(request):
             'action': 'Corriger les mouvements ayant créé ces stocks négatifs.',
         })
 
+    # Les anomalies sont recalculées à chaque affichage : elles sont donc détectées maintenant et non résolues
+    domaine_par_titre = {
+        'Mouvements sans référence document': 'Traçabilité',
+        "Écarts d'inventaire significatifs": 'Inventaire',
+        'Alertes non traitées': 'Alertes',
+        'Stocks négatifs détectés': 'Intégrité du stock',
+    }
+    for a in anomalies:
+        a.update(domaine=domaine_par_titre.get(a['titre'], 'Général'), entite=a['titre'],
+                 date_detection=timezone.now(), resolu=False)
+
     nb_critiques = sum(1 for a in anomalies if a['niveau'] == 'critique')
     nb_majeures  = sum(1 for a in anomalies if a['niveau'] == 'majeure')
     nb_mineures  = sum(1 for a in anomalies if a['niveau'] == 'mineure')

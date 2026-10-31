@@ -1,0 +1,17 @@
+# Serveur WSGI gunicorn (Linux). Copier dans /etc/systemd/system/ puis :
+#   sudo systemctl daemon-reload && sudo systemctl enable --now stockmaster-web
+# Adapter User et le chemin /srv/stockmaster à votre installation.
+[Unit]
+Description=StockMaster - gunicorn
+After=network.target postgresql.service redis-server.service
+
+[Service]
+User=stockmaster
+Group=stockmaster
+WorkingDirectory=/srv/stockmaster
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+ExecStart=/srv/stockmaster/env/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+# Planificateur Celery Beat (analyse IA nocturne). Un seul beat par installation.
+[Unit]
+Description=StockMaster - Celery beat
+After=network.target redis-server.service
+
+[Service]
+User=stockmaster
+Group=stockmaster
+WorkingDirectory=/srv/stockmaster
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+ExecStart=/srv/stockmaster/env/bin/celery -A config beat --loglevel=info --schedule /srv/stockmaster/celerybeat-schedule
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

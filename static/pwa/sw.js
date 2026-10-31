@@ -10,7 +10,7 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
-const APP_VERSION    = "stockmaster-v1.0.0";
+const APP_VERSION    = "stockmaster-v1.1.0";  // à incrémenter après chaque `npm run build` (CSS servi depuis le cache)
 const CACHE_STATIC   = `${APP_VERSION}-static`;
 const CACHE_PAGES    = `${APP_VERSION}-pages`;
 const CACHE_API      = `${APP_VERSION}-api`;
@@ -26,6 +26,7 @@ const STATIC_ASSETS = [
   "/static/pwa/icons/icon-192.png",
   "/static/pwa/icons/icon-512.png",
   "/static/pwa/app.js",
+  "/static/css/output.css",
   "/static/sounds/beep_ok.mp3",
   "/static/sounds/beep_err.mp3",
 ];
@@ -368,8 +369,7 @@ function isStaticAsset(url) {
   return url.pathname.startsWith("/static/")
       || url.hostname === "cdnjs.cloudflare.com"
       || url.hostname === "fonts.gstatic.com"
-      || url.hostname === "fonts.googleapis.com"
-      || url.hostname === "cdn.tailwindcss.com";
+      || url.hostname === "fonts.googleapis.com";
 }
 
 function shouldCacheApiResponse(url) {

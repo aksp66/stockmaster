@@ -13,6 +13,7 @@ from apps.stock.models import PredictionStock
 from apps.ia.models import SuggestionAchat
 from apps.stock.models import Produit, Categorie
 from apps.ia.tasks import lancer_analyse_manuelle, lancer_toutes_predictions
+from apps.accounts.decorators import role_required
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -20,17 +21,11 @@ from apps.ia.tasks import lancer_analyse_manuelle, lancer_toutes_predictions
 # ─────────────────────────────────────────────────────────────────────────────
 
 def role_requis(*roles):
-    """Décorateur qui vérifie que l'utilisateur a l'un des rôles requis."""
-    def decorator(view_func):
-        @login_required
-        def wrapper(request, *args, **kwargs):
-            role = getattr(request.user, "role", None)
-            if role not in roles:
-                messages.error(request, "Accès refusé. Rôle insuffisant.")
-                return redirect("dashboard")
-            return view_func(request, *args, **kwargs)
-        return wrapper
-    return decorator
+    """
+    Décorateur de rôles du module IA : délègue à `role_required` (accounts), qui
+    redirige vers l'accueil en cas de refus et laisse toujours passer le super admin.
+    """
+    return role_required(*roles)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -38,7 +33,7 @@ def role_requis(*roles):
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
-@role_requis("admin_entreprise", "responsable_achat", "gestionnaire")
+@role_requis("admin_ent", "responsable_achat", "gestionnaire")
 def predictions_dashboard(request):
     """
     Tableau de bord principal des prédictions IA.
@@ -107,7 +102,7 @@ def predictions_dashboard(request):
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
-@role_requis("admin_entreprise", "responsable_achat")
+@role_requis("admin_ent", "responsable_achat")
 def lancer_analyse(request):
     """
     Vue pour déclencher manuellement une analyse IA.
@@ -202,10 +197,10 @@ def statut_tache(request, task_id: str):
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
-@role_requis("admin_entreprise", "responsable_achat", "gestionnaire", "auditeur")
-def prediction_detail(request, produit_id: int):
+@role_requis("admin_ent", "responsable_achat", "gestionnaire", "auditeur")
+def prediction_detail(request, produit_id):
     """Affiche les prédictions détaillées pour un produit."""
-    produit = get_object_or_404(Produit, pk=produit_id)
+    produit = get_object_or_404(Produit, pk=produit_id, entreprise=request.user.entreprise)
 
     predictions = (
         PredictionStock.objects
@@ -248,7 +243,7 @@ def prediction_detail(request, produit_id: int):
 @require_POST
 def valider_suggestion(request, suggestion_id: int):
     """Marque une suggestion d'achat comme validée et crée un bon de commande."""
-    suggestion = get_object_or_404(SuggestionAchat, pk=suggestion_id)
+    suggestion = get_object_or_404(SuggestionAchat, pk=suggestion_id, produit__entreprise=request.user.entreprise)
 
     try:
         # Créer un bon de commande automatiquement

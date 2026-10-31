@@ -3,14 +3,17 @@
 **StockMaster** est une solution web intelligente de gestion de stock destinée aux PME/ETI.  
 Elle intègre un suivi multi‑entrepôts, des mouvements de stock, des alertes, des prédictions IA, plusieurs rôles utilisateurs, une API REST et une PWA mobile.
 
+> **Démarrer** : `demarrage.bat` ([DEMARRAGE.md](DEMARRAGE.md)) · **Déployer** : [DEPLOIEMENT.md](DEPLOIEMENT.md) · **Avancement** : [TASKS.md](TASKS.md) · **Historique** : [HISTORY.md](HISTORY.md)
+
 ---
 
 ## 1. Architecture générale
 
-- **Backend** : Django 5, PostgreSQL, Celery + Redis
+- **Backend** : Django 6, PostgreSQL, Celery + Redis
 - **Frontend** : Tailwind CSS, ShadCN, Font Awesome
 - **Mobile** : PWA (Progressive Web App) + Service Worker
 - **IA** : Prophet / RandomForest pour les prédictions de consommation
+- **Production** : Caddy (HTTPS automatique) devant waitress (Windows) ou gunicorn (Linux), sans Docker
 
 ---
 
@@ -150,10 +153,12 @@ Elle intègre un suivi multi‑entrepôts, des mouvements de stock, des alertes,
 ### 4.1 Workflow
 
 1. **Brouillon** : création par responsable achat (sélection des produits, quantités, prix).
-2. **Envoyé** : basculement manuel après envoi au fournisseur.
+2. **Envoyé** : bouton « Envoyer » (ou « Enregistrer & envoyer » à la création) ; un BC sans ligne ne peut pas être envoyé. Le PDF du bon de commande est disponible à tout moment.
 3. **Réception partielle** : saisie des quantités reçues (possible en plusieurs fois). À chaque réception, des mouvements d’entrée sont créés et le stock est mis à jour.
 4. **Réception complète** : toutes les lignes sont reçues.
 5. **Clôturé** : fin administrative.
+
+Un BC peut être **annulé** tant qu'il est en brouillon ou envoyé (pas après réception).
 
 ### 4.2 Lien avec le stock
 
@@ -260,71 +265,129 @@ Elle intègre un suivi multi‑entrepôts, des mouvements de stock, des alertes,
 
 ## 9. Principaux fichiers et dossiers du projet
 
-``` bash
-
-  apps/
-  ├── core/ # modèles abstraits, AuditLog, ExportLog
-  ├── entreprises/ # modèles Entreprise, TypeEntreprise
-  ├── accounts/ # Utilisateur, rôles, authentification
-  ├── stock/ # produits, mouvements, inventaires, alertes, prédictions
-  ├── gestionnaire/ # vues/gestionnaire
-  ├── responsable_achat/ # fournisseurs, commandes
-  ├── magasinier/ # scan, inventaire terrain
-  ├── auditeur/ # rapports, logs
-  ├── comptable/ # valorisation, marges
-  ├── superadmin/ # gestion globale
-  ├── admin_entreprise/ # gestion entreprise
-  ├── api/ # API REST + PWA
-  ├── pages/ # pages publiques
-  config/ # settings, urls, wsgi
-  templates/ # templates globaux
-  static/ # CSS, JS, PWA (sw.js, manifest, icônes)
-  scripts/ # scripts de seeding
-
+```text
+apps/
+├── core/               # modèles abstraits, AuditLog, ExportLog
+├── entreprises/        # Entreprise, TypeEntreprise
+├── accounts/           # Utilisateur, rôles, authentification, invitations
+├── stock/              # produits, mouvements, inventaires, alertes, bons de commande, prédictions
+├── gestionnaire/       # espace gestionnaire de stock
+├── responsable_achat/  # fournisseurs, bons de commande, prédictions et suggestions IA
+├── magasinier/         # scan, mouvements rapides, inventaire terrain
+├── auditeur/           # mouvements, écarts, logs, conformité
+├── comptable/          # valorisation, marges, dépréciation
+├── superadmin/         # gestion globale de la plateforme
+├── admin_entreprise/   # utilisateurs, entrepôts, catégories de l'entreprise
+├── ia/                 # tâches Celery de prédiction
+├── api/                # API REST (JWT) utilisée par la PWA
+└── pages/              # site public, avis clients
+config/                 # settings (base / dev / prod / test), urls, wsgi, celery
+deploy/                 # Caddyfile, services systemd (Linux)
+templates/              # templates globaux (base, erreurs, emails)
+static/                 # CSS, sons, PWA (sw.js, manifest, icônes)
+scripts/                # super admin, données de démonstration
+tests/                  # tests des points critiques
+demarrage.bat / .ps1    # lancement en un clic (dev ou prod)
 ```
 
-## 10. Démarrage rapide (environnement de développement)
+---
+
+## 10. Démarrage rapide (Windows)
+
+Prérequis : Python 3.13, PostgreSQL démarré avec une base `stockmaster`, Redis (facultatif, pour l'IA).
+
+```bat
+git clone https://github.com/aksp66/stockmaster.git && cd stockmaster
+demarrage.bat
+```
+
+Le script crée l'environnement Python, installe les dépendances, génère `.env`, vérifie PostgreSQL et Redis, applique les migrations, lance Celery et ouvre http://127.0.0.1:8000. `Ctrl+C` arrête tout. Détail de chaque étape et dépannage : **[DEMARRAGE.md](DEMARRAGE.md)**.
+
+Créer ensuite le super administrateur, puis (facultatif) charger les données de démonstration :
+
+```bat
+env\Scripts\python.exe manage.py runscript create_superadmin
+env\Scripts\python.exe manage.py runscript seed
+```
+
+<details>
+<summary>Démarrage manuel (sans le script, ou sous Linux / macOS)</summary>
 
 ```bash
-# 1. Cloner le projet
-git clone ... && cd Stock_project
-
-# 2. Créer virtualenv et installer dépendances
 python -m venv env
-source env/bin/activate  # ou env\Scripts\activate
+env\Scripts\activate            # Linux / macOS : source env/bin/activate
 pip install -r requirements.txt
-
-# 3. Configurer PostgreSQL (ou SQLite) et settings
-
-# 4. Migrations
+copy .env.example .env          # puis renseigner SECRET_KEY, DB_PASSWORD…
 python manage.py migrate
-
-# 5. Créer un super admin (via script ou commande)
-python manage.py shell < create_superadmin.py
-
-# 6. Lancer le serveur
+python manage.py runscript create_superadmin
 python manage.py runserver
 
-# 7. (Optionnel) Démarrer Celery worker et beat (pour IA)
+# Facultatif (IA) : Redis démarré, puis dans deux autres terminaux
 celery -A config worker --pool=solo --loglevel=info
-celery -A config beat --loglevel=info 
-
-#redis
-redis-server.exe redis.windows.conf
+celery -A config beat --loglevel=info
 ```
 
-## 11. Variables d’environnement importantes (production)
+</details>
 
-``` bash
-DJANGO_SETTINGS_MODULE = config.settings.prod
+---
 
-SECRET_KEY
+### Styles (Tailwind CSS)
 
-DATABASE_URL
+Le CSS Tailwind est **compilé** dans `static/css/output.css` (versionné, aucune dépendance à un CDN en production). Après avoir ajouté ou modifié des classes Tailwind dans un template :
 
-REDIS_URL
-
-EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
-
-NGROK_URL (pour CSRF_TRUSTED_ORIGINS)
+```bash
+npm install        # une seule fois (Tailwind 3.4.17)
+npm run build      # régénère static/css/output.css
 ```
+
+Puis incrémenter `APP_VERSION` dans `static/pwa/sw.js` : le Service Worker sert le CSS depuis son cache.
+
+---
+
+## 11. Tests
+
+```bash
+python manage.py test --settings=config.settings.test
+```
+
+Seul PostgreSQL est nécessaire : `config.settings.test` remplace Redis par un cache mémoire et exécute Celery de façon synchrone. Le dossier `tests/` couvre les points critiques : permissions par rôle, séparation entre entreprises, stock jamais négatif, workflow des bons de commande, inventaire, avis clients.
+
+La CI GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) lance à chaque push : `check`, détection de migrations manquantes, `check --deploy` et les tests.
+
+---
+
+## 12. Déploiement (Caddy, sans Docker)
+
+Caddy assure le HTTPS automatique et sert les fichiers statiques. Le serveur WSGI (waitress sous Windows, gunicorn sous Linux) n'écoute qu'en local.
+
+```bat
+demarrage.bat prod
+```
+
+Configuration, services Windows (NSSM) ou systemd, mises à jour et liste de vérification : **[DEPLOIEMENT.md](DEPLOIEMENT.md)**.
+
+Variables d'environnement de production (`.env`, voir `.env.example`) :
+
+| Variable | Rôle |
+|---|---|
+| `SECRET_KEY` | Clé secrète Django (obligatoire) |
+| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | PostgreSQL |
+| `REDIS_URL` | Redis (Celery + cache) |
+| `STOCKMASTER_DOMAINE` | Domaine servi par Caddy |
+| `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS` | Domaine(s) autorisé(s), séparés par des virgules |
+| `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | SMTP (mot de passe d'application Gmail) |
+
+---
+
+## 13. Documentation du projet
+
+| Document | Contenu |
+|---|---|
+| [DEMARRAGE.md](DEMARRAGE.md) | Étapes du script de démarrage, options, dépannage |
+| [DEPLOIEMENT.md](DEPLOIEMENT.md) | Mise en production avec Caddy (Windows et Linux) |
+| [HISTORY.md](HISTORY.md) | Historique du projet |
+| [TASKS.md](TASKS.md) | Tâches faites et restantes, par priorité |
+| `GUIDE_INSTALLATION_IA.txt` | Installation de Prophet / Celery / Redis |
+| `GUIDE_API_PWA.txt` | API REST et PWA mobile |
+| `StockMaster_Livrables_UML.html` | Livrables de conception UML |
+| [SIGNATURE.md](SIGNATURE.md) | Paternité du projet |

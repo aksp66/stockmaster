@@ -14,7 +14,7 @@
 {# Type de mouvement #}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
   <label id="lbl-entree" onclick="setType('entree')" style="cursor:pointer;">
-    <input type="radio" name="type_mouvement" value="entree" {% if request.GET.type == 'entree' or not request.GET.type %}checked{% endif %} style="display:none;">
+    <input type="radio" name="type_mouvement" value="entree" {% if type_initial == 'entree' %}checked{% endif %} style="display:none;">
     <div id="card-entree" style="padding:18px 14px;border:2px solid var(--green);border-radius:14px;text-align:center;background:var(--green-dim);transition:all .15s;">
       <i class="fas fa-arrow-down" style="font-size:28px;color:var(--green);display:block;margin-bottom:8px;"></i>
       <div style="font-size:15px;font-weight:800;color:var(--green);">Entrée</div>
@@ -22,7 +22,7 @@
     </div>
   </label>
   <label id="lbl-sortie" onclick="setType('sortie')" style="cursor:pointer;">
-    <input type="radio" name="type_mouvement" value="sortie" {% if request.GET.type == 'sortie' %}checked{% endif %} style="display:none;">
+    <input type="radio" name="type_mouvement" value="sortie" {% if type_initial == 'sortie' %}checked{% endif %} style="display:none;">
     <div id="card-sortie" style="padding:18px 14px;border:2px solid var(--border);border-radius:14px;text-align:center;background:white;transition:all .15s;">
       <i class="fas fa-arrow-up" style="font-size:28px;color:var(--text-m);display:block;margin-bottom:8px;"></i>
       <div style="font-size:15px;font-weight:800;color:var(--text-m);">Sortie</div>
@@ -106,7 +106,7 @@
 // Init type depuis URL
 const urlType = new URLSearchParams(location.search).get('type');
 if (urlType) setType(urlType);
-else setType('entree');
+else setType('{{ type_initial }}');
 
 function setType(t) {
   const ce = document.getElementById('card-entree');

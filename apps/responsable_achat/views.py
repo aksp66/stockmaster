@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db import transaction
 from django.core.exceptions import ValidationError
+from django.views.decorators.http import require_POST
 from apps.accounts.decorators import role_required
 from apps.gestionnaire.views import _appliquer_mouvement
 from apps.stock.models import (
@@ -14,9 +15,12 @@ from apps.stock.models import (
 from apps.stock.models import PredictionStock, Categorie, Mouvement, TypeMouvement
 from .models import UserPreferences
 import csv
+import io
+from xml.sax.saxutils import escape
 from datetime import timedelta, date
+from decimal import Decimal, InvalidOperation
 from django.core.paginator import Paginator
-from django.db.models import Sum, Q, F, FloatField, Avg
+from django.db.models import Sum, Q, F, FloatField, Avg, Count
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
@@ -31,35 +35,99 @@ def _entreprise(request):
 @role_required('responsable_achat', 'admin_ent', 'super_admin')
 def dashboard(request):
     ent = _entreprise(request)
-    commandes_en_cours = BonCommande.objects.filter(
-        entreprise=ent, statut__in=['envoye', 'recu_partiel']
-    ).select_related('fournisseur')[:5]
-    suggestions = []  # à remplacer par de vraies suggestions IA
-    fournisseurs = Fournisseur.objects.filter(entreprise=ent, est_actif=True)
+    bons = BonCommande.objects.filter(entreprise=ent).select_related('fournisseur')
+    en_attente = bons.filter(statut__in=['envoye', 'recu_partiel'])
+    montant_ligne = F('bons_commande__lignes__quantite_commandee') * F('bons_commande__lignes__prix_unitaire_ht')
+    top_fournisseurs = (
+        Fournisseur.objects.filter(entreprise=ent, est_actif=True)
+        .exclude(bons_commande__statut=StatutBonCommande.ANNULE)
+        .annotate(nb_commandes=Count('bons_commande', distinct=True), total=Sum(montant_ligne))
+        .filter(nb_commandes__gt=0)
+        .order_by('-total')[:5]
+    )
+    suggestions = _calculer_suggestions(ent)
     context = {
-        'commandes_en_cours': commandes_en_cours,
-        'nb_commandes': BonCommande.objects.filter(entreprise=ent, statut__in=['envoye','recu_partiel']).count(),
-        'nb_fournisseurs': fournisseurs.count(),
-        'suggestions': suggestions,
-        'fournisseurs_actifs': fournisseurs[:5],
-        'total_bc': BonCommande.objects.filter(entreprise=ent).count(),
+        'today': timezone.now(),
+        'derniers_bc': bons.order_by('-date_commande', '-created_at')[:6],
+        'bc_en_attente_reception': en_attente.order_by('date_livraison_prevue')[:5],
+        'nb_bc_en_attente': en_attente.count(),
+        'nb_bc_total': bons.count(),
+        'montant_total_bc': LigneCommande.objects.filter(bon_commande__entreprise=ent)
+            .exclude(bon_commande__statut=StatutBonCommande.ANNULE)
+            .aggregate(t=Sum(F('quantite_commandee') * F('prix_unitaire_ht')))['t'] or 0,
+        'nb_fournisseurs': Fournisseur.objects.filter(entreprise=ent, est_actif=True).count(),
+        'top_fournisseurs': top_fournisseurs,
+        'suggestions_ia': suggestions[:5],
+        'nb_suggestions': len(suggestions),
     }
     return render(request, 'responsable_achat/dashboard.html', context)
 
 # ---------- Fournisseurs ----------
+def _champs_fournisseur(d):
+    """Champs Fournisseur depuis le POST (accepte les noms du formulaire HTML et ceux du modèle)."""
+    try:
+        delai = int(d.get('delai_livraison') or d.get('delai_moyen_jours') or 7)
+    except ValueError:
+        delai = 7
+    return {
+        'contact': d.get('contact_nom', d.get('contact', '')),
+        'email': d.get('email', ''),
+        'telephone': d.get('telephone', ''),
+        'adresse': d.get('adresse', ''),
+        'pays': d.get('pays', ''),
+        'delai_moyen_jours': max(delai, 0),
+        'notes': d.get('description', d.get('notes', '')),
+        'est_actif': d.get('actif', '1') != '0',
+    }
+
 @login_required
 @role_required('responsable_achat', 'admin_ent', 'super_admin')
 def fournisseur_list(request):
     ent = _entreprise(request)
-    qs = Fournisseur.objects.filter(entreprise=ent)
+    qs = Fournisseur.objects.filter(entreprise=ent).annotate(
+        nb_commandes=Count('bons_commande', distinct=True),
+    )
     q = request.GET.get('q')
     if q:
         qs = qs.filter(nom__icontains=q)
+    statut = request.GET.get('statut')
+    if statut == 'actif':
+        qs = qs.filter(est_actif=True)
+    elif statut == 'inactif':
+        qs = qs.filter(est_actif=False)
     paginator = Paginator(qs.order_by('nom'), 20)
     fournisseurs = paginator.get_page(request.GET.get('page', 1))
+    # Montant total commandé (hors annulés) pour les fournisseurs de la page
+    montants = dict(
+        LigneCommande.objects.filter(bon_commande__fournisseur__in=list(fournisseurs))
+        .exclude(bon_commande__statut=StatutBonCommande.ANNULE)
+        .values_list('bon_commande__fournisseur')
+        .annotate(total=Sum(F('quantite_commandee') * F('prix_unitaire_ht')))
+    )
+    for f in fournisseurs:
+        f.montant_total = montants.get(f.pk, 0)
     return render(request, 'responsable_achat/fournisseur_list.html', {
         'fournisseurs': fournisseurs,
         'q': q or '',
+    })
+
+@login_required
+@role_required('responsable_achat', 'admin_ent', 'super_admin')
+def fournisseur_detail(request, pk):
+    ent = _entreprise(request)
+    four = get_object_or_404(Fournisseur, pk=pk, entreprise=ent)
+    bons = four.bons_commande.filter(entreprise=ent).order_by('-date_commande')
+    montant_total = (
+        LigneCommande.objects.filter(bon_commande__in=bons)
+        .exclude(bon_commande__statut=StatutBonCommande.ANNULE)
+        .aggregate(total=Sum(F('quantite_commandee') * F('prix_unitaire_ht')))['total'] or 0
+    )
+    return render(request, 'responsable_achat/fournisseur_detail.html', {
+        'fournisseur': four,
+        'derniers_bc': bons[:10],
+        'nb_commandes': bons.count(),
+        'montant_total': montant_total,
+        'produits': Produit.objects.filter(entreprise=ent, fournisseur_principal=four, est_actif=True),
     })
 
 @login_required
@@ -70,13 +138,7 @@ def fournisseur_create(request):
         Fournisseur.objects.create(
             entreprise=_entreprise(request),
             nom=d['nom'],
-            contact=d.get('contact', ''),
-            email=d.get('email', ''),
-            telephone=d.get('telephone', ''),
-            adresse=d.get('adresse', ''),
-            pays=d.get('pays', ''),
-            delai_moyen_jours=int(d.get('delai_moyen_jours', 7)),
-            notes=d.get('notes', ''),
+            **_champs_fournisseur(d),
         )
         messages.success(request, "Fournisseur créé.")
         return redirect('responsable_achat:fournisseur_list')
@@ -90,16 +152,18 @@ def fournisseur_edit(request, pk):
     if request.method == 'POST':
         d = request.POST
         four.nom = d['nom']
-        four.contact = d.get('contact', '')
-        four.email = d.get('email', '')
-        four.telephone = d.get('telephone', '')
-        four.adresse = d.get('adresse', '')
-        four.pays = d.get('pays', '')
-        four.delai_moyen_jours = int(d.get('delai_moyen_jours', 7))
-        four.notes = d.get('notes', '')
+        for champ, valeur in _champs_fournisseur(d).items():
+            setattr(four, champ, valeur)
         four.save()
         messages.success(request, "Fournisseur mis à jour.")
         return redirect('responsable_achat:fournisseur_list')
+    # Statistiques affichées dans le panneau latéral du formulaire
+    four.nb_commandes = four.bons_commande.count()
+    four.montant_total = (
+        LigneCommande.objects.filter(bon_commande__fournisseur=four)
+        .exclude(bon_commande__statut=StatutBonCommande.ANNULE)
+        .aggregate(total=Sum(F('quantite_commandee') * F('prix_unitaire_ht')))['total'] or 0
+    )
     return render(request, 'responsable_achat/fournisseur_form.html', {'fournisseur': four})
 
 @login_required
@@ -112,23 +176,92 @@ def fournisseur_delete(request, pk):
         four.save()
         messages.success(request, "Fournisseur désactivé.")
         return redirect('responsable_achat:fournisseur_list')
-    return render(request, 'responsable_achat/fournisseur_confirm_delete.html', {'fournisseur': four})
+    # La confirmation se fait dans la modale de la fiche fournisseur
+    return redirect('responsable_achat:fournisseur_edit', pk=pk)
 
 # ---------- Bons de commande ----------
+def _lignes_depuis_post(post):
+    """
+    Extrait les lignes de commande du formulaire : `lignes[N][produit]`, `lignes[N][quantite]`,
+    `lignes[N][prix_unitaire]`, `lignes[N][remise]` (%). Accepte aussi l'ancien format à listes
+    parallèles `produit_id` / `quantite` / `prix_unitaire`. Retourne [(produit_id, qte, prix_net)].
+    """
+    lignes = {}
+    for cle, valeur in post.items():
+        if cle.startswith('lignes[') and cle.endswith(']'):
+            idx, _, champ = cle[len('lignes['):-1].partition('][')
+            lignes.setdefault(idx, {})[champ] = valeur
+    brutes = list(lignes.values()) or [
+        {'produit': pid, 'quantite': q, 'prix_unitaire': pu}
+        for pid, q, pu in zip(post.getlist('produit_id'), post.getlist('quantite'), post.getlist('prix_unitaire'))
+    ]
+    resultat = []
+    for l in brutes:
+        try:
+            qte = Decimal(l.get('quantite') or 0)
+            prix = Decimal(l.get('prix_unitaire') or 0)
+            remise = Decimal(l.get('remise') or 0)
+        except InvalidOperation:
+            continue
+        if l.get('produit') and qte > 0 and prix >= 0:
+            prix_net = (prix * (100 - min(max(remise, Decimal(0)), Decimal(100))) / 100).quantize(Decimal('0.01'))
+            resultat.append((l['produit'], qte, prix_net))
+    return resultat
+
+
+def _enregistrer_lignes(bc, post, ent):
+    for pid, qte, prix in _lignes_depuis_post(post):
+        prod = Produit.objects.filter(pk=pid, entreprise=ent).first()
+        if prod:
+            LigneCommande.objects.create(bon_commande=bc, produit=prod,
+                                         quantite_commandee=qte, prix_unitaire_ht=prix)
+
 @login_required
 @role_required('responsable_achat', 'admin_ent', 'super_admin')
 def boncommande_list(request):
     ent = _entreprise(request)
-    qs = BonCommande.objects.filter(entreprise=ent).select_related('fournisseur', 'utilisateur_createur')
+    tous = BonCommande.objects.filter(entreprise=ent)
+    qs = tous.select_related('fournisseur', 'utilisateur_createur')
+    q = request.GET.get('q')
+    if q:
+        qs = qs.filter(Q(numero__icontains=q) | Q(fournisseur__nom__icontains=q))
     statut = request.GET.get('statut')
     if statut:
         qs = qs.filter(statut=statut)
-    paginator = Paginator(qs.order_by('-date_commande'), 20)
+    fournisseur_id = request.GET.get('fournisseur')
+    if fournisseur_id:
+        qs = qs.filter(fournisseur_id=fournisseur_id)
+    qs = qs.order_by('-date_commande', '-created_at')
+
+    if request.GET.get('export') == 'csv':
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="bons_commande.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Numéro', 'Fournisseur', 'Date commande', 'Statut', 'Total HT', 'Livraison prévue'])
+        for bc in qs:
+            writer.writerow([bc.numero, bc.fournisseur.nom, bc.date_commande, bc.get_statut_display(),
+                             bc.total_ht(), bc.date_livraison_prevue or ''])
+        return response
+
+    compte = dict(tous.values_list('statut').annotate(n=Count('id')))
+    resume_statuts = [
+        {'label': label, 'count': compte.get(code, 0), 'color': color, 'border': border}
+        for code, label, color, border in [
+            ('brouillon',    'Brouillons',          '#6b7280',       '#e5e7eb'),
+            ('envoye',       'Envoyés',             'var(--blue)',   '#bfdbfe'),
+            ('recu_partiel', 'Réception partielle', 'var(--yellow)', '#fde68a'),
+            ('recu_complet', 'Reçus',               'var(--green)',  '#a7f3d0'),
+            ('cloture',      'Clôturés',            '#6b7280',       '#e5e7eb'),
+        ]
+    ]
+    paginator = Paginator(qs, 20)
     bons = paginator.get_page(request.GET.get('page', 1))
     return render(request, 'responsable_achat/boncommande_list.html', {
-        'bons': bons,
+        'bons_commande': bons,
         'statuts': StatutBonCommande.choices,
         'statut_sel': statut,
+        'fournisseurs': Fournisseur.objects.filter(entreprise=ent),
+        'resume_statuts': resume_statuts,
     })
 
 @login_required
@@ -144,24 +277,13 @@ def boncommande_create(request):
             fournisseur=four,
             utilisateur_createur=request.user,
             date_livraison_prevue=d.get('date_livraison_prevue') or None,
-            note=d.get('note', ''),
+            note=d.get('commentaire', d.get('note', '')),
             entrepot_destination=entrepot_dst,
         )
-        # Lignes
-        produit_ids = d.getlist('produit_id')
-        quantites = d.getlist('quantite')
-        prix_unitaires = d.getlist('prix_unitaire')
-        for pid, qte, pu in zip(produit_ids, quantites, prix_unitaires):
-            if pid and qte and float(qte) > 0:
-                prod = Produit.objects.filter(pk=pid, entreprise=ent).first()
-                if prod:
-                    LigneCommande.objects.create(
-                        bon_commande=bc,
-                        produit=prod,
-                        quantite_commandee=float(qte),
-                        prix_unitaire_ht=float(pu or 0)
-                    )
+        _enregistrer_lignes(bc, d, ent)
         messages.success(request, f"Bon de commande {bc.numero} créé.")
+        if d.get('action') == 'envoyer':
+            _changer_statut(request, bc, StatutBonCommande.ENVOYE)
         return redirect('responsable_achat:boncommande_detail', pk=bc.pk)
     context = {
         'fournisseurs': Fournisseur.objects.filter(entreprise=ent, est_actif=True),
@@ -182,25 +304,16 @@ def boncommande_edit(request, pk):
         d = request.POST
         bc.fournisseur = get_object_or_404(Fournisseur, pk=d.get('fournisseur'), entreprise=ent)
         bc.date_livraison_prevue = d.get('date_livraison_prevue') or None
-        bc.note = d.get('note', '')
+        bc.note = d.get('commentaire', d.get('note', ''))
         bc.entrepot_destination = Entrepot.objects.filter(pk=d.get('entrepot_destination'), entreprise=ent).first()
-        bc.save()
-        # Supprimer les anciennes lignes et recréer
-        bc.lignes.all().delete()
-        produit_ids = d.getlist('produit_id')
-        quantites = d.getlist('quantite')
-        prix_unitaires = d.getlist('prix_unitaire')
-        for pid, qte, pu in zip(produit_ids, quantites, prix_unitaires):
-            if pid and qte and float(qte) > 0:
-                prod = Produit.objects.filter(pk=pid, entreprise=ent).first()
-                if prod:
-                    LigneCommande.objects.create(
-                        bon_commande=bc,
-                        produit=prod,
-                        quantite_commandee=float(qte),
-                        prix_unitaire_ht=float(pu or 0)
-                    )
+        with transaction.atomic():
+            bc.save()
+            # Supprimer les anciennes lignes et recréer
+            bc.lignes.all().delete()
+            _enregistrer_lignes(bc, d, ent)
         messages.success(request, "Bon de commande modifié.")
+        if d.get('action') == 'envoyer':
+            _changer_statut(request, bc, StatutBonCommande.ENVOYE)
         return redirect('responsable_achat:boncommande_detail', pk=pk)
     context = {
         'bc': bc,
@@ -215,66 +328,181 @@ def boncommande_edit(request, pk):
 def boncommande_detail(request, pk):
     ent = _entreprise(request)
     bc = get_object_or_404(BonCommande, pk=pk, entreprise=ent)
-    return render(request, 'responsable_achat/boncommande_detail.html', {'bc': bc})
+    receptions = Mouvement.objects.filter(
+        reference=f"BC-{bc.numero}", produit__entreprise=ent, type_mouvement=TypeMouvement.ENTREE,
+    ).select_related('produit', 'entrepot_destination', 'utilisateur').order_by('-date_mouvement')
+    return render(request, 'responsable_achat/boncommande_detail.html', {'bc': bc, 'receptions': receptions})
+
+# Transitions autorisées du workflow BC (statut actuel -> statuts cibles)
+TRANSITIONS_BC = {
+    'brouillon': ['envoye', 'annule'],
+    'envoye': ['recu_partiel', 'recu_complet', 'annule'],
+    'recu_partiel': ['recu_complet', 'cloture'],
+    'recu_complet': ['cloture'],
+}
+
+
+def _changer_statut(request, bc, statut):
+    """Applique une transition de statut si le workflow l'autorise. Retourne True si appliquée."""
+    if statut not in TRANSITIONS_BC.get(bc.statut, []):
+        messages.error(request, "Transition de statut non autorisée.")
+        return False
+    if statut == 'envoye' and not bc.lignes.exists():
+        messages.error(request, "Impossible d'envoyer un bon de commande sans ligne.")
+        return False
+    bc.statut = statut
+    if statut in ['recu_complet', 'cloture']:
+        bc.utilisateur_validation = request.user
+        bc.date_livraison_effective = bc.date_livraison_effective or timezone.now().date()
+    bc.save()
+    messages.success(request, f"Statut mis à jour : {bc.get_statut_display()}")
+    return True
+
 
 @login_required
 @role_required('responsable_achat', 'admin_ent', 'super_admin')
 def boncommande_changer_statut(request, pk, statut):
     ent = _entreprise(request)
     bc = get_object_or_404(BonCommande, pk=pk, entreprise=ent)
-    transitions = {
-        'brouillon': ['envoye', 'annule'],
-        'envoye': ['recu_partiel', 'recu_complet', 'annule'],
-        'recu_partiel': ['recu_complet', 'cloture'],
-        'recu_complet': ['cloture'],
-    }
-    if statut in transitions.get(bc.statut, []):
-        bc.statut = statut
-        if statut in ['recu_complet', 'cloture']:
-            bc.utilisateur_validation = request.user
-            bc.date_livraison_effective = timezone.now().date()
-        bc.save()
-        messages.success(request, f"Statut mis à jour : {bc.get_statut_display()}")
-    else:
-        messages.error(request, "Transition de statut non autorisée.")
+    _changer_statut(request, bc, statut)
     return redirect('responsable_achat:boncommande_detail', pk=pk)
+
+
+def _action_statut(statut):
+    """Fabrique une vue POST qui fait passer un BC au statut donné."""
+    @login_required
+    @role_required('responsable_achat', 'admin_ent', 'super_admin')
+    @require_POST
+    def vue(request, pk):
+        bc = get_object_or_404(BonCommande, pk=pk, entreprise=_entreprise(request))
+        _changer_statut(request, bc, statut)
+        return redirect('responsable_achat:boncommande_detail', pk=pk)
+    return vue
+
+
+boncommande_envoyer = _action_statut(StatutBonCommande.ENVOYE)
+boncommande_cloturer = _action_statut(StatutBonCommande.CLOTURE)
+boncommande_annuler = _action_statut(StatutBonCommande.ANNULE)
+
+
+def _montant(valeur):
+    return f"{valeur:,.2f}".replace(',', ' ')
+
+
+@login_required
+@role_required('responsable_achat', 'admin_ent', 'super_admin')
+def boncommande_pdf(request, pk):
+    """Bon de commande imprimable (PDF A4) à transmettre au fournisseur."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+    ent = _entreprise(request)
+    bc = get_object_or_404(
+        BonCommande.objects.select_related('fournisseur', 'entrepot_destination', 'utilisateur_createur'),
+        pk=pk, entreprise=ent,
+    )
+    four = bc.fournisseur
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
+                            topMargin=18 * mm, bottomMargin=18 * mm,
+                            title=f"BC-{bc.numero}", author=ent.nom)
+    st = getSampleStyleSheet()
+    elements = [
+        Paragraph(f"<b>{escape(ent.nom)}</b>", st['Title']),
+        Paragraph(f"Bon de commande <b>BC-{bc.numero}</b> — {bc.get_statut_display()}", st['Heading2']),
+        Spacer(1, 4 * mm),
+        Table([
+            ['Fournisseur', four.nom, 'Date de commande', bc.date_commande.strftime('%d/%m/%Y')],
+            ['Contact', four.contact or '—', 'Livraison prévue',
+             bc.date_livraison_prevue.strftime('%d/%m/%Y') if bc.date_livraison_prevue else '—'],
+            ['Email', four.email or '—', 'Entrepôt de réception',
+             bc.entrepot_destination.nom if bc.entrepot_destination else '—'],
+            ['Téléphone', four.telephone or '—', 'Émis par',
+             bc.utilisateur_createur.get_full_name() if bc.utilisateur_createur else '—'],
+        ], colWidths=[28 * mm, 60 * mm, 38 * mm, 48 * mm], style=TableStyle([
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.grey),
+            ('TEXTCOLOR', (2, 0), (2, -1), colors.grey),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ])),
+        Spacer(1, 6 * mm),
+    ]
+    lignes = [['Produit', 'SKU', 'Qté', 'Prix unit. HT', 'Total HT']]
+    for l in bc.lignes.select_related('produit'):
+        lignes.append([
+            Paragraph(escape(l.produit.nom), st['BodyText']), l.produit.sku,
+            f"{l.quantite_commandee:g}", _montant(l.prix_unitaire_ht), _montant(l.montant_ht()),
+        ])
+    lignes.append(['', '', '', 'Total HT', f"{_montant(bc.total_ht())} FCFA"])
+    elements.append(Table(lignes, colWidths=[70 * mm, 30 * mm, 18 * mm, 28 * mm, 28 * mm], repeatRows=1,
+                          style=TableStyle([
+                              ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f97316')),
+                              ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                              ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                              ('FONTSIZE', (0, 0), (-1, -1), 9),
+                              ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+                              ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                              ('GRID', (0, 0), (-1, -2), 0.25, colors.HexColor('#e5e7eb')),
+                              ('FONTNAME', (3, -1), (-1, -1), 'Helvetica-Bold'),
+                          ])))
+    if bc.note:
+        elements += [Spacer(1, 6 * mm), Paragraph(f"<b>Note :</b> {escape(bc.note)}", st['BodyText'])]
+    doc.build(elements)
+    buf.seek(0)
+    response = HttpResponse(buf, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="BC-{bc.numero}.pdf"'
+    return response
 
 @login_required
 @role_required('responsable_achat', 'admin_ent', 'super_admin')
 def boncommande_reception(request, pk):
     ent = _entreprise(request)
     bc = get_object_or_404(BonCommande, pk=pk, entreprise=ent, statut__in=['envoye', 'recu_partiel'])
+    entrepots = Entrepot.objects.filter(entreprise=ent, est_actif=True)
     if request.method == 'POST':
+        entrepot = entrepots.filter(pk=request.POST.get('entrepot') or None).first() or bc.entrepot_destination
+        if entrepot is None:
+            messages.error(request, "Choisissez l'entrepôt de réception.")
+            return redirect('responsable_achat:boncommande_reception', pk=pk)
+        reference_bl = request.POST.get('reference_bl', '').strip()
         try:
             with transaction.atomic():
                 for ligne in bc.lignes.all():
-                    recu = request.POST.get(f'recu_{ligne.pk}')
-                    if recu and float(recu) > 0:
-                        nouveau = min(float(recu), float(ligne.quantite_commandee) - float(ligne.quantite_recue))
-                        if nouveau > 0:
-                            ligne.quantite_recue = float(ligne.quantite_recue) + nouveau
-                            ligne.save()
-                            # Créer le mouvement d'entrée ET l'appliquer au stock réel
-                            if bc.entrepot_destination:
-                                mouv = Mouvement.objects.create(
-                                    type_mouvement=TypeMouvement.ENTREE,
-                                    produit=ligne.produit,
-                                    quantite=nouveau,
-                                    entrepot_destination=bc.entrepot_destination,
-                                    utilisateur=request.user,
-                                    reference=f"BC-{bc.numero}",
-                                    prix_unitaire_snapshot=ligne.prix_unitaire_ht,
-                                )
-                                _appliquer_mouvement(mouv)
+                    try:
+                        recu = Decimal(request.POST.get(f'recu_{ligne.pk}') or 0)
+                    except InvalidOperation:
+                        recu = Decimal(0)
+                    nouveau = min(recu, ligne.quantite_restante())
+                    if nouveau > 0:
+                        ligne.quantite_recue += nouveau
+                        ligne.save()
+                        # Créer le mouvement d'entrée ET l'appliquer au stock réel
+                        mouv = Mouvement.objects.create(
+                            type_mouvement=TypeMouvement.ENTREE,
+                            produit=ligne.produit,
+                            quantite=nouveau,
+                            entrepot_destination=entrepot,
+                            utilisateur=request.user,
+                            reference=f"BC-{bc.numero}",
+                            note=f"BL {reference_bl}" if reference_bl else "",
+                            prix_unitaire_snapshot=ligne.prix_unitaire_ht,
+                        )
+                        _appliquer_mouvement(mouv)
                 toutes_recues = all(l.quantite_recue >= l.quantite_commandee for l in bc.lignes.all())
                 bc.statut = StatutBonCommande.RECU_COMPLET if toutes_recues else StatutBonCommande.RECU_PARTIEL
+                if toutes_recues:
+                    bc.date_livraison_effective = timezone.now().date()
+                    bc.utilisateur_validation = request.user
                 bc.save()
         except ValidationError as e:
             messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
             return redirect('responsable_achat:boncommande_reception', pk=pk)
         messages.success(request, "Réception enregistrée.")
         return redirect('responsable_achat:boncommande_detail', pk=pk)
-    return render(request, 'responsable_achat/boncommande_reception.html', {'bc': bc})
+    return render(request, 'responsable_achat/boncommande_reception.html', {'bc': bc, 'entrepots': entrepots})
 
 # ---------- Paramètres ----------
 @login_required
@@ -580,7 +808,7 @@ def suggestions_list(request):
     suggestions_urgentes = [s for s in suggestions if s['jours_rupture'] <= 7]
     suggestions_planifier = [s for s in suggestions if 7 < s['jours_rupture'] <= 30]
     
-    montant_estime = sum(s['quantite_suggeree'] * float(s['produit'].prix_unitaire) for s in suggestions)
+    montant_estime = sum((Decimal(s['quantite_suggeree']) * s['produit'].prix_unitaire for s in suggestions), Decimal(0))
     
     context = {
         'suggestions_urgentes': suggestions_urgentes,

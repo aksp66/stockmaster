@@ -1,5 +1,5 @@
 {% extends 'responsable_achat/base_achat.html' %}
-{% block title %}{% if bc %}Modifier BC {{ bc.reference }}{% else %}Nouveau bon de commande{% endif %}{% endblock %}
+{% block title %}{% if bc %}Modifier BC {{ bc.numero }}{% else %}Nouveau bon de commande{% endif %}{% endblock %}
 {% block page_title %}{% if bc %}Modifier le bon de commande{% else %}Nouveau bon de commande{% endif %}{% endblock %}
 {% block page_sub %}Achats · {{ user.entreprise.nom }}{% endblock %}
 {% block n_bc %}active{% endblock %}
@@ -8,7 +8,7 @@
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--text-m);" class="au a1">
   <a href="{% url 'responsable_achat:boncommande_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>Bons de commande</a>
   <i class="fas fa-chevron-right" style="font-size:10px;"></i>
-  <span>{% if bc %}{{ bc.reference }}{% else %}Nouveau{% endif %}</span>
+  <span>{% if bc %}{{ bc.numero }}{% else %}Nouveau{% endif %}</span>
 </div>
 
 <form method="post" id="bc-form">
@@ -27,7 +27,7 @@
               <option value="">— Sélectionner —</option>
               {% for f in fournisseurs %}
               <option value="{{ f.id }}"
-                data-delai="{{ f.delai_livraison|default:7 }}"
+                data-delai="{{ f.delai_moyen_jours|default:7 }}"
                 data-remise="{{ f.remise|default:0 }}"
                 {% if bc.fournisseur_id == f.id or request.GET.fournisseur == f.id|stringformat:"s" %}selected{% endif %}>
                 {{ f.nom }}
@@ -55,7 +55,7 @@
         </div>
         <div class="fi" style="margin-top:14px;margin-bottom:0;">
           <label class="fl">Commentaire / Conditions particulières</label>
-          <textarea name="commentaire" class="fin" rows="2" placeholder="Conditions de livraison, urgence, etc.">{{ bc.commentaire|default:'' }}</textarea>
+          <textarea name="commentaire" class="fin" rows="2" placeholder="Conditions de livraison, urgence, etc.">{{ bc.note|default:'' }}</textarea>
         </div>
       </div>
     </div>
@@ -93,10 +93,10 @@
                   {% endfor %}
                 </select>
               </td>
-              <td><input type="number" name="lignes[{{ forloop.counter0 }}][quantite]" class="fin inp-qte" value="{{ l.quantite }}" min="1" style="text-align:center;font-size:14px;font-weight:700;width:90px;" oninput="calcTotal(this)" required></td>
-              <td><input type="number" name="lignes[{{ forloop.counter0 }}][prix_unitaire]" class="fin inp-prix" value="{{ l.prix_unitaire }}" step="0.01" min="0" style="width:110px;" oninput="calcTotal(this)" required></td>
+              <td><input type="number" name="lignes[{{ forloop.counter0 }}][quantite]" class="fin inp-qte" value="{{ l.quantite_commandee }}" min="1" style="text-align:center;font-size:14px;font-weight:700;width:90px;" oninput="calcTotal(this)" required></td>
+              <td><input type="number" name="lignes[{{ forloop.counter0 }}][prix_unitaire]" class="fin inp-prix" value="{{ l.prix_unitaire_ht }}" step="0.01" min="0" style="width:110px;" oninput="calcTotal(this)" required></td>
               <td><input type="number" name="lignes[{{ forloop.counter0 }}][remise]" class="fin inp-remise" value="{{ l.remise|default:0 }}" min="0" max="100" step="0.1" style="width:80px;" oninput="calcTotal(this)"></td>
-              <td><span class="mono total-ht" style="font-weight:800;font-size:14px;color:var(--or);">{{ l.total_ht|floatformat:2 }} FCFA</span></td>
+              <td><span class="mono total-ht" style="font-weight:800;font-size:14px;color:var(--or);">{{ l.montant_ht|floatformat:2 }} FCFA</span></td>
               <td><button type="button" onclick="this.closest('tr').remove(); majTotalGlobal();" class="btn b-re b-sm"><i class="fas fa-trash"></i></button></td>
             </tr>
             {% empty %}
@@ -106,7 +106,7 @@
           <tfoot>
             <tr style="background:var(--bg);">
               <td colspan="4" style="text-align:right;padding:14px 14px;font-size:13px;font-weight:700;color:var(--text-p);">Total HT :</td>
-              <td style="padding:14px;"><span class="mono" id="total-global" style="font-size:18px;font-weight:800;color:var(--or);">{{ bc.montant_total|floatformat:2|default:"0.00" }} FCFA</span></td>
+              <td style="padding:14px;"><span class="mono" id="total-global" style="font-size:18px;font-weight:800;color:var(--or);">{{ bc.total_ht|floatformat:2|default:"0.00" }} FCFA</span></td>
               <td></td>
             </tr>
           </tfoot>
@@ -129,7 +129,7 @@
         {% if bc.fournisseur %}
         <div><strong>{{ bc.fournisseur.nom }}</strong></div>
         <div>{{ bc.fournisseur.email }}</div>
-        <div>Délai : {{ bc.fournisseur.delai_livraison }}j · Remise : {{ bc.fournisseur.remise }}%</div>
+        <div>Délai : {{ bc.fournisseur.delai_moyen_jours }}j · Remise : {{ bc.fournisseur.remise }}%</div>
         {% endif %}
       </div>
     </div>

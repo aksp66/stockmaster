@@ -1,0 +1,52 @@
+# Intégration continue : contrôles Django + tests à chaque push / pull request.
+# Utilise le PostgreSQL préinstallé sur le runner Ubuntu (pas de conteneur Docker).
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      SECRET_KEY: ci-cle-secrete-uniquement-pour-les-tests-0123456789-abcdefghij
+      DB_NAME: stockmaster
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: "5432"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Démarrer PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+          sudo -u postgres createdb stockmaster
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Contrôle Django
+        run: python manage.py check
+
+      - name: Migrations à jour
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Contrôle de la configuration de production
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          ALLOWED_HOSTS: stock.example.com
+        run: python manage.py check --deploy --fail-level ERROR
+
+      - name: Tests
+        run: python manage.py test --settings=config.settings.test --noinput

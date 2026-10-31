@@ -63,7 +63,7 @@
         {% else %}
           <span class="badge bg-gr">Stock OK</span>
         {% endif %}
-        {% if produit.actif %}
+        {% if produit.est_actif %}
           <span class="badge bg-gy">Actif</span>
         {% else %}
           <span class="badge bg-re">Inactif</span>
@@ -226,8 +226,8 @@
               {% else %}—{% endif %}
             </td>
             <td>
-              {% if m.reference_document %}
-              <span class="mono" style="font-size:11.5px;color:var(--blue);">{{ m.reference_document }}</span>
+              {% if m.reference %}
+              <span class="mono" style="font-size:11.5px;color:var(--blue);">{{ m.reference }}</span>
               {% else %}
               <span style="color:var(--text-m);font-size:12px;">—</span>
               {% endif %}
@@ -331,7 +331,7 @@
         </div>
         <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
           <span style="color:var(--text-m);"><i class="fas fa-ruler" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Unité</span>
-          <span style="font-weight:600;">{{ produit.unite|default:"unité" }}</span>
+          <span style="font-weight:600;">{{ produit.get_unite_mesure_display }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
           <span style="color:var(--text-m);"><i class="fas fa-euro-sign" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Prix unitaire</span>
@@ -349,7 +349,7 @@
         </div>
         <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
           <span style="color:var(--text-m);"><i class="fas fa-truck" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Fournisseur</span>
-          <span style="font-weight:600;">{{ produit.fournisseur.nom|default:"—" }}</span>
+          <span style="font-weight:600;">{{ produit.fournisseur_principal.nom|default:"—" }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
           <span style="color:var(--text-m);"><i class="fas fa-clock" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Délai réappro.</span>
@@ -357,7 +357,7 @@
         </div>
         <div style="display:flex;justify-content:space-between;padding:9px 0;">
           <span style="color:var(--text-m);"><i class="fas fa-calendar" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Créé le</span>
-          <span class="mono" style="font-size:12px;">{{ produit.date_creation|date:"d/m/Y" }}</span>
+          <span class="mono" style="font-size:12px;">{{ produit.created_at|date:"d/m/Y" }}</span>
         </div>
         {% endfor %}
       </div>
@@ -603,7 +603,7 @@ new Chart(ctx, {
         grid: { color:'#f3f4f6' },
         ticks: {
           font: { family:'Fira Code', size:10 },
-          callback: v => v + ' ' + '{{ produit.unite|default:"u" }}'
+          callback: v => v + ' ' + '{{ produit.get_unite_mesure_display|lower }}'
         },
         title: { display:true, text:'Stock', font:{ size:11 }, color:'#9ca3af' }
       },

@@ -27,7 +27,7 @@
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:800;color:var(--text-p);">{{ s.entrepot.nom }}</div>
             <div style="font-size:12px;color:var(--text-m);margin-top:2px;">
-              {{ s.createur.get_full_name }} · {{ s.date_creation|date:"d/m/Y" }}
+              {{ s.utilisateur_demarrage.get_full_name }} · {{ s.date_debut|date:"d/m/Y" }}
             </div>
             {# Barre progression #}
             <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">

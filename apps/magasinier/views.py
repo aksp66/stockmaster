@@ -3,7 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count, F
+from django.db.models.functions import Coalesce
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -11,10 +12,12 @@ from django.views.decorators.http import require_POST, require_GET, require_http
 from django.views.decorators.csrf import csrf_exempt
 import json
 import csv
+import uuid
+from decimal import Decimal, InvalidOperation
 
 from apps.accounts.decorators import role_required
 from apps.stock.models import (
-    Produit, Stock, Mouvement, TypeMouvement, Entrepot, Emplacement,
+    Produit, Stock, Mouvement, TypeMouvement, Entrepot, Emplacement, Categorie,
     InventaireSession, LigneInventaire, Alerte, ScanLog
 )
 from apps.gestionnaire.views import _appliquer_mouvement, _verifier_seuil
@@ -23,39 +26,69 @@ def _entreprise(request):
     return request.user.entreprise
 
 
+def _prefs(request):
+    """Préférences du magasinier (session) : entrepôt et type de mouvement par défaut."""
+    entrepot = request.session.get('magasinier_entrepot_defaut')
+    try:
+        entrepot = uuid.UUID(entrepot) if entrepot else None
+    except ValueError:
+        entrepot = None
+    return {'entrepot_defaut_id': entrepot, 'type_defaut': request.session.get('magasinier_type_defaut', 'entree')}
+
+
+def _produits_en_alerte(ent):
+    """Produits actifs dont le stock total est sous le seuil, avec `total` annoté."""
+    return (Produit.objects.filter(entreprise=ent, est_actif=True)
+            .annotate(total=Coalesce(Sum('stocks__quantite'), Decimal(0)))
+            .filter(total__lte=F('seuil_alerte')).order_by('total', 'nom'))
+
+
 # ---------- Dashboard ----------
 @login_required
 @role_required('magasinier', 'admin_ent', 'super_admin')
 def dashboard_magasinier(request):
     ent = _entreprise(request)
-    # Sessions d'inventaire en cours
-    inventaires_en_cours = InventaireSession.objects.filter(
+    aujourd_hui = timezone.localdate()
+    sessions_en_cours = InventaireSession.objects.filter(
         entrepot__entreprise=ent, statut='en_cours'
-    ).select_related('entrepot')[:5]
-    # Alertes (lecture seule)
-    alertes = Alerte.objects.filter(produit__entreprise=ent, lue=False)[:5]
-    # Derniers mouvements effectués par le magasinier
+    ).select_related('entrepot').order_by('-date_debut')
+    produits_alerte = list(_produits_en_alerte(ent)[:20])
     mouvements_recents = Mouvement.objects.filter(
         utilisateur=request.user, produit__entreprise=ent
-    ).order_by('-date_mouvement')[:10]
+    ).select_related('produit', 'entrepot_source', 'entrepot_destination').order_by('-date_mouvement')[:10]
     context = {
-        'inventaires_en_cours': inventaires_en_cours,
-        'alertes': alertes,
+        'today': timezone.localtime(),
+        'scans_aujourd_hui': ScanLog.objects.filter(utilisateur=request.user, created_at__date=aujourd_hui).count(),
+        'mouvements_aujourd_hui': Mouvement.objects.filter(
+            utilisateur=request.user, produit__entreprise=ent, date_mouvement__date=aujourd_hui).count(),
+        'nb_alertes': _produits_en_alerte(ent).count(),
+        'nb_inventaires_en_cours': sessions_en_cours.count(),
+        'sessions_en_cours': sessions_en_cours[:5],
+        'produits_alerte': produits_alerte,
         'mouvements_recents': mouvements_recents,
-        'nb_alertes': alertes.count(),
         'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True),
         'produits_count': Produit.objects.filter(entreprise=ent, est_actif=True).count(),
     }
     return render(request, 'magasinier/dashboard.html', context)
 
 
-# ---------- Scan rapide ----------
 @login_required
 @role_required('magasinier', 'admin_ent', 'super_admin')
 def scan_view(request):
     ent = _entreprise(request)
     entrepots = Entrepot.objects.filter(entreprise=ent, est_actif=True)
-    return render(request, 'magasinier/scan.html', {'entrepots': entrepots})
+    # Historique du jour : mouvements saisis par ce magasinier aujourd'hui
+    mouvements = Mouvement.objects.filter(
+        utilisateur=request.user, produit__entreprise=ent, date_mouvement__date=timezone.localdate(),
+    ).select_related('produit', 'entrepot_source', 'entrepot_destination').order_by('-date_mouvement')[:30]
+    historique = [{
+        'type': m.type_mouvement, 'produit': m.produit.nom, 'quantite': m.quantite,
+        'entrepot': m.entrepot.nom if m.entrepot else '—',
+        'heure': timezone.localtime(m.date_mouvement).strftime('%H:%M'),
+    } for m in mouvements]
+    return render(request, 'magasinier/scan.html', {
+        'entrepots': entrepots, 'historique_session': historique,
+    })
 
 
 @login_required
@@ -270,7 +303,7 @@ def mouvement_rapide(request):
                         quantite=quantite,
                         entrepot_destination=entrepot,
                         utilisateur=request.user,
-                        note="Mouvement rapide magasinier"
+                        note=request.POST.get('motif', '').strip() or "Mouvement rapide magasinier"
                     )
                 else:
                     mouv = Mouvement.objects.create(
@@ -279,7 +312,7 @@ def mouvement_rapide(request):
                         quantite=quantite,
                         entrepot_source=entrepot,
                         utilisateur=request.user,
-                        note="Mouvement rapide magasinier"
+                        note=request.POST.get('motif', '').strip() or "Mouvement rapide magasinier"
                     )
                 _appliquer_mouvement(mouv)
         except ValidationError as e:
@@ -291,9 +324,19 @@ def mouvement_rapide(request):
 
     produits = Produit.objects.filter(entreprise=ent, est_actif=True).order_by('nom')
     entrepots = Entrepot.objects.filter(entreprise=ent, est_actif=True)
+    produit_id = request.GET.get('produit')
+    produit_preselect = None
+    if produit_id:
+        try:
+            produit_preselect = produits.filter(pk=produit_id).first()
+        except ValidationError:
+            produit_preselect = None
     return render(request, 'magasinier/mouvement_rapide.html', {
         'produits': produits,
         'entrepots': entrepots,
+        'produit_preselect': produit_preselect,
+        'entrepot_defaut_id': _prefs(request)['entrepot_defaut_id'],
+        'type_initial': request.GET.get('type') if request.GET.get('type') in ('entree', 'sortie') else _prefs(request)['type_defaut'],
     })
 
 
@@ -311,6 +354,7 @@ def inventaire_list(request):
     sessions_page = paginator.get_page(page)
     return render(request, 'magasinier/inventaire_list.html', {
         'sessions': sessions_page,
+        'nb_en_cours': InventaireSession.objects.filter(entrepot__entreprise=ent, statut='en_cours').count(),
         'statut_sel': statut,
     })
 
@@ -325,10 +369,14 @@ def inventaire_create(request):
         session = InventaireSession.objects.create(
             entrepot=entrepot,
             utilisateur_demarrage=request.user,
-            statut='en_cours'
+            statut='en_cours',
+            note=request.POST.get('commentaire', '').strip(),
         )
-        # Pré-remplir les lignes avec le stock théorique actuel
+        # Pré-remplir les lignes avec le stock théorique actuel (éventuellement limité à une catégorie)
         stocks = Stock.objects.filter(entrepot=entrepot).select_related('produit', 'emplacement')
+        categorie_id = request.POST.get('categorie')
+        if categorie_id:
+            stocks = stocks.filter(produit__categorie_id=categorie_id, produit__categorie__entreprise=ent)
         lignes = []
         for s in stocks:
             lignes.append(LigneInventaire(
@@ -341,8 +389,13 @@ def inventaire_create(request):
         LigneInventaire.objects.bulk_create(lignes)
         messages.success(request, f"Session d'inventaire créée pour {entrepot.nom}.")
         return redirect('magasinier:inventaire_detail', pk=session.pk)
-    entrepots = Entrepot.objects.filter(entreprise=ent, est_actif=True)
-    return render(request, 'magasinier/inventaire_create.html', {'entrepots': entrepots})
+    entrepots = Entrepot.objects.filter(entreprise=ent, est_actif=True) \
+        .annotate(nb_produits=Count('stocks__produit', distinct=True))
+    return render(request, 'magasinier/inventaire_create.html', {
+        'entrepots': entrepots,
+        'categories': Categorie.objects.filter(entreprise=ent).order_by('nom'),
+        'entrepot_defaut_id': _prefs(request)['entrepot_defaut_id'],
+    })
 
 
 @login_required
@@ -352,18 +405,53 @@ def inventaire_detail(request, pk):
     session = get_object_or_404(InventaireSession, pk=pk, entrepot__entreprise=ent)
     lignes = session.lignes.select_related('produit', 'emplacement').order_by('produit__nom')
     if request.method == 'POST':
-        # Sauvegarde des quantités comptées
-        for ligne in lignes:
-            val = request.POST.get(f'quantite_{ligne.pk}')
-            if val is not None and val.strip() != '':
-                ligne.quantite_comptee = float(val)
-                ligne.save()
-        messages.success(request, "Comptage sauvegardé.")
-        return redirect('magasinier:inventaire_detail', pk=pk)
+        return inventaire_sauvegarder(request, pk)
+    total_lignes = len(lignes)
+    lignes_comptees = sum(1 for l in lignes if l.quantite_comptee is not None)
     return render(request, 'magasinier/inventaire_detail.html', {
         'session': session,
         'lignes': lignes,
+        'total_lignes': total_lignes,
+        'lignes_comptees': lignes_comptees,
+        'progression': round(lignes_comptees * 100 / total_lignes) if total_lignes else 0,
     })
+
+
+def _sauvegarder_comptage(session, post):
+    """Enregistre les quantités comptées envoyées sous la forme `qte_<pk ligne>`. Retourne le nombre de lignes mises à jour."""
+    nb = 0
+    for ligne in session.lignes.all():
+        val = (post.get(f'qte_{ligne.pk}') or '').strip()
+        if not val:
+            continue
+        try:
+            qte = Decimal(val)
+        except InvalidOperation:
+            continue
+        if qte < 0:
+            continue
+        ligne.quantite_comptee = qte
+        ligne.save(update_fields=['quantite_comptee', 'updated_at'])
+        nb += 1
+    return nb
+
+
+@login_required
+@role_required('magasinier', 'gestionnaire', 'admin_ent', 'super_admin')
+@require_POST
+def inventaire_sauvegarder(request, pk):
+    """Sauvegarde du comptage terrain. La validation (ajustements de stock) reste réservée au gestionnaire."""
+    ent = _entreprise(request)
+    session = get_object_or_404(InventaireSession, pk=pk, entrepot__entreprise=ent)
+    if session.statut != 'en_cours':
+        messages.error(request, "Cette session d'inventaire est clôturée : le comptage ne peut plus être modifié.")
+        return redirect('magasinier:inventaire_detail', pk=pk)
+    nb = _sauvegarder_comptage(session, request.POST)
+    if request.POST.get('action') == 'suspendre':
+        messages.info(request, f"Comptage suspendu ({nb} ligne(s) enregistrée(s)). Vous pourrez le reprendre plus tard.")
+        return redirect('magasinier:inventaire_list')
+    messages.success(request, f"Comptage sauvegardé ({nb} ligne(s) enregistrée(s)).")
+    return redirect('magasinier:inventaire_detail', pk=pk)
 
 
 # ---------- Historique des mouvements ----------
@@ -394,27 +482,37 @@ def historique(request):
 @role_required('magasinier', 'admin_ent', 'super_admin')
 def alertes(request):
     ent = _entreprise(request)
-    alertes = Alerte.objects.filter(produit__entreprise=ent, lue=False).select_related('produit')
-    return render(request, 'magasinier/alertes.html', {'alertes': alertes})
+    produits_rupture, produits_seuil = [], []
+    for p in _produits_en_alerte(ent):
+        if p.total <= 0:
+            produits_rupture.append(p)
+        else:
+            p.pct_stock = round(p.total * 100 / p.seuil_alerte) if p.seuil_alerte else 0
+            produits_seuil.append(p)
+    return render(request, 'magasinier/alertes.html', {
+        'produits_rupture': produits_rupture, 'produits_seuil': produits_seuil,
+        'nb_rupture': len(produits_rupture), 'nb_seuil': len(produits_seuil),
+    })
 
 
-# ---------- Paramètres (préférences) ----------
 @login_required
 @role_required('magasinier', 'admin_ent', 'super_admin')
 def parametres(request):
-    # Simplifié : on peut stocker dans la session ou un modèle UserPreferences
     if request.method == 'POST':
         entrepot_defaut = request.POST.get('entrepot_defaut')
-        if entrepot_defaut:
+        if entrepot_defaut and Entrepot.objects.filter(pk=entrepot_defaut, entreprise=_entreprise(request)).exists():
             request.session['magasinier_entrepot_defaut'] = entrepot_defaut
+        else:
+            request.session.pop('magasinier_entrepot_defaut', None)
+        if request.POST.get('type_defaut') in ('entree', 'sortie'):
+            request.session['magasinier_type_defaut'] = request.POST['type_defaut']
         messages.success(request, "Préférences enregistrées.")
         return redirect('magasinier:parametres')
-    entrepot_defaut = request.session.get('magasinier_entrepot_defaut')
-    entrepots = Entrepot.objects.filter(entreprise=_entreprise(request), est_actif=True)
     return render(request, 'magasinier/parametres.html', {
-        'entrepots': entrepots,
-        'entrepot_defaut': entrepot_defaut,
+        'entrepots': Entrepot.objects.filter(entreprise=_entreprise(request), est_actif=True),
+        'prefs': _prefs(request),
     })
+
 
 @login_required
 @require_GET

@@ -42,24 +42,27 @@
 <!-- ══════════════════════════════════════
      CHIFFRES CLÉS
 ══════════════════════════════════════ -->
+{# Chiffres réels uniquement (entreprises activées, avis publiés) : rien n'est affiché tant qu'il n'y a pas de données #}
+{% if nb_entreprises or nb_avis %}
 <section style="background:#fff7ed;border-radius:20px;padding:40px;margin:20px 0 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:30px;text-align:center;" class="delay-1 fade-up">
+  {% if nb_entreprises %}
   <div>
-    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">+200</div>
-    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">entreprises clientes</div>
+    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">{{ nb_entreprises }}</div>
+    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">entreprise{{ nb_entreprises|pluralize }} cliente{{ nb_entreprises|pluralize }}</div>
+  </div>
+  {% endif %}
+  {% if nb_avis %}
+  <div>
+    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">{{ note_moyenne|floatformat:1 }}/5</div>
+    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">note moyenne ({{ nb_avis }} avis vérifié{{ nb_avis|pluralize }})</div>
   </div>
   <div>
-    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">−72%</div>
-    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">de ruptures de stock</div>
+    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">{{ pct_recommande }}%</div>
+    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">recommandent StockMaster</div>
   </div>
-  <div>
-    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">15 min</div>
-    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">de formation moyenne</div>
-  </div>
-  <div>
-    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">98%</div>
-    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">taux de satisfaction</div>
-  </div>
+  {% endif %}
 </section>
+{% endif %}
 
 <!-- ══════════════════════════════════════
      FONCTIONNALITÉS CLÉS
@@ -165,42 +168,29 @@
 </section>
 
 <!-- ══════════════════════════════════════
-     TÉMOIGNAGES
+     TÉMOIGNAGES : derniers avis clients réellement publiés (modérés)
 ══════════════════════════════════════ -->
+{% if derniers_avis %}
 <section class="mb-20 delay-4 fade-up">
   <div class="text-center mb-10">
     <h2 style="font-size:2rem;font-weight:800;color:#111827;letter-spacing:-.03em;">Ils nous font confiance</h2>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;">
+    {% for avis in derniers_avis %}
     <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;position:relative;" class="card-hover">
-      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in "12345" %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}</div>
+      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in avis.etoiles_range %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}{% for i in avis.etoiles_vides_range %}<i class="fas fa-star" style="color:#e5e7eb;font-size:13px;"></i>{% endfor %}</div>
       <i class="fas fa-quote-left" style="color:#fed7aa;font-size:18px;margin-bottom:10px;display:block;"></i>
-      <p style="font-size:13.5px;color:#4b5563;line-height:1.7;font-style:italic;">"La prédiction IA nous a permis de réduire notre stock dormant de 35% tout en maintenant un taux de service à 98%."</p>
+      <p style="font-size:13.5px;color:#4b5563;line-height:1.7;font-style:italic;">"{{ avis.commentaire }}"</p>
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">L</div>
-        <div><div style="font-size:13px;font-weight:700;color:#111827;">Laurent M.</div><div style="font-size:11.5px;color:#f97316;">Directeur logistique · TechLog</div></div>
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">{{ avis.prenom|slice:":1"|upper }}</div>
+        <div><div style="font-size:13px;font-weight:700;color:#111827;">{{ avis.prenom }} {{ avis.nom|slice:":1" }}.</div><div style="font-size:11.5px;color:#f97316;">{{ avis.poste }} · {{ avis.entreprise.nom }}</div></div>
       </div>
     </div>
-    <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;" class="card-hover">
-      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in "1234" %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}<i class="fas fa-star-half-alt" style="color:#f97316;font-size:13px;"></i></div>
-      <i class="fas fa-quote-left" style="color:#fed7aa;font-size:18px;margin-bottom:10px;display:block;"></i>
-      <p style="font-size:13.5px;color:#4b5563;line-height:1.7;font-style:italic;">"Gestion multi-entrepôts simplifiée, scan ultra-rapide. Notre équipe terrain est passée de 45 min à 8 min par inventaire."</p>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">S</div>
-        <div><div style="font-size:13px;font-weight:700;color:#111827;">Sophie B.</div><div style="font-size:11.5px;color:#f97316;">Gestionnaire stock · Mode&amp;Vous</div></div>
-      </div>
-    </div>
-    <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;" class="card-hover">
-      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in "12345" %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}</div>
-      <i class="fas fa-quote-left" style="color:#fed7aa;font-size:18px;margin-bottom:10px;display:block;"></i>
-      <p style="font-size:13.5px;color:#4b5563;line-height:1.7;font-style:italic;">"Interface claire, formation rapide pour nos équipes terrain. Le support est réactif et disponible même le week-end."</p>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#059669,#10b981);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">K</div>
-        <div><div style="font-size:13px;font-weight:700;color:#111827;">Sarah K.</div><div style="font-size:11.5px;color:#f97316;">Gestionnaire stock · Bio&amp;Co</div></div>
-      </div>
-    </div>
+    {% endfor %}
   </div>
+  <div style="text-align:center;margin-top:18px;"><a href="{% url 'pages:entreprises' %}" style="color:#f97316;font-weight:600;font-size:14px;">Voir tous les avis →</a></div>
 </section>
+{% endif %}
 
 <!-- ══════════════════════════════════════
      CTA FINAL
@@ -209,7 +199,7 @@
   <div style="position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(249,115,22,.08);border-radius:50%;"></div>
   <div style="position:absolute;bottom:-30px;left:-30px;width:150px;height:150px;background:rgba(249,115,22,.06);border-radius:50%;"></div>
   <h2 style="font-size:2rem;font-weight:800;color:white;letter-spacing:-.03em;margin-bottom:14px;position:relative;">Prêt à transformer votre gestion de stock ?</h2>
-  <p style="color:rgba(255,255,255,.65);font-size:1rem;margin-bottom:28px;position:relative;">Rejoignez +200 entreprises qui anticipent leurs ruptures avec l'IA.</p>
+  <p style="color:rgba(255,255,255,.65);font-size:1rem;margin-bottom:28px;position:relative;">{% if nb_entreprises > 1 %}Rejoignez les {{ nb_entreprises }} entreprises qui anticipent déjà leurs ruptures avec l'IA.{% else %}Anticipez vos ruptures de stock grâce à l'IA.{% endif %}</p>
   <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;position:relative;">
     <a href="{% url 'accounts:inscription' %}" class="btn-or" style="padding:13px 30px;font-size:15px;">
       <i class="fas fa-rocket"></i> Essai gratuit — sans engagement

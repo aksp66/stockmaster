@@ -44,21 +44,21 @@
     <tbody>
       {% for log in logs %}
       <tr>
-        <td class="mono" style="font-size:12px;white-space:nowrap;">{{ log.date|date:"d/m/Y H:i:s" }}</td>
+        <td class="mono" style="font-size:12px;white-space:nowrap;">{{ log.created_at|date:"d/m/Y H:i:s" }}</td>
         <td>
           <div style="font-weight:600;font-size:13px;">{{ log.utilisateur.get_full_name }}</div>
           <div style="font-size:11px;color:var(--text-m);">{{ log.utilisateur.role }}</div>
         </td>
         <td>
-          <span class="badge {% if log.action_type in 'CREATE,ADD' %}bg-gr{% elif log.action_type in 'DELETE,REMOVE' %}bg-re{% elif log.action_type == 'UPDATE' %}bg-bl{% else %}bg-gy{% endif %}">
-            {{ log.get_action_type_display }}
+          <span class="badge {% if 'suppression' in log.type_action or 'desactivation' in log.type_action %}bg-re{% elif 'creation' in log.type_action or 'activation' in log.type_action %}bg-gr{% elif 'modification' in log.type_action or 'changement' in log.type_action %}bg-bl{% else %}bg-gy{% endif %}">
+            {{ log.get_type_action_display }}
           </span>
         </td>
-        <td class="mono" style="font-size:12px;color:var(--purple);">{{ log.modele }}</td>
-        <td style="font-size:13px;font-weight:500;">{{ log.objet_str|default:"—"|truncatechars:40 }}</td>
+        <td class="mono" style="font-size:12px;color:var(--purple);">{{ log.objet_type|default:"—" }}</td>
+        <td style="font-size:13px;font-weight:500;">{{ log.description|default:"—"|truncatechars:40 }}</td>
         <td class="mono" style="font-size:11px;color:var(--text-m);">{{ log.ip_address|default:"—" }}</td>
         <td>
-          {% if log.details %}
+          {% if log.donnees_avant or log.donnees_apres %}
           <button onclick="openM('log-{{ log.pk }}')" class="btn b-gh b-sm"><i class="fas fa-eye"></i></button>
           <div class="modal-o" id="log-{{ log.pk }}" style="align-items:center;">
             <div style="background:white;border-radius:16px;padding:24px;max-width:560px;width:100%;margin:20px;box-shadow:0 24px 60px rgba(0,0,0,.14);">
@@ -66,7 +66,8 @@
                 <h3 style="font-size:15px;font-weight:800;">Détail du log</h3>
                 <button onclick="closeM('log-{{ log.pk }}')" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-m);"><i class="fas fa-xmark"></i></button>
               </div>
-              <pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;font-family:'Fira Code',monospace;overflow-x:auto;max-height:300px;white-space:pre-wrap;">{{ log.details }}</pre>
+              <pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;font-family:'Fira Code',monospace;overflow-x:auto;max-height:300px;white-space:pre-wrap;">{% if log.donnees_avant %}Avant : {{ log.donnees_avant }}
+{% endif %}{% if log.donnees_apres %}Après : {{ log.donnees_apres }}{% endif %}</pre>
             </div>
           </div>
           {% else %}<span style="color:var(--text-m);font-size:12px;">—</span>{% endif %}

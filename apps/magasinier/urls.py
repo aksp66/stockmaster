@@ -11,6 +11,7 @@ urlpatterns = [
     path('inventaire/', views.inventaire_list, name='inventaire_list'),
     path('inventaire/creer/', views.inventaire_create, name='inventaire_create'),
     path('inventaire/<uuid:pk>/', views.inventaire_detail, name='inventaire_detail'),
+    path('inventaire/<uuid:pk>/sauvegarder/', views.inventaire_sauvegarder, name='inventaire_sauvegarder'),
     path('historique/', views.historique, name='historique'),
     path('alertes/', views.alertes, name='alertes'),
     path('parametres/', views.parametres, name='parametres'),

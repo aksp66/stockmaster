@@ -40,7 +40,7 @@
     <select name="session" class="fin" style="width:200px;height:36px;font-size:13px;padding:0 10px;">
       <option value="">Toutes sessions</option>
       {% for s in sessions %}
-      <option value="{{ s.id }}" {% if request.GET.session == s.id|stringformat:"s" %}selected{% endif %}>{{ s.entrepot.nom }} · {{ s.date_creation|date:"d/m/Y" }}</option>
+      <option value="{{ s.id }}" {% if request.GET.session == s.id|stringformat:"s" %}selected{% endif %}>{{ s.entrepot.nom }} · {{ s.date_debut|date:"d/m/Y" }}</option>
       {% endfor %}
     </select>
     <select name="sens" class="fin" style="width:150px;height:36px;font-size:13px;padding:0 10px;">
@@ -78,7 +78,7 @@
       <tr>
         <td>
           <div style="font-size:12px;font-weight:600;color:var(--blue);">{{ e.session.entrepot.nom }}</div>
-          <div class="mono" style="font-size:10px;color:var(--text-m);">{{ e.session.date_creation|date:"d/m/Y" }}</div>
+          <div class="mono" style="font-size:10px;color:var(--text-m);">{{ e.session.date_debut|date:"d/m/Y" }}</div>
         </td>
         <td>
           <div style="font-weight:600;font-size:13px;">{{ e.produit.nom }}</div>
@@ -103,7 +103,7 @@
             <span class="mono" style="font-size:11px;">{{ e.pct_ecart|floatformat:1 }}%</span>
           </div>
         </td>
-        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ e.session.date_validation|date:"d/m/Y"|default:"—" }}</td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ e.session.date_fin|date:"d/m/Y"|default:"—" }}</td>
       </tr>
       {% endfor %}
     </tbody>

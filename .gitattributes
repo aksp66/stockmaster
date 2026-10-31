@@ -1,0 +1,3 @@
+# Scripts Windows : toujours en CRLF, quel que soit le système qui clone le dépôt
+*.bat text eol=crlf
+*.ps1 text eol=crlf

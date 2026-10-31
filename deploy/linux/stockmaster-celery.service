@@ -1,0 +1,15 @@
+# Worker Celery (prédictions IA). Même installation que stockmaster-web.service.
+[Unit]
+Description=StockMaster - Celery worker
+After=network.target redis-server.service
+
+[Service]
+User=stockmaster
+Group=stockmaster
+WorkingDirectory=/srv/stockmaster
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+ExecStart=/srv/stockmaster/env/bin/celery -A config worker --loglevel=info
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

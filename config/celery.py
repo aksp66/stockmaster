@@ -28,29 +28,11 @@ app.conf.beat_schedule = {
         "options":  {"expires": 3600},
     },
 
-    # ── Vérification des alertes de stock ──────────────────────────────────
-    "verifier-alertes-stock": {
-        "task":     "apps.inventory.tasks.verifier_seuils_alertes",
-        "schedule": crontab(hour="*/4", minute=0),  # Toutes les 4h
-        "options":  {"expires": 1800},
-    },
-
-    # ── Calcul des statistiques fournisseurs ───────────────────────────────
-    "calculer-stats-fournisseurs": {
-        "task":     "apps.purchases.tasks.calculer_stats_fournisseurs",
-        "schedule": crontab(hour=1, minute=0, day_of_week="1"),  # Lundi 1h00
-        "options":  {"expires": 7200},
-    },
-
-    # ── Envoi des emails de réapprovisionnement ─────────────────────────────
-    "notifier-reapprovisionnement": {
-        "task":     "apps.purchases.tasks.notifier_stocks_critiques",
-        "schedule": crontab(hour=8, minute=0),  # Chaque matin à 8h00
-        "options":  {"expires": 1800},
-    },
+    # Tâches prévues mais pas encore écrites (voir TASKS.md) : vérification périodique
+    # des seuils d'alerte, statistiques fournisseurs, notification des stocks critiques.
 }
 
-app.conf.timezone = "UTC+0"  # UTC+0, adapte si besoin
+# Fuseau horaire : CELERY_TIMEZONE dans config/settings/base.py
 
 
 @app.task(bind=True, ignore_result=True)

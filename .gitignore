@@ -12,6 +12,7 @@ venv/
 db.sqlite3
 /staticfiles/
 /media/
+/logs/
 celerybeat-schedule*
 
 # Node

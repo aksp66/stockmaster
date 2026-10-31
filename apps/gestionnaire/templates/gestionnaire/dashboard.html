@@ -60,8 +60,8 @@
   {# Colonne droite #}
   <div style="display: flex; flex-direction: column; gap: 14px">
     {# Alertes #}
-    <div class="card {% if produits_alerte %}border-or-200{% endif %} au a3">
-      <div class="card-h {% if produits_alerte %}bg-or-dim border-or-200{% endif %}">
+    <div class="card {% if produits_alerte %}border-orange-200{% endif %} au a3">
+      <div class="card-h {% if produits_alerte %}bg-orange-50 border-orange-200{% endif %}">
         <div class="card-t" style="color:{% if produits_alerte %}var(--or-d){% else %}var(--text-p){% endif %};"><i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>Produits en alerte</div>
         <a href="{% url 'gestionnaire:alertes' %}" class="btn b-ye b-sm">Voir <i class="fas fa-arrow-right"></i></a>
       </div>

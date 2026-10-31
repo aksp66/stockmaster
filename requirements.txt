@@ -7,6 +7,10 @@ django-redis==6.0.0
 psycopg2-binary==2.9.11
 python-decouple==3.8
 
+# Serveur WSGI de production (derrière Caddy) : waitress sous Windows, gunicorn sous Linux
+waitress==3.0.2
+gunicorn==23.0.0; sys_platform != "win32"
+
 celery==5.6.3
 redis==7.4.0
 

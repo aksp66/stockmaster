@@ -79,6 +79,8 @@ def detail_entreprise(request, entreprise_id):
     context = {
         'entreprise': entreprise,
         'utilisateurs': utilisateurs,
+        'entrepots_count': entreprise.entrepots.count(),
+        'produits_count': entreprise.produits.count(),
     }
     return render(request, 'superadmin/entreprise_detail.html', context)
 

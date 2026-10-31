@@ -1,0 +1,54 @@
+# ──────────────────────────────────────────────────────────────────────────────
+#  StockMaster — reverse proxy Caddy (production, sans Docker)
+#
+#  Caddy termine le HTTPS (certificat Let's Encrypt automatique pour un vrai
+#  domaine, certificat local pour "localhost"), sert directement /static/ et
+#  /media/, et transmet tout le reste au serveur WSGI (waitress sous Windows,
+#  gunicorn sous Linux) qui écoute uniquement en local.
+#
+#  Variables d'environnement lues au démarrage de Caddy (demarrage.ps1 -Mode prod
+#  les définit à partir du .env) :
+#    STOCKMASTER_DOMAINE  domaine public, ex. stock.mon-entreprise.tg (défaut : localhost)
+#    STOCKMASTER_RACINE   dossier du projet, avec des / (ex. C:/apps/Stock_project)
+#    STOCKMASTER_PORT     port local du serveur WSGI (défaut : 8000)
+#
+#  Lancement manuel :  caddy run --config deploy/Caddyfile
+#  Vérification     :  caddy validate --config deploy/Caddyfile
+# ──────────────────────────────────────────────────────────────────────────────
+
+{$STOCKMASTER_DOMAINE:localhost} {
+	encode zstd gzip
+
+	# Fichiers statiques rassemblés par `manage.py collectstatic`
+	handle_path /static/* {
+		root * {$STOCKMASTER_RACINE}/staticfiles
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+
+	# Fichiers déposés par les utilisateurs (avatars, images produits)
+	handle_path /media/* {
+		root * {$STOCKMASTER_RACINE}/media
+		file_server
+	}
+
+	# Tout le reste, y compris /sw.js et /manifest.json (servis par Django à la racine
+	# pour que le Service Worker de la PWA contrôle tout le site)
+	handle {
+		reverse_proxy 127.0.0.1:{$STOCKMASTER_PORT:8000}
+	}
+
+	# Imports CSV de produits, avatars : limite raisonnable
+	request_body {
+		max_size 20MB
+	}
+
+	header -Server
+
+	log {
+		output file {$STOCKMASTER_RACINE}/logs/caddy-access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}

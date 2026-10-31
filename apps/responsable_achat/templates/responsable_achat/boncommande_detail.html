@@ -1,6 +1,6 @@
 {% extends 'responsable_achat/base_achat.html' %}
-{% block title %}BC {{ bc.reference }}{% endblock %}
-{% block page_title %}{{ bc.reference }}{% endblock %}
+{% block title %}BC {{ bc.numero }}{% endblock %}
+{% block page_title %}{{ bc.numero }}{% endblock %}
 {% block page_sub %}Bon de commande · {{ user.entreprise.nom }}{% endblock %}
 {% block n_bc %}active{% endblock %}
 
@@ -10,7 +10,7 @@
   <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-m);">
     <a href="{% url 'responsable_achat:boncommande_list' %}" style="color:var(--or);text-decoration:none;font-weight:600;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>Bons de commande</a>
     <i class="fas fa-chevron-right" style="font-size:10px;"></i>
-    <span class="mono" style="font-weight:700;color:var(--text-p);">{{ bc.reference }}</span>
+    <span class="mono" style="font-weight:700;color:var(--text-p);">{{ bc.numero }}</span>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <span class="badge bc-{{ bc.statut }}" style="font-size:12px;padding:5px 12px;">{{ bc.get_statut_display }}</span>
@@ -20,9 +20,9 @@
     <form method="post" action="{% url 'responsable_achat:boncommande_envoyer' bc.pk %}" style="display:inline;">
       {% csrf_token %}<button type="submit" class="btn b-or b-sm"><i class="fas fa-paper-plane"></i> Envoyer</button>
     </form>
-    {% elif bc.statut == 'envoye' or bc.statut == 'partiel' %}
+    {% elif bc.statut == 'envoye' or bc.statut == 'recu_partiel' %}
     <a href="{% url 'responsable_achat:boncommande_reception' bc.pk %}" class="btn b-or"><i class="fas fa-truck-ramp-box"></i> Réceptionner</a>
-    {% elif bc.statut == 'recu' %}
+    {% elif bc.statut == 'recu_complet' %}
     <form method="post" action="{% url 'responsable_achat:boncommande_cloturer' bc.pk %}" style="display:inline;">
       {% csrf_token %}<button type="submit" class="btn b-or b-sm"><i class="fas fa-lock"></i> Clôturer</button>
     </form>
@@ -64,17 +64,17 @@
               <div style="font-weight:700;font-size:13px;color:var(--text-p);">{{ l.produit.nom }}</div>
             </td>
             <td><span class="mono" style="font-size:12px;color:var(--or);">{{ l.produit.sku }}</span></td>
-            <td><span class="mono" style="font-size:15px;font-weight:800;">{{ l.quantite }}</span></td>
+            <td><span class="mono" style="font-size:15px;font-weight:800;">{{ l.quantite_commandee }}</span></td>
             <td>
-              <span class="mono" style="font-size:15px;font-weight:800;color:{% if l.quantite_recue == l.quantite %}var(--green){% elif l.quantite_recue > 0 %}var(--or){% else %}var(--text-m){% endif %};">
+              <span class="mono" style="font-size:15px;font-weight:800;color:{% if l.quantite_recue == l.quantite_commandee %}var(--green){% elif l.quantite_recue > 0 %}var(--or){% else %}var(--text-m){% endif %};">
                 {{ l.quantite_recue|default:0 }}
               </span>
             </td>
-            <td><span class="mono">{{ l.prix_unitaire|floatformat:2 }} FCFA</span></td>
+            <td><span class="mono">{{ l.prix_unitaire_ht|floatformat:2 }} FCFA</span></td>
             <td><span class="mono">{{ l.remise|default:0 }}%</span></td>
-            <td><span class="mono" style="font-weight:800;color:var(--or);">{{ l.total_ht|floatformat:2 }} FCFA</span></td>
+            <td><span class="mono" style="font-weight:800;color:var(--or);">{{ l.montant_ht|floatformat:2 }} FCFA</span></td>
             <td>
-              {% if l.quantite_recue == l.quantite %}<span class="badge bg-gr">Complet</span>
+              {% if l.quantite_recue == l.quantite_commandee %}<span class="badge bg-gr">Complet</span>
               {% elif l.quantite_recue > 0 %}<span class="badge bg-ye">Partiel</span>
               {% else %}<span class="badge bg-gy">En attente</span>{% endif %}
             </td>
@@ -84,7 +84,7 @@
         <tfoot>
           <tr style="background:var(--bg);">
             <td colspan="6" style="text-align:right;padding:14px;font-size:13px;font-weight:700;">Total HT :</td>
-            <td style="padding:14px;"><span class="mono" style="font-size:18px;font-weight:800;color:var(--or);">{{ bc.montant_total|floatformat:2 }} FCFA</span></td>
+            <td style="padding:14px;"><span class="mono" style="font-size:18px;font-weight:800;color:var(--or);">{{ bc.total_ht|floatformat:2 }} FCFA</span></td>
             <td></td>
           </tr>
         </tfoot>
@@ -100,10 +100,10 @@
         <tbody>
           {% for r in receptions %}
           <tr>
-            <td class="mono" style="font-size:12px;">{{ r.date|date:"d/m/Y H:i" }}</td>
+            <td class="mono" style="font-size:12px;">{{ r.date_mouvement|date:"d/m/Y H:i" }}</td>
             <td style="font-size:13px;font-weight:600;">{{ r.produit.nom }}</td>
             <td><span class="mono" style="font-weight:700;color:var(--green);">+{{ r.quantite }}</span></td>
-            <td style="font-size:13px;">{{ r.entrepot.nom }}</td>
+            <td style="font-size:13px;">{{ r.entrepot_destination.nom }}</td>
             <td style="font-size:12px;color:var(--text-m);">{{ r.utilisateur.get_full_name }}</td>
           </tr>
           {% endfor %}
@@ -119,13 +119,13 @@
       <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-info-circle" style="color:var(--or);margin-right:6px;"></i>Informations</div>
       <div style="font-size:13px;line-height:2.1;color:var(--text-s);">
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
-          <span style="color:var(--text-m);">Référence</span><span class="mono" style="font-weight:700;color:var(--or);">{{ bc.reference }}</span>
+          <span style="color:var(--text-m);">Référence</span><span class="mono" style="font-weight:700;color:var(--or);">{{ bc.numero }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
           <span style="color:var(--text-m);">Fournisseur</span><span style="font-weight:600;">{{ bc.fournisseur.nom }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
-          <span style="color:var(--text-m);">Créé le</span><span class="mono">{{ bc.date_creation|date:"d/m/Y" }}</span>
+          <span style="color:var(--text-m);">Créé le</span><span class="mono">{{ bc.date_commande|date:"d/m/Y" }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;">
           <span style="color:var(--text-m);">Envoyé le</span><span class="mono">{{ bc.date_envoi|date:"d/m/Y"|default:"—" }}</span>
@@ -135,14 +135,14 @@
           <span class="mono" style="color:{% if bc.est_en_retard %}var(--red){% else %}var(--text-p){% endif %};">{{ bc.date_livraison_prevue|date:"d/m/Y"|default:"—" }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:4px 0;">
-          <span style="color:var(--text-m);">Créé par</span><span>{{ bc.createur.get_full_name }}</span>
+          <span style="color:var(--text-m);">Créé par</span><span>{{ bc.utilisateur_createur.get_full_name }}</span>
         </div>
       </div>
     </div>
-    {% if bc.commentaire %}
+    {% if bc.note %}
     <div class="card" style="padding:18px;background:var(--or-dim);border-color:var(--or-border);">
       <div class="card-t" style="color:var(--or-d);margin-bottom:8px;"><i class="fas fa-comment" style="margin-right:6px;"></i>Commentaire</div>
-      <p style="font-size:13px;color:var(--or-d);line-height:1.6;">{{ bc.commentaire }}</p>
+      <p style="font-size:13px;color:var(--or-d);line-height:1.6;">{{ bc.note }}</p>
     </div>
     {% endif %}
   </div>

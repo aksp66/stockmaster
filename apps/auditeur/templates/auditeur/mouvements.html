@@ -101,7 +101,7 @@
         <td class="mono" style="font-weight:700;color:var(--or);">{{ m.valeur_totale|floatformat:2 }} FCFA</td>
         <td style="font-size:12px;color:var(--text-m);">{{ m.entrepot.nom|default:"—" }}</td>
         <td style="font-size:12px;">{{ m.utilisateur.get_full_name }}</td>
-        <td class="mono" style="font-size:11px;color:var(--blue);">{{ m.reference_document|default:"—" }}</td>
+        <td class="mono" style="font-size:11px;color:var(--blue);">{{ m.reference|default:"—" }}</td>
       </tr>
       {% endfor %}
     </tbody>

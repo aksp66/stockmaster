@@ -7,32 +7,40 @@
 
 <!-- En-tête -->
 <div style="text-align:center;margin-bottom:48px;">
+  {% if nb_entreprises %}
   <div style="display:inline-flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:#ea580c;margin-bottom:16px;">
-    <i class="fas fa-star" style="font-size:11px;"></i> +200 entreprises clientes
+    <i class="fas fa-star" style="font-size:11px;"></i> {{ nb_entreprises }} entreprise{{ nb_entreprises|pluralize }} cliente{{ nb_entreprises|pluralize }}
   </div>
+  {% endif %}
   <h1 style="font-size:2.2rem;font-weight:800;color:#111827;letter-spacing:-.04em;margin-bottom:12px;">Ils nous font confiance</h1>
   <p style="color:#6b7280;font-size:1rem;max-width:520px;margin:0 auto;line-height:1.7;">
-    Des centaines d'entreprises de toutes tailles ont adopté StockMaster pour gérer leur stock intelligemment.
+    Des entreprises de toutes tailles utilisent StockMaster pour gérer leur stock intelligemment. Voici ce qu'elles en disent.
   </p>
-  <!-- Note globale -->
+  <!-- Note globale (calculée sur les avis publiés) -->
+  {% if nb_avis %}
   <div style="display:inline-flex;align-items:center;gap:16px;background:white;border:1.5px solid #e5e7eb;border-radius:16px;padding:14px 24px;margin-top:24px;">
     <div style="text-align:center;">
-      <div style="font-size:2.4rem;font-weight:800;color:#111827;line-height:1;">{{ note_moyenne|default:"4.8" }}</div>
+      <div style="font-size:2.4rem;font-weight:800;color:#111827;line-height:1;">{{ note_moyenne|floatformat:1 }}</div>
       <div style="display:flex;gap:3px;justify-content:center;margin-top:4px;">
-        {% for i in "12345" %}<i class="fas fa-star" style="color:#f97316;font-size:14px;"></i>{% endfor %}
+        {% for i in "12345" %}<i class="fas fa-star" style="color:{% if forloop.counter <= note_etoiles %}#f97316{% else %}#e5e7eb{% endif %};font-size:14px;"></i>{% endfor %}
       </div>
     </div>
     <div style="width:1px;height:40px;background:#e5e7eb;"></div>
     <div style="text-align:center;">
-      <div style="font-size:1.4rem;font-weight:800;color:#111827;line-height:1;">{{ nb_avis|default:"84" }}</div>
-      <div style="font-size:13px;color:#6b7280;margin-top:3px;">avis vérifiés</div>
+      <div style="font-size:1.4rem;font-weight:800;color:#111827;line-height:1;">{{ nb_avis }}</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:3px;">avis vérifié{{ nb_avis|pluralize }}</div>
     </div>
     <div style="width:1px;height:40px;background:#e5e7eb;"></div>
     <div style="text-align:center;">
-      <div style="font-size:1.4rem;font-weight:800;color:#059669;line-height:1;">{{ pct_recommande|default:"97" }}%</div>
-      <div style="font-size:13px;color:#6b7280;margin-top:3px;">recommandent</div>
+      <div style="font-size:1.4rem;font-weight:800;color:#059669;line-height:1;">{{ pct_recommande }}%</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:3px;">recommandent (4★ ou plus)</div>
     </div>
   </div>
+  {% else %}
+  <p style="margin-top:20px;font-size:14px;color:#6b7280;">
+    Aucun avis publié pour l'instant. <a href="#laisser-avis" style="color:#f97316;font-weight:600;">Soyez le premier à donner le vôtre.</a>
+  </p>
+  {% endif %}
 </div>
 
 <!-- Filtres -->
@@ -262,7 +270,7 @@
 <!-- CTA rejoindre -->
 <div style="background:linear-gradient(135deg,#1a1208,#2d1f12);border-radius:20px;padding:40px;text-align:center;">
   <h2 style="font-size:1.6rem;font-weight:800;color:white;margin-bottom:10px;">Votre entreprise n'est pas encore cliente ?</h2>
-  <p style="color:rgba(255,255,255,.65);margin-bottom:22px;font-size:15px;">Rejoignez +200 entreprises et transformez votre gestion de stock.</p>
+  <p style="color:rgba(255,255,255,.65);margin-bottom:22px;font-size:15px;">{% if nb_entreprises > 1 %}Rejoignez les {{ nb_entreprises }} entreprises qui utilisent déjà StockMaster et transformez votre gestion de stock.{% else %}Transformez votre gestion de stock dès aujourd'hui.{% endif %}</p>
   <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
     <a href="{% url 'accounts:inscription' %}" class="btn-or"><i class="fas fa-rocket"></i> Essai gratuit</a>
     <a href="{% url 'pages:contact' %}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border:1.5px solid rgba(255,255,255,.25);border-radius:10px;color:rgba(255,255,255,.8);text-decoration:none;font-weight:600;font-size:14px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.08)';" onmouseout="this.style.background='transparent';"><i class="fas fa-phone"></i> Demander une démo</a>

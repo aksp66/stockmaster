@@ -450,6 +450,16 @@ class Mouvement(TimestampMixin):
     def __str__(self):
         return f"{self.get_type_mouvement_display()} — {self.produit.nom} × {self.quantite} ({self.date_mouvement:%d/%m/%Y})"
 
+    @property
+    def entrepot(self):
+        """Entrepôt à afficher : destination pour une entrée / un surplus, source sinon."""
+        return self.entrepot_destination or self.entrepot_source
+
+    @property
+    def emplacement(self):
+        """Emplacement correspondant à `entrepot`."""
+        return self.emplacement_destination if self.entrepot_destination_id else self.emplacement_source
+
     def save(self, *args, **kwargs):
         """
         Snapshot du prix au moment de la création (pour l'historique comptable).
@@ -542,11 +552,23 @@ class BonCommande(TimestampMixin):
             for ligne in self.lignes.all()
         )
 
+    def est_en_retard(self):
+        """True si la livraison prévue est dépassée et que la marchandise n'est pas entièrement reçue."""
+        return (
+            self.date_livraison_prevue is not None
+            and self.date_livraison_prevue < timezone.now().date()
+            and self.statut in (StatutBonCommande.ENVOYE, StatutBonCommande.RECU_PARTIEL)
+        )
+
     def save(self, *args, **kwargs):
         """Génère automatiquement un numéro de BC si absent."""
         if not self.numero:
             from django.utils.timezone import now
             count = BonCommande.objects.filter(entreprise=self.entreprise).count() + 1
+            # `numero` est unique sur toute la base : on saute les numéros déjà pris
+            # par une autre entreprise (sinon IntegrityError dès la 2e entreprise).
+            while BonCommande.objects.filter(numero=f"{now().year}-{count:05d}").exists():
+                count += 1
             self.numero = f"{now().year}-{count:05d}"
         super().save(*args, **kwargs)
 
@@ -653,6 +675,20 @@ class InventaireSession(TimestampMixin):
 
     def __str__(self):
         return f"Inventaire {self.entrepot.nom} — {self.date_debut:%d/%m/%Y}"
+
+    @property
+    def total_lignes(self):
+        return self.lignes.count()
+
+    @property
+    def lignes_comptees(self):
+        return self.lignes.filter(quantite_comptee__isnull=False).count()
+
+    @property
+    def progression(self):
+        """Pourcentage de lignes déjà comptées (0-100)."""
+        total = self.total_lignes
+        return round(self.lignes_comptees * 100 / total) if total else 0
 
     def ecart_total(self):
         """Retourne la somme des écarts (positifs et négatifs) de toutes les lignes."""

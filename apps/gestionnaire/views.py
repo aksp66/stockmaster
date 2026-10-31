@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db import transaction
 from django.db.models import Sum, Count, Q, F
+from django.db.models.functions import Coalesce
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.core.paginator import Paginator
@@ -83,11 +84,27 @@ def produits_liste(request):
     if statut == 'actif':   qs = qs.filter(est_actif=True)
     if statut == 'inactif': qs = qs.filter(est_actif=False)
 
+    # Compteurs du bandeau (sur tout le catalogue de l'entreprise, hors filtres)
+    totaux = Produit.objects.filter(entreprise=ent).annotate(total=Coalesce(Sum('stocks__quantite'), Decimal(0)))
+    nb_rupture = totaux.filter(total__lte=0).count()
+    nb_alerte = totaux.filter(total__gt=0, total__lte=F('seuil_alerte')).count()
+    filtre_stock = request.GET.get('stock', '')
+    if filtre_stock == 'rupture':
+        qs = qs.filter(pk__in=totaux.filter(total__lte=0).values('pk'))
+    elif filtre_stock == 'alerte':
+        qs = qs.filter(pk__in=totaux.filter(total__gt=0, total__lte=F('seuil_alerte')).values('pk'))
+    elif filtre_stock == 'ok':
+        qs = qs.filter(pk__in=totaux.filter(total__gt=F('seuil_alerte')).values('pk'))
+
     page = Paginator(qs.order_by('nom'), 20)
     produits = page.get_page(request.GET.get('page', 1))
 
     context = {
         'produits':    produits,
+        'total_produits': page.count,
+        'nb_rupture': nb_rupture,
+        'nb_alerte': nb_alerte,
+        'nb_ok': totaux.count() - nb_rupture - nb_alerte,
         'categories':  Categorie.objects.filter(entreprise=ent),
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
         'q': q, 'cat_id': cat_id, 'statut': statut,
@@ -208,16 +225,112 @@ def produit_form(request, pk=None):
 def produit_detail(request, pk):
     ent = get_entreprise(request)
     produit = get_object_or_404(Produit, pk=pk, entreprise=ent)
-    mouvements = produit.mouvements.order_by('-date_mouvement')[:20]
-    stocks     = produit.stocks.select_related('entrepot', 'emplacement')
-    alertes    = produit.alertes.filter(lue=False)[:5]
-    predictions = produit.predictions.order_by('date_cible')[:6]
+    total_actuel = Decimal(str(produit.quantite_totale()))
+
+    # Stock total après chaque mouvement : on remonte l'historique depuis le stock actuel
+    historique = list(produit.mouvements.order_by('-date_mouvement', '-created_at')
+                      .values_list('pk', 'type_mouvement', 'quantite', 'entrepot_destination_id', 'date_mouvement'))
+    stock_apres, courant = {}, total_actuel
+    for mpk, type_m, qte, dest, date_m in historique:
+        stock_apres[mpk] = courant
+        courant -= _variation_stock_total(type_m, qte, dest)
+
+    filtre = request.GET.get('filtre')
+    qs = produit.mouvements.select_related('entrepot_source', 'entrepot_destination', 'utilisateur') \
+        .order_by('-date_mouvement', '-created_at')
+    if filtre == 'entree':
+        qs = qs.filter(type_mouvement=TypeMouvement.ENTREE)
+    elif filtre == 'sortie':
+        qs = qs.filter(type_mouvement__in=[TypeMouvement.SORTIE, TypeMouvement.PERTE])
+    page = Paginator(qs, 15)
+    mouvements = page.get_page(request.GET.get('page', 1))
+    for m in mouvements:
+        m.stock_apres = stock_apres.get(m.pk)
+
+    # Graphique : 30 derniers jours (entrées, sorties et stock en fin de journée)
+    aujourd_hui = timezone.localdate()
+    jours = [aujourd_hui - timedelta(days=i) for i in range(29, -1, -1)]
+    entrees = {j: Decimal(0) for j in jours}
+    sorties = {j: Decimal(0) for j in jours}
+    variation_jour = {j: Decimal(0) for j in jours}
+    for _, type_m, qte, dest, date_m in historique:
+        jour = timezone.localdate(date_m)
+        if jour not in entrees:
+            continue
+        if type_m == TypeMouvement.ENTREE:
+            entrees[jour] += qte
+        elif type_m in (TypeMouvement.SORTIE, TypeMouvement.PERTE):
+            sorties[jour] += qte
+        variation_jour[jour] += _variation_stock_total(type_m, qte, dest)
+    stock_fin_jour, courant = [], total_actuel
+    for j in reversed(jours):
+        stock_fin_jour.append(courant)
+        courant -= variation_jour[j]
+    stock_fin_jour.reverse()
+
+    depuis_30j = timezone.now() - timedelta(days=30)
+    recents = produit.mouvements.filter(date_mouvement__gte=depuis_30j)
+
     return render(request, 'gestionnaire/produit_detail.html', {
-        'produit': produit, 'mouvements': mouvements,
-        'stocks': stocks, 'alertes': alertes, 'predictions': predictions,
+        'produit': produit, 'mouvements': mouvements, 'total_mouvements': page.count,
+        'stocks_par_entrepot': produit.stocks.select_related('entrepot', 'emplacement').order_by('entrepot__nom'),
+        'alertes': produit.alertes.filter(lue=False)[:5],
+        'valeur_stock': produit.valeur_stock_total(),
+        'nb_entrees_30j': recents.filter(type_mouvement=TypeMouvement.ENTREE).count(),
+        'nb_sorties_30j': recents.filter(type_mouvement__in=[TypeMouvement.SORTIE, TypeMouvement.PERTE]).count(),
+        'labels_stock': json.dumps([j.strftime('%d/%m') for j in jours]),
+        'data_entrees': json.dumps([float(entrees[j]) for j in jours]),
+        'data_sorties': json.dumps([float(sorties[j]) for j in jours]),
+        'data_stock': json.dumps([float(v) for v in stock_fin_jour]),
+        'fiche_produit': [
+            ("Catégorie", produit.categorie.nom if produit.categorie else None, 'fas fa-tag'),
+            ("Fournisseur", produit.fournisseur_principal.nom if produit.fournisseur_principal else None, 'fas fa-truck'),
+            ("Unité", produit.get_unite_mesure_display(), 'fas fa-ruler'),
+            ("Code-barres", produit.code_barres, 'fas fa-barcode'),
+            ("Prix d'achat", f"{produit.prix_unitaire:,.2f} FCFA".replace(',', ' '), 'fas fa-coins'),
+            ("Prix de vente", f"{produit.prix_vente:,.2f} FCFA".replace(',', ' ') if produit.prix_vente else None, 'fas fa-money-bill'),
+            ("Seuil d'alerte", produit.seuil_alerte, 'fas fa-bell'),
+            ("Délai de réappro.", f"{produit.delai_reappro} j", 'fas fa-clock'),
+            ("Créé le", produit.created_at.strftime('%d/%m/%Y'), 'fas fa-calendar'),
+        ],
+        'prediction': _resume_prediction(produit, total_actuel),
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
     })
 
+
+def _variation_stock_total(type_m, quantite, entrepot_destination_id):
+    """Effet d'un mouvement sur le stock total du produit (mêmes règles que _appliquer_mouvement)."""
+    if type_m == TypeMouvement.ENTREE:
+        return quantite
+    if type_m in (TypeMouvement.SORTIE, TypeMouvement.PERTE):
+        return -quantite
+    if type_m == TypeMouvement.AJUSTEMENT:
+        return quantite if entrepot_destination_id else -quantite
+    return Decimal(0)  # transfert (total inchangé), retour (non appliqué au stock)
+
+
+def _resume_prediction(produit, stock_actuel):
+    """Synthèse des prédictions IA à 30 jours pour la fiche produit (None s'il n'y en a pas)."""
+    futures = list(produit.predictions.filter(date_cible__gte=timezone.localdate()).order_by('date_cible')[:30])
+    if not futures:
+        return None
+    conso = sum((p.quantite_prevue for p in futures), Decimal(0))
+    stock_prevu = stock_actuel - conso
+    if stock_prevu < 0:
+        a_commander = -stock_prevu + produit.seuil_alerte
+    elif stock_prevu < produit.seuil_alerte:
+        a_commander = produit.seuil_alerte - stock_prevu
+    else:
+        a_commander = Decimal(0)
+    derniere = max(futures, key=lambda p: p.created_at)
+    return {
+        'modele_utilise': derniere.modele_utilise,
+        'score_confiance': round(derniere.confiance) if derniere.confiance else 70,
+        'consommation_prevue': conso,
+        'stock_prevu_j30': stock_prevu,
+        'quantite_a_commander': a_commander,
+        'date_calcul': derniere.created_at,
+    }
 
 @login_required
 @role_required('gestionnaire', 'admin_ent', 'super_admin')
@@ -274,11 +387,31 @@ def mouvements_liste(request):
     if type_m: qs = qs.filter(type_mouvement=type_m)
     if date_d: qs = qs.filter(date_mouvement__date__gte=date_d)
     if date_f: qs = qs.filter(date_mouvement__date__lte=date_f)
+    entrepot_id = request.GET.get('entrepot', '')
+    if entrepot_id:
+        qs = qs.filter(Q(entrepot_source_id=entrepot_id) | Q(entrepot_destination_id=entrepot_id))
+    produit_id = request.GET.get('produit', '')
+    if produit_id:
+        qs = qs.filter(produit_id=produit_id)
+
+    resume = {r['type_mouvement']: r for r in qs.order_by().values('type_mouvement')
+              .annotate(total=Sum('quantite'), nb_ops=Count('id', distinct=True))}
+    resume_types = [
+        {'label': label, 'couleur': couleur,
+         'total': resume.get(code, {}).get('total') or 0, 'nb_ops': resume.get(code, {}).get('nb_ops', 0)}
+        for code, label, couleur in [
+            ('entree', 'Entrées', 'var(--green)'), ('sortie', 'Sorties', 'var(--red)'),
+            ('transfert', 'Transferts', 'var(--blue)'), ('ajustement', 'Ajustements', 'var(--or)'),
+        ]
+    ]
 
     page = Paginator(qs.order_by('-date_mouvement'), 25)
     mouvements = page.get_page(request.GET.get('page', 1))
     return render(request, 'gestionnaire/mouvement_list.html', {
         'mouvements': mouvements,
+        'total_mouvements': page.count,
+        'resume_types': resume_types,
+        'entrepots': Entrepot.objects.filter(entreprise=ent),
         'types': TypeMouvement.choices,
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
         'q': q, 'type_m': type_m,
@@ -400,8 +533,17 @@ def inventaires_liste(request):
     sessions = InventaireSession.objects.filter(
         entrepot__entreprise=ent
     ).select_related('entrepot', 'utilisateur_demarrage').order_by('-date_debut')
+    nb_sessions = sessions.count()
+    nb_en_cours = sessions.filter(statut='en_cours').count()
+    statut = request.GET.get('statut')
+    if statut:
+        sessions = sessions.filter(statut=statut)
     return render(request, 'gestionnaire/inventaire_session_list.html', {
         'sessions': sessions,
+        'nb_sessions': nb_sessions,
+        'nb_en_cours': nb_en_cours,
+        'statuts_filter': [('', 'Toutes', 'gy'), ('en_cours', 'En cours', 'or'),
+                           ('valide', 'Validées', 'gr'), ('annule', 'Annulées', 're')],
         'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True),
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
     })
@@ -413,12 +555,17 @@ def inventaire_creer(request):
     ent = get_entreprise(request)
     if request.method == 'POST':
         entrepot = get_object_or_404(Entrepot, pk=request.POST.get('entrepot'), entreprise=ent)
+        note = '\n'.join(t for t in (request.POST.get('nom', '').strip(), request.POST.get('commentaire', '').strip()) if t)
         session  = InventaireSession.objects.create(
             entrepot=entrepot,
             utilisateur_demarrage=request.user,
+            note=note,
         )
-        # Pré-remplir les lignes avec le stock théorique actuel
+        # Pré-remplir les lignes avec le stock théorique actuel (éventuellement limité à une catégorie)
         stocks = Stock.objects.filter(entrepot=entrepot).select_related('produit', 'emplacement')
+        categorie_id = request.POST.get('categorie')
+        if categorie_id:
+            stocks = stocks.filter(produit__categorie_id=categorie_id, produit__categorie__entreprise=ent)
         lignes = [
             LigneInventaire(
                 session=session,
@@ -431,7 +578,9 @@ def inventaire_creer(request):
         messages.success(request, f"Session d'inventaire créée pour {entrepot.nom}.")
         return redirect('gestionnaire:inventaire_session_detail', pk=session.pk)
     return render(request, 'gestionnaire/inventaire_session_create.html', {
-        'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True),
+        'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True)
+            .annotate(nb_produits=Count('stocks__produit', distinct=True)),
+        'categories': Categorie.objects.filter(entreprise=ent).order_by('nom'),
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
     })
 
@@ -456,8 +605,9 @@ def inventaire_saisie(request, pk):
         for ligne in lignes:
             val = request.POST.get(f'ligne_{ligne.pk}')
             if val is not None and val.strip() != '':
-                ligne.quantite_comptee = float(val)
-                ligne.save(update_fields=['quantite_comptee'])
+                ligne.quantite_comptee = Decimal(val)
+            ligne.note = request.POST.get(f'cmt_{ligne.pk}', ligne.note).strip()[:255]
+            ligne.save(update_fields=['quantite_comptee', 'note', 'updated_at'])
         messages.success(request, "Quantités enregistrées.")
         return redirect('gestionnaire:inventaire_saisie', pk=session.pk)
 
@@ -904,7 +1054,7 @@ def mouvement_form(request):
     if produit_id_get:
         try:
             produit_initial = Produit.objects.get(pk=produit_id_get, entreprise=ent)
-        except (ValueError, uuid.UUID, Produit.DoesNotExist):
+        except (ValueError, ValidationError, Produit.DoesNotExist):
             produit_initial = None
 
     # Construction des types de mouvement avec icônes et couleurs
@@ -936,7 +1086,7 @@ def mouvement_form(request):
             return redirect('gestionnaire:mouvement_form')
         try:
             produit = Produit.objects.get(pk=prod_id, entreprise=ent)
-        except (ValueError, uuid.UUID, Produit.DoesNotExist):
+        except (ValueError, ValidationError, Produit.DoesNotExist):
             messages.error(request, "Produit invalide.")
             return redirect('gestionnaire:mouvement_form')
         
@@ -971,6 +1121,8 @@ def mouvement_form(request):
                     utilisateur=request.user,
                     reference=data.get('reference_document', ''),
                     note=data.get('motif', ''),
+                    date_mouvement=_date_saisie(data.get('date_mouvement')),
+                    prix_unitaire_snapshot=_prix_saisi(data.get('prix_unitaire_achat')) if type_m == 'entree' else None,
                 )
                 _appliquer_mouvement(mouv)
         except ValidationError as e:
@@ -986,10 +1138,28 @@ def mouvement_form(request):
         'produits': Produit.objects.filter(entreprise=ent, est_actif=True),
         'entrepots': Entrepot.objects.filter(entreprise=ent, est_actif=True),
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
-        'produit_initial': produit_initial,
-        'now': timezone.now(),
+        'produit_preselect': produit_initial,
+        'now': timezone.localtime(),
     }
     return render(request, 'gestionnaire/mouvement_form.html', context)
+
+def _date_saisie(valeur):
+    """Date d'un champ datetime-local ; maintenant si vide ou invalide."""
+    from django.utils.dateparse import parse_datetime
+    date_m = parse_datetime(valeur or '')
+    if date_m is None:
+        return timezone.now()
+    return timezone.make_aware(date_m) if timezone.is_naive(date_m) else date_m
+
+
+def _prix_saisi(valeur):
+    """Prix d'achat saisi (Decimal >= 0) ou None : le modèle reprend alors le prix du produit."""
+    try:
+        prix = Decimal(valeur)
+    except (TypeError, ArithmeticError, ValueError):
+        return None
+    return prix if prix >= 0 else None
+
 
 @login_required
 @role_required('gestionnaire', 'admin_ent', 'super_admin')

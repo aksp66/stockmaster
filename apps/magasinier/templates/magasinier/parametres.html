@@ -25,7 +25,7 @@
   </div>
 </div>
 
-{# Préférences scan #}
+{% if scan_settings %}{# Préférences scan (aucune pour le moment) #}
 <div class="card" style="margin-bottom:14px;padding:18px;">
   <div class="card-t" style="margin-bottom:14px;"><i class="fas fa-barcode" style="color:var(--or);margin-right:6px;"></i>Préférences de scan</div>
 
@@ -44,6 +44,7 @@
   </label>
   {% endfor %}
 </div>
+{% endif %}
 
 {# Type de mouvement par défaut #}
 <div class="card" style="margin-bottom:20px;padding:18px;">
