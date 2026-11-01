@@ -47,6 +47,39 @@
     </div>
   </div>
 
+  <!-- Apparence -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title"><i class="fas fa-palette" style="color:var(--orange);margin-right:6px;"></i>Apparence</div>
+        <div class="card-subtitle">Le thème choisi s'applique à toute l'application, pour tous vos utilisateurs</div>
+      </div>
+    </div>
+    <div style="padding:20px 22px;">
+      <form method="post" action="{% url 'admin_entreprise:parametres' %}" id="theme-form">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="apparence">
+        <div class="theme-grid">
+          {% for t in themes %}
+          <label class="theme-opt">
+            <input type="radio" name="theme" value="{{ t.code }}" {% if t.code == theme_actuel %}checked{% endif %}>
+            <div class="theme-prev">
+              <i style="background:{{ t.sidebar }};flex:0 0 28%;"></i>
+              <i style="background:{{ t.clair }};"></i>
+              <i style="background:{{ t.principal }};flex:0 0 22%;"></i>
+            </div>
+            <div class="theme-name">{{ t.nom }}</div>
+          </label>
+          {% endfor %}
+        </div>
+        <div class="form-hint" style="margin-top:10px;">L'aperçu s'applique tout de suite à cette page ; il n'est enregistré qu'avec le bouton.</div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Enregistrer le thème</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Seuils d'alerte -->
   <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
     <div class="card-header">
@@ -107,3 +140,12 @@
   </div>
 </div>
 {% endblock %}
+{% block extra_js %}
+<script>
+  // Aperçu immédiat du thème choisi (non enregistré tant que le formulaire n'est pas envoyé)
+  document.querySelectorAll('#theme-form input[name="theme"]').forEach(function (r) {
+    r.addEventListener('change', function () { document.documentElement.dataset.theme = r.value; });
+  });
+</script>
+{% endblock %}
+

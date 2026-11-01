@@ -377,3 +377,33 @@ class InscriptionTests(EntrepriseTestCase):
         self.client.get(url, {'step': '3'})  # tentative de sauter l'étape 2
         self.assertEqual(self.client.session['inscription_step'], 2)
         self.assertEqual(self.client.get(url, {'step': 'abc'}).status_code, 302)  # plus d'erreur 500
+
+
+class ThemeEntrepriseTests(EntrepriseTestCase):
+
+    def test_theme_applique_a_tous_les_roles_de_l_entreprise(self):
+        self.connecter('admin_ent')
+        self.client.post(reverse('admin_entreprise:parametres'), {'section': 'apparence', 'theme': 'ocean'})
+        for role, url in [('admin_ent', 'admin_entreprise:dashboard'), ('gestionnaire', 'gestionnaire:dashboard'),
+                          ('comptable', 'comptable:dashboard'), ('magasinier', 'magasinier:dashboard')]:
+            self.connecter(role)
+            self.assertContains(self.client.get(reverse(url)), 'data-theme="ocean"', msg_prefix=role)
+
+    def test_autre_entreprise_garde_le_theme_par_defaut(self):
+        self.connecter('admin_ent')
+        self.client.post(reverse('admin_entreprise:parametres'), {'section': 'apparence', 'theme': 'rubis'})
+        autre = creer_entreprise('B')
+        gest = creer_utilisateur('gestionnaire', autre)
+        self.client.force_login(gest)
+        self.assertContains(self.client.get(reverse('gestionnaire:dashboard')), 'data-theme="orange"')
+
+    def test_theme_inconnu_refuse(self):
+        self.connecter('admin_ent')
+        self.client.post(reverse('admin_entreprise:parametres'), {'section': 'apparence', 'theme': '<script>'})
+        self.assertEqual(ParametresEntreprise.pour(self.ent).theme, 'orange')
+        self.assertContains(self.client.get(reverse('admin_entreprise:parametres')), 'theme-opt')
+
+    def test_seul_l_admin_choisit_le_theme(self):
+        self.connecter('gestionnaire')
+        self.client.post(reverse('admin_entreprise:parametres'), {'section': 'apparence', 'theme': 'violet'})
+        self.assertEqual(ParametresEntreprise.pour(self.ent).theme, 'orange')

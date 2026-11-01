@@ -1,4 +1,7 @@
+from django.core.cache import cache
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from apps.core.models import TimeStampedModel   
 
 class TypeEntreprise(models.TextChoices):
@@ -35,6 +38,20 @@ class Entreprise(TimeStampedModel):
         return self.nom
 
 
+# Thèmes d'apparence (code, nom, couleur de la barre latérale, couleur principale, teinte claire).
+# Les couleurs réelles sont définies dans static/css/stockmaster.css (:root[data-theme="…"]) ;
+# celles-ci ne servent qu'à l'aperçu dans la page Paramètres.
+THEMES = [
+    ('orange', 'Orange', '#1a1208', '#f97316', '#fff7ed'),
+    ('ocean', 'Océan', '#0b1a26', '#0ea5e9', '#f0f9ff'),
+    ('foret', 'Forêt', '#0d1a12', '#16a34a', '#f0fdf4'),
+    ('violet', 'Violet', '#150f26', '#7c3aed', '#f5f3ff'),
+    ('rubis', 'Rubis', '#1f0a10', '#e11d48', '#fff1f2'),
+    ('ardoise', 'Ardoise', '#0f172a', '#475569', '#f1f5f9'),
+]
+THEME_PAR_DEFAUT = 'orange'
+
+
 class ParametresEntreprise(models.Model):
     """
     Réglages d'une entreprise, modifiables par son admin (page Paramètres).
@@ -58,6 +75,10 @@ class ParametresEntreprise(models.Model):
     jours_alerte_expiration = models.PositiveSmallIntegerField(
         default=30, verbose_name="Jours avant expiration (alerte)",
         help_text="Une alerte est créée pour les lots en stock qui expirent dans ce délai.")
+    # Apparence : appliquée à toute l'application, pour tous les rôles de l'entreprise
+    theme = models.CharField(
+        max_length=20, choices=[(code, nom) for code, nom, *_ in THEMES], default=THEME_PAR_DEFAUT,
+        verbose_name="Thème de couleurs")
     modifie_le = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -71,3 +92,12 @@ class ParametresEntreprise(models.Model):
     def pour(cls, entreprise):
         """Paramètres de l'entreprise, créés avec les valeurs par défaut s'ils n'existent pas encore."""
         return cls.objects.get_or_create(entreprise=entreprise)[0]
+
+
+def cle_theme(entreprise_id):
+    return f"stockmaster:theme:{entreprise_id}"
+
+
+@receiver(post_save, sender=ParametresEntreprise)
+def invalider_cache_theme(sender, instance, **kwargs):
+    cache.delete(cle_theme(instance.entreprise_id))

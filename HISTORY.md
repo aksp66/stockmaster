@@ -174,3 +174,10 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - **Palette des produits** : mêmes couleurs pour les statuts de stock (`st-ok`, `st-faible`, `st-critique`, `st-rupture`) et huit couleurs de catégories (`cat-0`…`cat-7`).
 - Mouvement réduit respecté (`prefers-reduced-motion`), styles d'impression, cache hors ligne de la PWA mis à jour (v1.2.0).
 - Vérifié par captures d'écran de chaque espace (Edge) ; 157 tests.
+
+### Refonte, étape 2 — thèmes par entreprise
+
+- Champ `theme` sur `ParametresEntreprise` (migration `entreprises.0003`), six thèmes : Orange (défaut), Océan, Forêt, Violet, Rubis, Ardoise.
+- Nouvelle carte « Apparence » dans les Paramètres de l'admin entreprise : choix du thème avec aperçu immédiat sur la page, enregistré seulement au clic. Réservé à l'admin entreprise ; un thème inconnu est refusé.
+- Le thème s'applique à tous les rôles de l'entreprise (attribut `data-theme` sur chaque gabarit, via le processeur de contexte `apps.entreprises.context_processors.theme`, mis en cache et invalidé à l'enregistrement). Les autres entreprises et le super admin gardent l'orange.
+- Tests : 161.

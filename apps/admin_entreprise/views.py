@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from apps.accounts.models import Utilisateur, RoleUtilisateur
-from apps.entreprises.models import Entreprise, ParametresEntreprise
+from apps.entreprises.models import THEMES, Entreprise, ParametresEntreprise
 from decimal import Decimal, InvalidOperation
 from django.db.models import OuterRef, Subquery
 from django.utils import timezone
@@ -262,6 +262,14 @@ def parametres(request):
                 setattr(params, champ, request.POST.get(champ) == 'on')
             params.save()
             messages.success(request, "Préférences de notification enregistrées.")
+        elif section == 'apparence':
+            code = request.POST.get('theme')
+            if code in {c for c, *_ in THEMES}:
+                params.theme = code
+                params.save()
+                messages.success(request, "Thème enregistré : il s'applique à tous les utilisateurs de l'entreprise.")
+            else:
+                messages.error(request, "Thème inconnu.")
         elif section == 'seuils':
             try:
                 seuil = Decimal(request.POST.get('seuil_defaut', ''))
@@ -277,6 +285,8 @@ def parametres(request):
         return redirect('admin_entreprise:parametres')
     return render(request, 'admin_entreprise/parametres.html', {
         'notif_options': [(label, champ, getattr(params, champ)) for label, champ in options],
+        'themes': [{'code': c, 'nom': n, 'sidebar': sb, 'principal': pr, 'clair': cl} for c, n, sb, pr, cl in THEMES],
+        'theme_actuel': params.theme,
         'seuil_defaut': params.seuil_alerte_defaut,
         'jours_expiration': params.jours_alerte_expiration,
     })

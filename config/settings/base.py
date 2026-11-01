@@ -122,6 +122,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.gestionnaire.context_processors.alertes_count',
+                'apps.entreprises.context_processors.theme',
             ],
         },
     },

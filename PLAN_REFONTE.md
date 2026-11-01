@@ -18,8 +18,8 @@ Un commit par étape ; push à la fin. Cases cochées au fur et à mesure.
 - Un seul fichier de base partagé par tous les rôles ; chaque rôle ne garde que sa navigation. Couleurs identiques pour tous les rôles (le rôle se distingue par son badge, pas par sa couleur).
 - Palette unique des statuts produits (OK / faible / critique / rupture) et des catégories, appliquée partout.
 
-### 2. Thèmes par entreprise
-- Champ `theme` sur `Entreprise` (migration), 6 thèmes prédéfinis (Orange par défaut, Océan, Forêt, Violet, Rubis, Ardoise).
+### 2. Thèmes par entreprise — fait
+- Champ `theme` sur `ParametresEntreprise` (migration), 6 thèmes prédéfinis (Orange par défaut, Océan, Forêt, Violet, Rubis, Ardoise).
 - Choix dans Paramètres de l'admin entreprise avec aperçu en direct ; le thème est appliqué à toute l'application via `data-theme` (jetons CSS redéfinis), tous rôles confondus.
 
 ### 3. Pages : alignement et cohérence
