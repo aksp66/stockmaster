@@ -107,5 +107,23 @@ class FAQView(TemplateView):
         from .faq_data import CATEGORIES, faqs
         return super().get_context_data(faq_categories=CATEGORIES, faqs=faqs(), **kwargs)
 
+class PageJuridiqueView(TemplateView):
+    """Pages juridiques : l'identité de l'éditeur vient des réglages (LEGAL_* dans .env)."""
+
+    def get_context_data(self, **kwargs):
+        from django.conf import settings
+        legal = settings.LEGAL
+        manquants = [cle for cle, valeur in legal.items() if not valeur]
+        return super().get_context_data(legal=legal, manquants=manquants, **kwargs)
+
+
+class MentionsLegalesView(PageJuridiqueView):
+    template_name = 'pages/mentions_legales.html'
+
+
+class ConditionsView(PageJuridiqueView):
+    template_name = 'pages/conditions.html'
+
+
 class PolitiqueView(TemplateView):
     template_name = 'pages/politique.html'

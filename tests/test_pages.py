@@ -124,3 +124,42 @@ class PagesPubliquesTests(EntrepriseTestCase):
 
     def test_theme_orange_pour_les_visiteurs(self):
         self.assertNotIn('data-theme="ocean"', self.client.get(reverse('pages:accueil')).content.decode())
+
+
+class PagesJuridiquesEtAlerteTests(EntrepriseTestCase):
+
+    def test_pages_juridiques_sans_information_inventee(self):
+        for nom in ('pages:mentions_legales', 'pages:conditions'):
+            html = self.client.get(reverse(nom)).content.decode()
+            self.assertIn('[À compléter]', html, nom)  # rien n'est renseigné : la page le dit au lieu d'inventer
+            self.assertIn('Gérer mes cookies', html)
+
+    def test_identite_renseignee_dans_les_reglages(self):
+        from django.test import override_settings
+        from django.conf import settings
+        with override_settings(LEGAL={**settings.LEGAL, 'editeur': 'Exemple SARL', 'juridiction': 'Lomé'}):
+            html = self.client.get(reverse('pages:mentions_legales')).content.decode()
+        self.assertIn('<strong>Exemple SARL</strong>', html)
+        self.assertIn('<strong>Lomé</strong>', html)
+
+    def test_avertissement_reserve_au_super_admin(self):
+        self.assertNotIn('Réservé au super admin', self.client.get(reverse('pages:conditions')).content.decode())
+        from .base import creer_utilisateur
+        self.client.force_login(creer_utilisateur('super_admin'))
+        self.assertIn('Réservé au super admin', self.client.get(reverse('pages:conditions')).content.decode())
+
+    def test_email_aux_super_admins_a_la_confirmation_d_inscription(self):
+        from django.core import mail
+        from apps.accounts.models import EmailConfirmationToken, Utilisateur
+        from .base import creer_entreprise, creer_utilisateur
+        sa = creer_utilisateur('super_admin')
+        ent = creer_entreprise('Nouvelle SARL', active=False)
+        admin = Utilisateur.objects.create_user(username='n@exemple.com', email='n@exemple.com', password='x',
+                                                role='admin_ent', entreprise=ent, is_active=False, est_actif=False)
+        jeton = EmailConfirmationToken.objects.create(user=admin, token='j' * 40)
+        self.client.get(reverse('accounts:confirmation_email', args=[jeton.token]))
+        envoyes = [m for m in mail.outbox if 'attend son activation' in m.subject]
+        self.assertEqual(len(envoyes), 1)
+        self.assertEqual(envoyes[0].to, [sa.email])
+        self.assertIn('Nouvelle SARL', envoyes[0].subject)
+        self.assertIn(str(ent.pk), envoyes[0].body)

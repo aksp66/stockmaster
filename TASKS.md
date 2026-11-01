@@ -100,14 +100,15 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [x] **Audit de sécurité** : XSS stockée dans les graphiques, entreprise désactivée sans effet, connexion sans limitation, injection de formules CSV, inscription auto-validée, 98 vulnérabilités de dépendances
 - [x] **Tests par rôle** : audit générique des accès et de l'isolation entre entreprises, robot de parcours en CI, corrections des formulaires et des champs manquants
 - [x] 227 tests
+- [x] Email aux super admins quand une entreprise confirme son inscription et attend son activation ; pages Mentions légales et Conditions d'utilisation (modèles, identité de l'éditeur lue dans `LEGAL_*`, jamais inventée) ; proposition supervision / facturation / 2FA / CSP
+- [x] 233 tests
 
 ---
 
 ## À faire
 
 ### P1 — Avant une mise en production réelle
-- [ ] **Mentions légales et conditions générales d'utilisation** : pages à rédiger (contenu juridique : éditeur, hébergeur, responsable de la protection des données, conditions de service). La politique de confidentialité et la FAQ existent.
-- [ ] Prévenir le super admin (email) lorsqu'une entreprise confirme son inscription et attend son activation : aujourd'hui il doit consulter la liste « en attente ».
+- [ ] **Mentions légales et CGU** : modèles en ligne (`/mentions-legales/`, `/conditions/`). Renseigner les variables `LEGAL_*` du `.env` (éditeur, adresse, hébergeur, juridiction…) et **faire relire les textes par un juriste** avant publication.
 - [ ] Sauvegardes automatiques PostgreSQL + dossier `media/` (voir la liste de vérification de [DEPLOIEMENT.md](DEPLOIEMENT.md)).
 - [ ] Premier déploiement réel avec Caddy, puis dérouler la liste de vérification de `DEPLOIEMENT.md`.
 - [ ] Valider les deux promesses restantes de la page d'accueil, qui ne sont pas des chiffres mesurés : « Support 7j/7 » et « Opérationnel en moins de 15 minutes ». Les garder seulement si elles sont vraies.
@@ -118,8 +119,7 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [ ] Statistiques fournisseurs hebdomadaires (tâche prévue, jamais écrite).
 
 ### P3 — Améliorations
-- [ ] **Supervision (monitoring)** : sujet suivant annoncé (journaux applicatifs, santé du service, alertes sur les erreurs 500, suivi Celery et Redis). Le cookie de consentement prévoit déjà une catégorie « mesure d'audience et supervision ».
-- [ ] **Facturation** : sujet à traiter ensuite (la FAQ indique que les tarifs sont en cours de définition).
+- [ ] **Supervision** et **facturation** : proposition détaillée dans [PROPOSITION_SUPERVISION_FACTURATION.md](PROPOSITION_SUPERVISION_FACTURATION.md) (options, phasage, questions à trancher).
 - [ ] Sécurité, pour aller plus loin : politique de sécurité du contenu (CSP, demande de retirer les scripts et styles en ligne), authentification à deux facteurs pour le super admin et les admins d'entreprise, jeton de l'application mobile stocké en `localStorage` (exposé en cas de XSS), restriction de `/admin/` (admin Django) à des adresses de confiance dans le Caddyfile.
 - [ ] Les écrans de l'admin entreprise et du super admin gardent leur propre vocabulaire CSS (`.nav-item`, `.data-table`…) : à rapprocher de `stockmaster.css` (même rendu, mais deux familles de classes).
 - [ ] Étendre les tests : API REST (JWT, scan, mouvements hors ligne), exports CSV/PDF, valorisation CUMP/FIFO du comptable, tâches IA.

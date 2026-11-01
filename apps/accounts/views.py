@@ -186,6 +186,7 @@ def confirmer_email(request, token):
             entreprise.save()
         token_obj.delete()
         if entreprise and not entreprise.est_active:
+            _prevenir_super_admins(request, entreprise, user)
             messages.success(request, "Votre adresse email est confirmée. Votre entreprise doit maintenant être "
                                       "validée par l'équipe StockMaster : vous pourrez vous connecter dès son activation.")
             return redirect('accounts:connexion')
@@ -196,6 +197,25 @@ def confirmer_email(request, token):
     else:
         messages.error(request, "Le lien de confirmation a expiré. Veuillez demander un nouvel email.")
         return redirect('accounts:inscription')
+
+
+def _prevenir_super_admins(request, entreprise, admin):
+    """Email aux super admins : une entreprise a confirmé son inscription et attend son activation."""
+    destinataires = list(User.objects.filter(role='super_admin', is_active=True).exclude(email='')
+                         .values_list('email', flat=True))
+    if not destinataires:
+        return
+    lien = request.build_absolute_uri(reverse('superadmin:detail_entreprise', args=[entreprise.pk]))
+    try:
+        send_mail(
+            subject=f"StockMaster : « {entreprise.nom} » attend son activation",
+            message=(f"L'entreprise « {entreprise.nom} » ({entreprise.get_type_entreprise_display()}, {entreprise.pays}) "
+                     f"a confirmé son inscription.\nAdministrateur : {admin.get_full_name() or admin.email} <{admin.email}>\n\n"
+                     f"Examiner et activer : {lien}\n"),
+            from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=destinataires, fail_silently=True,
+        )
+    except Exception:  # noqa: BLE001 - une panne d'email ne doit pas bloquer l'inscription
+        pass
 
 
 def confirmation_inscription(request):

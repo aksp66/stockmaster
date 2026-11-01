@@ -9,4 +9,6 @@ urlpatterns = [
     path('entreprises/avis/', views.soumettre_avis, name='soumettre_avis'),
     path('faq/', views.FAQView.as_view(), name='faq'),
     path('politique/', views.PolitiqueView.as_view(), name='politique'),
+    path('mentions-legales/', views.MentionsLegalesView.as_view(), name='mentions_legales'),
+    path('conditions/', views.ConditionsView.as_view(), name='conditions'),
 ]

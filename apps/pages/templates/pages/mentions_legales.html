@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Mentions légales – StockMaster{% endblock %}
+
+{% block content %}
+{% include 'pages/_juridique_debut.html' with titre="Mentions légales" %}
+
+  <h2>1. Éditeur du service</h2>
+  <p>Le service <strong>StockMaster</strong> est édité par :</p>
+  <ul>
+    <li>Dénomination : {% include 'pages/_champ.html' with valeur=legal.editeur %}</li>
+    <li>Forme juridique : {% include 'pages/_champ.html' with valeur=legal.forme %}</li>
+    <li>Capital social : {% include 'pages/_champ.html' with valeur=legal.capital %}</li>
+    <li>Immatriculation (RCCM / SIREN) : {% include 'pages/_champ.html' with valeur=legal.immatriculation %}</li>
+    <li>Siège social : {% include 'pages/_champ.html' with valeur=legal.adresse %}</li>
+    <li>Email : {% include 'pages/_champ.html' with valeur=legal.email %} · Téléphone : {% include 'pages/_champ.html' with valeur=legal.telephone %}</li>
+    <li>Directeur de la publication : {% include 'pages/_champ.html' with valeur=legal.directeur_publication %}</li>
+  </ul>
+
+  <h2>2. Hébergement</h2>
+  <p>Le service est hébergé par {% include 'pages/_champ.html' with valeur=legal.hebergeur %}, {% include 'pages/_champ.html' with valeur=legal.hebergeur_adresse %}.</p>
+
+  <h2>3. Propriété intellectuelle</h2>
+  <p>La marque StockMaster, le logiciel, son interface, ses textes et ses graphismes sont protégés. Toute reproduction ou
+  réutilisation sans autorisation écrite de l'éditeur est interdite. Les données saisies par un client (produits, stocks,
+  mouvements, fournisseurs, etc.) restent la propriété de ce client.</p>
+
+  <h2>4. Données personnelles</h2>
+  <p>Le traitement des données personnelles est décrit dans la <a href="{% url 'pages:politique' %}">politique de confidentialité</a>.
+  Pour exercer vos droits (accès, rectification, suppression, opposition) ou poser une question :
+  {% include 'pages/_champ.html' with valeur=legal.dpo_email %}.</p>
+
+  <h2>5. Cookies</h2>
+  <p>Seuls des cookies strictement nécessaires sont utilisés aujourd'hui. Votre choix concernant les cookies facultatifs peut être modifié à tout
+  moment avec le lien « Gérer mes cookies » en bas de page. Détails dans la <a href="{% url 'pages:politique' %}#s8">politique de confidentialité</a>.</p>
+
+  <h2>6. Responsabilité</h2>
+  <p>L'éditeur s'efforce d'assurer l'exactitude et la disponibilité du service sans pouvoir les garantir de façon absolue.
+  Les prévisions de l'intelligence artificielle sont des aides à la décision : elles ne remplacent pas le jugement de
+  l'utilisateur et l'éditeur ne peut être tenu responsable des décisions d'achat ou de stock prises sur leur base.</p>
+
+  <h2>7. Droit applicable et juridiction</h2>
+  <p>Les présentes mentions sont soumises au droit {% include 'pages/_champ.html' with valeur=legal.droit_applicable %}.
+  Tout litige relève des juridictions de {% include 'pages/_champ.html' with valeur=legal.juridiction %}.</p>
+
+{% include 'pages/_juridique_fin.html' %}
+{% endblock %}

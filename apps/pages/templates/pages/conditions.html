@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Conditions d'utilisation – StockMaster{% endblock %}
+
+{% block content %}
+{% include 'pages/_juridique_debut.html' with titre="Conditions générales d'utilisation" %}
+
+  <h2>1. Objet</h2>
+  <p>Les présentes conditions encadrent l'utilisation du service <strong>StockMaster</strong>, édité par
+  {% include 'pages/_champ.html' with valeur=legal.editeur %} (« l'éditeur »), par les entreprises clientes et leurs utilisateurs.</p>
+
+  <h2>2. Compte et activation</h2>
+  <p>L'inscription d'une entreprise est effectuée par une personne habilitée à l'engager. Après confirmation de son adresse email,
+  l'entreprise est examinée puis activée par l'équipe StockMaster : tant qu'elle ne l'est pas, ni elle ni ses utilisateurs ne peuvent
+  se connecter. L'éditeur peut désactiver une entreprise en cas de manquement aux présentes conditions ou de non-paiement ; ses données
+  sont alors conservées et l'accès peut être rétabli.</p>
+
+  <h2>3. Utilisateurs et rôles</h2>
+  <p>L'administrateur de l'entreprise invite ses collaborateurs et leur attribue un rôle (gestionnaire, responsable achat, magasinier,
+  comptable, auditeur). Il est responsable des accès qu'il accorde et du caractère exact des informations saisies. Chaque utilisateur
+  garde ses identifiants confidentiels et signale sans délai toute utilisation non autorisée. Les actions sensibles sont journalisées.</p>
+
+  <h2>4. Utilisation acceptable</h2>
+  <p>Il est interdit de tenter d'accéder aux données d'une autre entreprise, de perturber le service, de contourner ses protections
+  (notamment la limitation des tentatives de connexion), d'extraire massivement des données sans autorisation ou d'utiliser le service
+  à des fins illicites.</p>
+
+  <h2>5. Données du client</h2>
+  <p>Le client reste propriétaire de ses données et garantit avoir le droit de les traiter. L'éditeur les héberge pour fournir le service,
+  ne les consulte que pour l'assistance, la sécurité ou une obligation légale, et ne les utilise pas à d'autres fins. Le client peut les
+  exporter (CSV, PDF) à tout moment. À la fin du contrat, les données sont supprimées ou restituées selon les modalités prévues avec le
+  client, dans un délai raisonnable.</p>
+
+  <h2>6. Intelligence artificielle</h2>
+  <p>Les prévisions de consommation et les quantités à commander suggérées reposent sur l'historique saisi ; leur fiabilité dépend de sa
+  qualité et de sa durée. Elles sont fournies à titre indicatif.</p>
+
+  <h2>7. Disponibilité et sauvegardes</h2>
+  <p>L'éditeur met en œuvre des moyens raisonnables pour que le service soit disponible et pour sauvegarder les données, sans garantie de
+  disponibilité continue. Les interruptions programmées sont annoncées quand c'est possible.</p>
+
+  <h2>8. Tarifs et paiement</h2>
+  <p>Les tarifs, la périodicité et les moyens de paiement sont précisés dans l'offre acceptée par le client. Toute modification de tarif
+  est notifiée avant son entrée en vigueur.</p>
+
+  <h2>9. Responsabilité</h2>
+  <p>L'éditeur n'est responsable que des dommages directs résultant d'un manquement à ses obligations, dans la limite des sommes versées
+  par le client sur les douze mois précédents, sauf faute lourde ou dolosive. Il n'est pas responsable des pertes indirectes, des
+  décisions de gestion prises par le client ni de l'indisponibilité due à un cas de force majeure ou à un tiers (réseau, hébergeur).</p>
+
+  <h2>10. Résiliation</h2>
+  <p>Le client peut demander la suppression de son compte depuis les Paramètres. L'éditeur peut suspendre ou résilier l'accès en cas de
+  manquement grave, après mise en demeure restée sans effet sauf urgence (sécurité, fraude).</p>
+
+  <h2>11. Modification des conditions</h2>
+  <p>Les conditions peuvent évoluer ; les clients en sont informés. La version applicable est celle en vigueur à la date d'utilisation.</p>
+
+  <h2>12. Droit applicable et litiges</h2>
+  <p>Les présentes conditions sont soumises au droit {% include 'pages/_champ.html' with valeur=legal.droit_applicable %}. À défaut
+  d'accord amiable, les tribunaux de {% include 'pages/_champ.html' with valeur=legal.juridiction %} sont compétents.</p>
+
+  <p>Voir aussi : <a href="{% url 'pages:mentions_legales' %}">mentions légales</a> ·
+  <a href="{% url 'pages:politique' %}">politique de confidentialité</a>.</p>
+
+{% include 'pages/_juridique_fin.html' %}
+{% endblock %}

@@ -246,3 +246,10 @@ Avec `test_securite_generique.py` (matrice des accès, isolation entre entrepris
 - **Champs documentés comme manquants, désormais en base** (migration `stock.0009`) : fournisseur (code, site web, code postal, ville — jamais enregistrée —, délai de paiement, devise, remise habituelle), date d'envoi du bon de commande (« Envoyé le » toujours vide), remise par ligne de commande (conservée), options d'inventaire « masquer le stock théorique » (comptage à l'aveugle) et « ajustement automatique » (sans lui, la validation clôt la session sans toucher au stock).
 
 **Tests** : 227.
+
+### Suite — alerte d'activation, pages juridiques, proposition
+
+- **Alerte au super admin** : à la confirmation de l'email d'une inscription, un email part vers tous les super admins actifs (entreprise, type, pays, administrateur, lien direct vers sa fiche pour l'activer). Une panne d'email ne bloque pas l'inscription.
+- **Mentions légales et conditions générales d'utilisation** : pages `/mentions-legales/` et `/conditions/`, liées dans le pied de page. Textes modèles fondés sur le fonctionnement réel de l'application (activation par l'équipe, rôles, journalisation, IA indicative, exports, suspension sans perte de données). L'identité de l'éditeur (dénomination, adresse, hébergeur, juridiction, droit applicable, contact de protection des données…) est lue dans les variables `LEGAL_*` du `.env` ; tant qu'une valeur manque, la page affiche « [À compléter] » et le super admin voit un avertissement. Les textes doivent être relus par un juriste.
+- **Proposition** : [PROPOSITION_SUPERVISION_FACTURATION.md](PROPOSITION_SUPERVISION_FACTURATION.md) — supervision (3 niveaux, recommandation : santé + Sentry + Uptime Kuma), facturation (plans, abonnements, agrégateur de paiement régional + virement, lien avec la suspension d'entreprise existante), 2FA (TOTP) et CSP (en trois temps), ordre recommandé et questions à trancher.
+- **Tests** : 233.

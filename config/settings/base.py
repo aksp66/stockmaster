@@ -36,6 +36,12 @@ ALLOWED_HOSTS = []
 # activée. Mettre ENTREPRISE_VALIDATION_MANUELLE=False dans .env pour l'activer automatiquement à la confirmation.
 ENTREPRISE_VALIDATION_MANUELLE = config('ENTREPRISE_VALIDATION_MANUELLE', default=True, cast=bool)
 
+# Mentions légales : identité de l'éditeur, à renseigner dans .env. Tant qu'une valeur manque, la page l'indique
+# en toutes lettres (« À compléter ») plutôt que d'afficher une information inventée.
+LEGAL = {cle: config(f'LEGAL_{cle.upper()}', default='') for cle in (
+    'editeur', 'forme', 'capital', 'immatriculation', 'adresse', 'email', 'telephone', 'directeur_publication',
+    'hebergeur', 'hebergeur_adresse', 'dpo_email', 'juridiction', 'droit_applicable')}
+
 # Limitation des tentatives de connexion (voir apps/accounts/throttle.py)
 LOGIN_MAX_ESSAIS = 5            # par adresse IP et identifiant
 LOGIN_MAX_ESSAIS_IP = 30        # par adresse IP

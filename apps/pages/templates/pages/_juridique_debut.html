@@ -1,0 +1,17 @@
+<style>
+  .juridique { max-width: 800px; margin: 0 auto; font-size: 14px; line-height: 1.8; color: #4b5563; }
+  .juridique h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 800; color: #111827; margin-bottom: 6px; }
+  .juridique h2 { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #111827; margin: 28px 0 8px; }
+  .juridique ul { padding-left: 20px; list-style: disc; }
+  .juridique a { color: var(--or); font-weight: 600; }
+  .juridique .maj { font-size: 12.5px; color: #9ca3af; margin-bottom: 24px; }
+  .a-completer { background: #fef3c7; color: #92400e; padding: 1px 7px; border-radius: 6px; font-weight: 600; font-size: 12.5px; }
+  .alerte-juridique { background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: #92400e; }
+</style>
+<div class="juridique">
+  <h1>{{ titre }}</h1>
+  <p class="maj">Dernière mise à jour : novembre 2026</p>
+  {% if manquants and user.is_authenticated and user.role == 'super_admin' %}
+  <div class="alerte-juridique"><strong>Réservé au super admin :</strong> {{ manquants|length }} information(s) de l'éditeur restent « À compléter »
+    (variables <code>LEGAL_*</code> du fichier <code>.env</code>). Ce texte est un modèle de départ : faites-le relire par un juriste avant publication.</div>
+  {% endif %}
