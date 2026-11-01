@@ -1,0 +1,43 @@
+{% load static %}<!doctype html>
+{# Gabarit des pages d'erreur (403, 404, 500). Autonome : aucune requête à la base ni contexte de requête (indispensable pour la page 500). #}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block titre %}Erreur{% endblock %} – StockMaster</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Fira+Code:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'css/stockmaster.css' %}">
+  <link rel="stylesheet" href="{% static 'css/accueil.css' %}">
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); font-family: var(--font-body); }
+    .er { position: relative; isolation: isolate; overflow: hidden; width: 100%; max-width: 640px; text-align: center; padding: 56px 32px 44px; border-radius: 32px;
+      background: linear-gradient(135deg, #fff, var(--or-dim)); border: 1.5px solid var(--or-border); box-shadow: 0 30px 70px -28px rgba(var(--or-rgb), .45); }
+    .er .ac-blob.b1 { width: 260px; height: 260px; top: -100px; left: -70px; }
+    .er .ac-blob.b2 { width: 240px; height: 240px; bottom: -100px; right: -50px; }
+    .er-code { font-family: var(--font-display); font-size: clamp(5rem, 22vw, 9rem); font-weight: 800; line-height: 1; letter-spacing: -.04em;
+      background: linear-gradient(135deg, var(--or-l), var(--or) 50%, var(--or-d)); -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: er-pop .8s cubic-bezier(.3,1.5,.5,1) both; }
+    .er-ico { width: 64px; height: 64px; margin: -6px auto 18px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 26px;
+      background: #fff; color: var(--or); box-shadow: 0 12px 28px rgba(var(--or-rgb), .25); animation: er-bob 4s ease-in-out infinite; }
+    .er h1 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; color: #111827; margin-bottom: 10px; letter-spacing: -.02em; }
+    .er p { color: #6b7280; line-height: 1.75; max-width: 440px; margin: 0 auto 26px; }
+    .er-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    @keyframes er-pop { from { transform: scale(.5); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes er-bob { 50% { transform: translateY(-8px) rotate(-4deg); } }
+  </style>
+</head>
+<body>
+  <main class="er">
+    <span class="ac-blob b1"></span><span class="ac-blob b2"></span>
+    <div class="er-code">{% block code %}{% endblock %}</div>
+    <div class="er-ico"><i class="fas fa-{% block icone %}circle-exclamation{% endblock %}"></i></div>
+    <h1>{% block entete %}{% endblock %}</h1>
+    <p>{% block message %}{% endblock %}</p>
+    <div class="er-actions">
+      <a href="{% url 'pages:accueil' %}" class="btn b-or ac-shine"><i class="fas fa-house"></i> Retour à l'accueil</a>
+      {% block actions %}<a href="javascript:history.back()" class="btn b-gh"><i class="fas fa-arrow-left"></i> Page précédente</a>{% endblock %}
+    </div>
+  </main>
+</body>
+</html>

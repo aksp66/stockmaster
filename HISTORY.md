@@ -275,3 +275,13 @@ Avec `test_securite_generique.py` (matrice des accès, isolation entre entrepris
 - Animations coupées pour les visiteurs qui demandent moins de mouvement (`prefers-reduced-motion`) ; sans JavaScript, tout le contenu reste visible.
 - **Contenu corrigé** : retirés « prévisions à 30/60/90 jours » (l IA prévoit 30 jours), « dès 7 jours de données » (14), « Support 7j/7 », « Opérationnel en moins de 15 minutes », « Zéro rupture » et « bons de commande générés automatiquement » (ils sont préremplis). Chaque rôle est décrit d après ses vraies fonctions.
 - Aucun débordement horizontal mesuré ; **Tests** : 248.
+
+### Uniformisation : pages publiques, authentification, emails, espaces, erreurs
+
+- **Noyau commun** : `accueil.css` / `accueil.js` sont chargés par tout le gabarit public (apparition au défilement, `data-stagger` pour les listes, compteurs, lueur des cartes). `inscription.css`, qui posait des règles globales (`* { margin:0 }`, `h2`, `.card`) sur tout le site public, est désormais limité à l assistant d inscription.
+- **Pages publiques** : en-tête animé commun (`pages/_hero.html`) pour FAQ, Contact, Avis, Confidentialité, Mentions légales et Conditions ; FAQ à ouverture douce ; apparition en cascade des listes. Promesses retirées de Contact (« Support réactif 7j/7 », « sous 24h ouvrées »).
+- **Authentification** : gabarit commun `templates/auth_base.html` (panneau de marque animé, carte de formulaire, œil sur les mots de passe, indicateur de robustesse, bouton en attente) pour connexion, inscription en quatre étapes, mot de passe oublié, nouveau mot de passe, invitation. « Se souvenir de moi » ne faisait rien : il maintient maintenant la session après fermeture du navigateur (l inactivité reste appliquée). Retrait de « chiffrées (TLS + AES-256) » (non vérifiable) et de l exemple d email en `.fr`.
+- **Emails** : un gabarit unique (`emails/_base_email.html`, styles en ligne, bouton robuste) pour confirmation, invitation, changement de rôle, réinitialisation, alertes de stock, suggestions d achat, rapport hebdomadaire et avis d activation au super admin ; chaque email part en HTML + texte (`apps/core/emails.py`). Les liens des emails envoyés par les tâches planifiées utilisent `SITE_URL` (`.env`).
+- **Espaces des rôles** : couche d animation commune (`stockmaster.js` / `stockmaster.css`) : cartes qui apparaissent au défilement, compteurs, lignes de tableau en cascade, ondulation des boutons, barre de progression lors des changements de page. Désactivée avec `prefers-reduced-motion`. 62 pages vérifiées sans débordement.
+- **Pages d erreur** 403 / 404 / 500 refaites sur un gabarit autonome (la 500 ne dépend ni de la base ni d un contexte de requête).
+- **Tests** : 254.

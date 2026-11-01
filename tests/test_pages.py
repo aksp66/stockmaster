@@ -229,3 +229,19 @@ class AccueilAnimeeTests(EntrepriseTestCase):
         self.assertNotIn('ac-stats', self.client.get(reverse('pages:accueil')).content.decode())
         Entreprise.objects.update(est_active=True)
         self.assertIn('ac-stats', self.client.get(reverse('pages:accueil')).content.decode())
+
+
+class PagesDErreurTests(EntrepriseTestCase):
+
+    def test_404_au_gabarit_commun(self):
+        reponse = self.client.get('/cette-page-n-existe-pas/')
+        self.assertEqual(reponse.status_code, 404)
+        self.assertContains(reponse, 'Page introuvable', status_code=404)
+        self.assertContains(reponse, 'css/stockmaster.css', status_code=404)
+
+    def test_403_et_500_se_rendent_sans_contexte(self):
+        from django.template.loader import render_to_string
+        for nom, texte in (('403.html', 'Accès refusé'), ('500.html', 'Une erreur est survenue')):
+            html = render_to_string(nom)  # aucune requête : exactement comme la page 500 de Django
+            self.assertIn(texte, html)
+            self.assertIn('Retour à l\'accueil', html)

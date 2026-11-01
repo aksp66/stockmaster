@@ -1071,3 +1071,19 @@ body.ck-open { overflow: hidden; }
 .cf-actions { display: flex; gap: 10px; }
 .cf-actions .btn { flex: 1; justify-content: center; }
 body.cf-open { overflow: hidden; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS DES ESPACES (static/js/stockmaster.js)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sm-pre { opacity: 0; transform: translateY(22px); }
+.sm-pre.sm-in { opacity: 1; transform: none; transition: opacity .6s cubic-bezier(.2,.8,.2,1), transform .6s cubic-bezier(.2,.8,.2,1); }
+@keyframes sm-row-in { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+.sm-row { animation: sm-row-in .4s cubic-bezier(.2,.8,.2,1) both; }
+.sm-onde { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .45); transform: scale(0); animation: sm-onde .6s ease-out forwards; pointer-events: none; }
+.b-gh .sm-onde, .b-re .sm-onde, .btn-ghost .sm-onde { background: rgba(var(--or-rgb), .22); }
+@keyframes sm-onde { to { transform: scale(1); opacity: 0; } }
+#sm-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 2000; pointer-events: none;
+  background: linear-gradient(90deg, var(--or-l), var(--or), var(--or-d)); box-shadow: 0 0 10px rgba(var(--or-rgb), .7);
+  animation: sm-progress 12s cubic-bezier(.1,.6,.2,1) forwards; }
+@keyframes sm-progress { 0% { width: 0; } 15% { width: 35%; } 50% { width: 70%; } 100% { width: 92%; } }
+@media print { .sm-pre { opacity: 1 !important; transform: none !important; } #sm-progress { display: none; } }

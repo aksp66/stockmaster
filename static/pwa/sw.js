@@ -10,7 +10,7 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
-const APP_VERSION    = "stockmaster-v1.3.0";  // à incrémenter après chaque `npm run build` (CSS servi depuis le cache)
+const APP_VERSION    = "stockmaster-v1.4.0";  // à incrémenter après chaque `npm run build` (CSS servi depuis le cache)
 const CACHE_STATIC   = `${APP_VERSION}-static`;
 const CACHE_PAGES    = `${APP_VERSION}-pages`;
 const CACHE_API      = `${APP_VERSION}-api`;

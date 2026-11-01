@@ -82,3 +82,89 @@
     });
   }, true);
 })();
+
+/*
+ * Animations communes aux espaces des rôles : apparition des cartes au défilement, compteurs, lignes de tableau
+ * en cascade, ondulation des boutons, barre de progression lors d'un changement de page.
+ * Désactivées pour les visiteurs qui demandent moins de mouvement.
+ */
+(function () {
+  'use strict';
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  function demarrer() {
+    var racine = document.querySelector('#main, #content, main');
+    if (!racine) return;
+
+    // Cartes et tuiles sous la ligne de flottaison : elles apparaissent en entrant dans l'écran
+    if ('IntersectionObserver' in window) {
+      var obs = new IntersectionObserver(function (entrees) {
+        entrees.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('sm-in'); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.08 });
+      $$('.card, .stat, .stat-card', racine).forEach(function (el) {
+        if (el.parentElement && el.parentElement.closest('.card, .stat, .stat-card')) return;  // pas les cartes imbriquées
+        if (el.getBoundingClientRect().top > window.innerHeight - 60) { el.classList.add('sm-pre'); obs.observe(el); }
+      });
+
+      // Compteurs : un entier simple se compte de 0 à sa valeur la première fois qu'il est visible
+      var compte = new IntersectionObserver(function (entrees) {
+        entrees.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          compte.unobserve(e.target);
+          var cible = parseInt(e.target.getAttribute('data-sm-cible'), 10), debut = null;
+          (function pas(t) {
+            if (debut === null) debut = t;
+            var p = Math.min((t - debut) / 900, 1);
+            e.target.textContent = Math.round(cible * (1 - Math.pow(1 - p, 3)));
+            if (p < 1) requestAnimationFrame(pas);
+          })(performance.now());
+        });
+      }, { threshold: 0.6 });
+      $$('.sv, .stat-value', racine).forEach(function (el) {
+        var texte = el.textContent.trim();
+        if (/^\d{1,7}$/.test(texte) && parseInt(texte, 10) > 0) { el.setAttribute('data-sm-cible', texte); el.textContent = '0'; compte.observe(el); }
+      });
+    }
+
+    // Lignes de tableau : apparition en cascade (les 14 premières)
+    $$('.tbl tbody tr, .data-table tbody tr', racine).slice(0, 14).forEach(function (tr, i) {
+      tr.classList.add('sm-row');
+      tr.style.animationDelay = (i * 0.035) + 's';
+    });
+  }
+
+  // Ondulation au clic sur un bouton
+  document.addEventListener('click', function (e) {
+    var bouton = e.target.closest ? e.target.closest('.btn') : null;
+    if (!bouton || bouton.disabled) return;
+    var r = bouton.getBoundingClientRect(), taille = Math.max(r.width, r.height) * 1.6;
+    var onde = document.createElement('span');
+    onde.className = 'sm-onde';
+    onde.style.cssText = 'width:' + taille + 'px;height:' + taille + 'px;left:' + (e.clientX - r.left - taille / 2) + 'px;top:' + (e.clientY - r.top - taille / 2) + 'px;';
+    bouton.appendChild(onde);
+    setTimeout(function () { if (onde.parentNode) onde.parentNode.removeChild(onde); }, 600);
+  });
+
+  // Barre de progression en haut de page pendant un changement de page ou un envoi de formulaire
+  function progression() {
+    if (document.getElementById('sm-progress')) return;
+    var barre = document.createElement('div');
+    barre.id = 'sm-progress';
+    document.body.appendChild(barre);
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a || e.defaultPrevented || a.target === '_blank' || a.hasAttribute('data-confirm') || a.hasAttribute('download')) return;
+    var href = a.getAttribute('href') || '';
+    if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || a.origin !== window.location.origin) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+    progression();
+  });
+  document.addEventListener('submit', function (e) { if (!e.defaultPrevented) progression(); });
+  window.addEventListener('pageshow', function () { var b = document.getElementById('sm-progress'); if (b) b.remove(); });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer); else demarrer();
+})();
