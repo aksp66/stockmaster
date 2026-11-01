@@ -17,6 +17,8 @@ Navigateur / PWA ──HTTPS──▶ Caddy :443 ─┬─ /static/*  → static
 
 ## 1. Préparer le serveur
 
+> **Redis est requis en production** : il sert au cache et à la limitation des tentatives de connexion. S'il est arrêté, l'application continue de fonctionner, mais cette limitation est alors désactivée. Variable utile : `ENTREPRISE_VALIDATION_MANUELLE` (voir `.env.example`) — par défaut, une entreprise qui s'inscrit reste en attente jusqu'à son activation par le super admin.
+
 1. Installer Python 3.13, PostgreSQL, Redis et [Caddy](https://caddyserver.com/download) (un seul exécutable `caddy.exe` / `caddy`).
 2. Récupérer le code, par exemple dans `C:\apps\stockmaster` (Windows) ou `/srv/stockmaster` (Linux).
 3. Créer la base : `createdb -U postgres stockmaster`.

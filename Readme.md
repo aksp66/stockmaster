@@ -331,6 +331,12 @@ celery -A config beat --loglevel=info
 
 ---
 
+### Interface : système de design et thèmes
+
+Tous les espaces partagent une seule feuille, `static/css/stockmaster.css` : jetons de couleur, polices (Poppins pour les titres, Tahoma pour le texte), composants, grilles et animations. Les couleurs viennent de variables CSS : chaque entreprise choisit un thème (Orange, Océan, Forêt, Violet, Rubis, Ardoise) dans **Paramètres → Apparence**, appliqué à tous ses utilisateurs via `data-theme`. Pour ajouter un thème : une règle `:root[data-theme="…"]` dans la feuille et une ligne dans `THEMES` (`apps/entreprises/models.py`). Les statuts de stock et les catégories passent par les balises `apps/stock/templatetags/stock_ui.py` (`st_badge`, `cat_badge`…) : une seule palette partout. Les actions sensibles se confirment avec l'attribut `data-confirm` (`static/js/stockmaster.js`).
+
+Incrémenter `APP_VERSION` dans `static/pwa/sw.js` après toute modification de `stockmaster.css` ou `stockmaster.js` : le Service Worker les sert depuis son cache.
+
 ### Styles (Tailwind CSS)
 
 Le CSS Tailwind est **compilé** dans `static/css/output.css` (versionné, aucune dépendance à un CDN en production). Après avoir ajouté ou modifié des classes Tailwind dans un template :
@@ -352,7 +358,9 @@ python manage.py test --settings=config.settings.test
 
 Seul PostgreSQL est nécessaire : `config.settings.test` remplace Redis par un cache mémoire et exécute Celery de façon synchrone. Le dossier `tests/` couvre les points critiques : permissions par rôle, séparation entre entreprises, stock jamais négatif, workflow des bons de commande, inventaire, avis clients.
 
-La CI GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) lance à chaque push : `check`, détection de migrations manquantes, `check --deploy` et les tests.
+Trois tests génériques contrôlent automatiquement toute nouvelle route : `test_securite_generique.py` (matrice rôle × espace, et isolation entre entreprises sur chaque URL à identifiant), `test_robustesse.py` (robot de parcours : variables de gabarit en échec, POST vides sans erreur serveur, auditeur en lecture seule) et le contrôle des pages de chaque espace. Le journal d'audit (`apps.core.models.AuditLog`) enregistre les actions sensibles de tous les rôles.
+
+La CI GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) lance à chaque push : `check`, détection de migrations manquantes, `check --deploy`, un audit des dépendances (`pip-audit`, sans bloquer) et les tests.
 
 ---
 

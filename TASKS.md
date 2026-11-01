@@ -90,11 +90,24 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [x] API alertes : marquage comme lue réparé (404), création / suppression d'alertes retirées (une alerte pouvait être créée sur le produit d'une autre entreprise) ; détail d'un mouvement réparé
 - [x] 152 tests
 
+
+### Novembre 2026 — refonte (plan : [PLAN_REFONTE.md](PLAN_REFONTE.md))
+- [x] **Design** : feuille commune `stockmaster.css` (jetons, composants, animations), blanc et orange pour tous les rôles, Poppins + Tahoma, 1 550 lignes de CSS dupliqué supprimées ; super admin passé du thème sombre au thème clair
+- [x] **Thèmes par entreprise** : six thèmes, choix dans Paramètres → Apparence, appliqué à tous les rôles
+- [x] **Cohérence des pages** : statuts de stock et catégories à palette unique ; 62 pages vérifiées sans débordement horizontal (écran étroit et large)
+- [x] **Conformité** : bannière de consentement aux cookies, FAQ réécrite avec des réponses exactes, politique de confidentialité mise à jour
+- [x] **Super admin et validations** : journal d'audit unique, actions journalisées, garde-fous (dernier super admin / dernier admin), confirmations communes pour tous les rôles
+- [x] **Audit de sécurité** : XSS stockée dans les graphiques, entreprise désactivée sans effet, connexion sans limitation, injection de formules CSV, inscription auto-validée, 98 vulnérabilités de dépendances
+- [x] **Tests par rôle** : audit générique des accès et de l'isolation entre entreprises, robot de parcours en CI, corrections des formulaires et des champs manquants
+- [x] 227 tests
+
 ---
 
 ## À faire
 
 ### P1 — Avant une mise en production réelle
+- [ ] **Mentions légales et conditions générales d'utilisation** : pages à rédiger (contenu juridique : éditeur, hébergeur, responsable de la protection des données, conditions de service). La politique de confidentialité et la FAQ existent.
+- [ ] Prévenir le super admin (email) lorsqu'une entreprise confirme son inscription et attend son activation : aujourd'hui il doit consulter la liste « en attente ».
 - [ ] Sauvegardes automatiques PostgreSQL + dossier `media/` (voir la liste de vérification de [DEPLOIEMENT.md](DEPLOIEMENT.md)).
 - [ ] Premier déploiement réel avec Caddy, puis dérouler la liste de vérification de `DEPLOIEMENT.md`.
 - [ ] Valider les deux promesses restantes de la page d'accueil, qui ne sont pas des chiffres mesurés : « Support 7j/7 » et « Opérationnel en moins de 15 minutes ». Les garder seulement si elles sont vraies.
@@ -105,6 +118,10 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [ ] Statistiques fournisseurs hebdomadaires (tâche prévue, jamais écrite).
 
 ### P3 — Améliorations
+- [ ] **Supervision (monitoring)** : sujet suivant annoncé (journaux applicatifs, santé du service, alertes sur les erreurs 500, suivi Celery et Redis). Le cookie de consentement prévoit déjà une catégorie « mesure d'audience et supervision ».
+- [ ] **Facturation** : sujet à traiter ensuite (la FAQ indique que les tarifs sont en cours de définition).
+- [ ] Sécurité, pour aller plus loin : politique de sécurité du contenu (CSP, demande de retirer les scripts et styles en ligne), authentification à deux facteurs pour le super admin et les admins d'entreprise, jeton de l'application mobile stocké en `localStorage` (exposé en cas de XSS), restriction de `/admin/` (admin Django) à des adresses de confiance dans le Caddyfile.
+- [ ] Les écrans de l'admin entreprise et du super admin gardent leur propre vocabulaire CSS (`.nav-item`, `.data-table`…) : à rapprocher de `stockmaster.css` (même rendu, mais deux familles de classes).
 - [ ] Étendre les tests : API REST (JWT, scan, mouvements hors ligne), exports CSV/PDF, valorisation CUMP/FIFO du comptable, tâches IA.
 - [ ] Mesurer la précision réelle de l'IA en comparant les prédictions conservées (90 jours) aux ventes constatées, au lieu de l'estimation actuelle fondée sur la variabilité de l'historique.
 - [ ] Performance : `_calculer_suggestions` exécute plusieurs requêtes par produit (appelée sur le tableau de bord achats) ; à optimiser ou mettre en cache si le catalogue dépasse quelques centaines de produits.
