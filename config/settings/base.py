@@ -48,6 +48,9 @@ SESSION_COOKIE_AGE = config('SESSION_INACTIVITE_MINUTES', default=120, cast=int)
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
+# Adresse publique du site : liens des emails envoyés hors requête (alertes, rapports, suggestions)
+SITE_URL = config('SITE_URL', default='http://localhost:8000')
+
 # Limitation des tentatives de connexion (voir apps/accounts/throttle.py)
 LOGIN_MAX_ESSAIS = 5            # par adresse IP et identifiant
 LOGIN_MAX_ESSAIS_IP = 30        # par adresse IP

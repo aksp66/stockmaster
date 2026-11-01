@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from apps.accounts.models import Utilisateur, RoleUtilisateur
+from apps.core.emails import envoyer_email
 from apps.core.models import AuditLog, TypeAction
 from apps.entreprises.models import SESSION_MAX, SESSION_MIN, THEMES, Entreprise, ParametresEntreprise
 from decimal import Decimal, InvalidOperation
@@ -136,19 +137,14 @@ def ajouter_utilisateur(request):
         lien = request.build_absolute_uri(reverse('accounts:accept_invitation', args=[token_str]))
         
         sujet = "Invitation à rejoindre StockMaster"
-        html_message = render_to_string('emails/invitation_email.html', {
-            'first_name': first_name,
-            'inviter_nom': request.user.get_full_name(),
-            'lien': lien,
-        })
-        plain_message = strip_tags(html_message)
         try:
-            send_mail(
-                subject=sujet,
-                message=plain_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                html_message=html_message,
+            envoyer_email(
+                sujet, [email],
+                f"Bonjour {first_name},\n\n{request.user.get_full_name()} vous invite à rejoindre StockMaster.\n"
+                f"Définissez votre mot de passe et activez votre compte :\n{lien}\n\n"
+                "Ce lien est valable 24 heures. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n",
+                'emails/invitation_email.html',
+                {'first_name': first_name, 'inviter_nom': request.user.get_full_name(), 'lien': lien},
                 fail_silently=False,
             )
         except Exception:
@@ -199,19 +195,13 @@ def modifier_utilisateur(request, user_id):
         
         # Prévenir l'utilisateur par email si son rôle a changé
         if request.user != utilisateur and nouveau_role != ancien_role:
-            html_message = render_to_string('emails/role_changed.html', {
-                'first_name': utilisateur.first_name,
-                'nouveau_role': dict(RoleUtilisateur.choices).get(nouveau_role),
-                'entreprise': utilisateur.entreprise.nom,
-            })
-            plain_message = strip_tags(html_message)
-            send_mail(
-                subject="Changement de rôle sur StockMaster",
-                message=plain_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[utilisateur.email],
-                html_message=html_message,
-                fail_silently=True,
+            role_libelle = dict(RoleUtilisateur.choices).get(nouveau_role)
+            envoyer_email(
+                "Changement de rôle sur StockMaster", [utilisateur.email],
+                f"Bonjour {utilisateur.first_name},\n\nVotre rôle au sein de l'entreprise {utilisateur.entreprise.nom} a été modifié.\n"
+                f"Nouveau rôle : {role_libelle}.\n\nSi vous pensez qu'il s'agit d'une erreur, contactez l'administrateur de votre entreprise.\n",
+                'emails/role_changed.html',
+                {'first_name': utilisateur.first_name, 'nouveau_role': role_libelle, 'entreprise': utilisateur.entreprise.nom},
             )
         
         return redirect('admin_entreprise:utilisateurs')

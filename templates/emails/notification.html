@@ -1,0 +1,28 @@
+{% extends 'emails/_base_email.html' %}
+{# Email générique : alertes, rapport hebdomadaire, suggestions d'achat, avis d'activation. Contexte : titre, intro, lignes [(libellé, valeur)], liste [texte], bouton_url, bouton_label, pied #}
+{% block preheader %}{{ intro }}{% endblock %}
+{% block titre %}{{ titre }}{% endblock %}
+{% block corps %}
+{% if intro %}<p style="margin:0 0 16px;">{{ intro }}</p>{% endif %}
+{% if lignes %}
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 16px;border:1px solid #f3f4f6;border-radius:12px;border-collapse:separate;overflow:hidden;">
+  {% for libelle, valeur in lignes %}
+  <tr>
+    <td style="padding:11px 16px;font-size:13.5px;color:#6b7280;background:#fafaf9;border-bottom:1px solid #f3f4f6;width:46%;">{{ libelle }}</td>
+    <td style="padding:11px 16px;font-size:14px;font-weight:bold;color:#111827;border-bottom:1px solid #f3f4f6;">{{ valeur }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% if liste %}
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 16px;">
+  {% for element in liste %}
+  <tr><td style="padding:9px 14px;font-size:14px;color:#374151;border-left:3px solid #f97316;background:#fff7ed;">{{ element }}</td></tr>
+  <tr><td style="height:6px;line-height:6px;font-size:6px;">&nbsp;</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% if suite %}<p style="margin:0 0 12px;font-size:13.5px;color:#6b7280;">{{ suite }}</p>{% endif %}
+{% endblock %}
+{% block bouton %}{% if bouton_url %}{% include 'emails/_bouton.html' with url=bouton_url label=bouton_label %}{% endif %}{% endblock %}
+{% block pied %}{% if pied %}{{ pied }}{% else %}Cet email a été envoyé automatiquement, merci de ne pas y répondre.{% endif %}{% endblock %}

@@ -76,3 +76,69 @@ class NotificationsTests(EntrepriseTestCase):
         self._parametres(ia_email=False)
         mail.outbox.clear()
         self.assertEqual(envoyer_suggestions_ia(), 0)
+
+
+class EmailsUniformesTests(EntrepriseTestCase):
+    """Tous les emails partagent le gabarit commun : HTML (marque, bouton) + version texte."""
+
+    def _html(self, message):
+        self.assertEqual(len(message.alternatives), 1)
+        html, type_mime = message.alternatives[0]
+        self.assertEqual(type_mime, 'text/html')
+        return html
+
+    def test_confirmation_d_inscription(self):
+        from django.core import mail
+        from apps.accounts.models import Utilisateur
+        from apps.accounts.views import _envoyer_email_confirmation
+        from django.test import RequestFactory
+        admin = Utilisateur.objects.create_user(username='n@exemple.com', email='n@exemple.com', password='x',
+                                                role='admin_ent', entreprise=self.ent, first_name='Awa')
+        _envoyer_email_confirmation(RequestFactory().get('/'), admin)
+        message = mail.outbox[-1]
+        html = self._html(message)
+        self.assertIn('Bienvenue sur StockMaster, Awa', html)
+        self.assertIn('/comptes/confirmer/', html)
+        self.assertIn('Confirmer mon compte', html)
+        self.assertNotIn('<style', html)  # styles en ligne uniquement : lisible dans tous les clients de messagerie
+        self.assertIn('Awa', message.body)
+        self.assertNotIn('<', message.body)  # version texte sans balises
+
+    def test_invitation_et_changement_de_role(self):
+        from django.core import mail
+        self.connecter('admin_ent')
+        self.client.post(reverse('admin_entreprise:ajouter_utilisateur'), {
+            'email': 'nouveau@exemple.com', 'first_name': 'Koffi', 'last_name': 'A', 'role': 'comptable'})
+        invitation = mail.outbox[-1]
+        html = self._html(invitation)
+        self.assertIn('Activer mon compte', html)
+        self.assertIn('/comptes/invitation/', invitation.body)
+        cible = self.users['comptable']
+        self.client.post(reverse('admin_entreprise:modifier_utilisateur', args=[cible.pk]),
+                         {'first_name': 'Compta', 'last_name': 'Fin', 'role': 'auditeur'})
+        changement = mail.outbox[-1]
+        self.assertIn('Votre rôle a changé', self._html(changement))
+        self.assertIn('Auditeur', changement.body)
+
+    def test_reinitialisation_du_mot_de_passe(self):
+        from django.core import mail
+        self.client.post(reverse('accounts:restauration'), {'email': self.users['gestionnaire'].email})
+        message = mail.outbox[-1]
+        html = self._html(message)
+        self.assertIn('Choisir un nouveau mot de passe', html)
+        self.assertIn('/comptes/restauration/confirmer/', html)
+
+    def test_alerte_et_rapport_hebdomadaire(self):
+        from django.core import mail
+        from apps.admin_entreprise.tasks import envoyer_rapports_hebdo
+        from apps.entreprises.models import ParametresEntreprise
+        p = ParametresEntreprise.pour(self.ent)
+        p.rapport_hebdo = True
+        p.save()
+        envoyer_rapports_hebdo()
+        rapport = [m for m in mail.outbox if 'Rapport hebdomadaire' in m.subject][-1]
+        html = self._html(rapport)
+        self.assertIn('Valeur du stock', html)
+        self.assertIn('Commandes en attente', html)
+        self.assertIn('http://localhost:8000/admin-entreprise/', html)  # lien absolu (SITE_URL)
+        self.assertIn('Valeur du stock', rapport.body)

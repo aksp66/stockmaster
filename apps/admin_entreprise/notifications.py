@@ -2,11 +2,11 @@
 Emails envoyés selon les paramètres de l'entreprise (page Paramètres de l'admin entreprise).
 Les envois n'interrompent jamais l'action en cours : une erreur SMTP est ignorée (fail_silently).
 """
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
+from django.urls import reverse
 
 from apps.accounts.models import Utilisateur
+from apps.core.emails import envoyer_email, lien_absolu
 from apps.entreprises.models import ParametresEntreprise
 
 
@@ -18,9 +18,11 @@ def destinataires(entreprise, roles):
     )
 
 
-def envoyer(sujet, corps, emails):
+def envoyer(sujet, corps, emails, contexte=None):
+    """Email (gabarit commun HTML + texte) ; `contexte` alimente emails/notification.html."""
     if emails:
-        send_mail(f"[StockMaster] {sujet}", corps, settings.DEFAULT_FROM_EMAIL, emails, fail_silently=True)
+        envoyer_email(f"[StockMaster] {sujet}", emails, corps, 'emails/notification.html',
+                      {'pied': "Pour ne plus recevoir ces emails : Paramètres de l'espace admin entreprise.", **(contexte or {})})
 
 
 def notifier_alerte(alerte):
@@ -39,4 +41,13 @@ def notifier_alerte(alerte):
         "Pour ne plus recevoir ces emails : Paramètres de l'espace admin entreprise."
     )
     # Après validation de la transaction : pas d'email pour une alerte annulée par un rollback
-    transaction.on_commit(lambda: envoyer(sujet, corps, emails))
+    contexte = {
+        'titre': f"{alerte.get_type_alerte_display()} : {alerte.produit.nom}",
+        'intro': f"Nouvelle alerte de stock pour {entreprise.nom}.",
+        'lignes': [('Produit', f"{alerte.produit.nom} ({alerte.produit.sku})"),
+                   ('Entrepôt', alerte.entrepot.nom if alerte.entrepot else '—'),
+                   ('Priorité', alerte.get_priorite_display())],
+        'suite': alerte.message,
+        'bouton_url': lien_absolu(reverse('gestionnaire:alertes')), 'bouton_label': 'Voir les alertes',
+    }
+    transaction.on_commit(lambda: envoyer(sujet, corps, emails, contexte))

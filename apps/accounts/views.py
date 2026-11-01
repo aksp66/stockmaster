@@ -21,6 +21,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 
+from apps.core.emails import envoyer_email
+
 from . import throttle
 
 User = get_user_model()
@@ -154,18 +156,11 @@ def _envoyer_email_confirmation(request, user):
     EmailConfirmationToken.objects.update_or_create(user=user, defaults={'token': token_str})
     lien = request.build_absolute_uri(reverse('accounts:confirmation_email', args=[token_str]))
     sujet = "Confirmez votre compte – StockMaster"
-    html_message = render_to_string('emails/confirmation_email.html', {
-        'first_name': user.first_name,
-        'lien': lien,
-    })
-    plain_message = strip_tags(html_message)
-    send_mail(
-        subject=sujet,
-        message=plain_message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=html_message,
-        fail_silently=False,
+    envoyer_email(
+        sujet, [user.email],
+        f"Bonjour {user.first_name},\n\nMerci pour votre inscription sur StockMaster. Confirmez votre adresse email :\n{lien}\n\n"
+        "Ce lien expire dans 24 heures. Ensuite, l'équipe StockMaster examine votre demande et active votre entreprise.\n",
+        'emails/confirmation_email.html', {'first_name': user.first_name, 'lien': lien}, fail_silently=False,
     )
 
 
@@ -207,12 +202,18 @@ def _prevenir_super_admins(request, entreprise, admin):
         return
     lien = request.build_absolute_uri(reverse('superadmin:detail_entreprise', args=[entreprise.pk]))
     try:
-        send_mail(
-            subject=f"StockMaster : « {entreprise.nom} » attend son activation",
-            message=(f"L'entreprise « {entreprise.nom} » ({entreprise.get_type_entreprise_display()}, {entreprise.pays}) "
-                     f"a confirmé son inscription.\nAdministrateur : {admin.get_full_name() or admin.email} <{admin.email}>\n\n"
-                     f"Examiner et activer : {lien}\n"),
-            from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=destinataires, fail_silently=True,
+        envoyer_email(
+            f"StockMaster : « {entreprise.nom} » attend son activation", destinataires,
+            (f"L'entreprise « {entreprise.nom} » ({entreprise.get_type_entreprise_display()}, {entreprise.pays}) "
+             f"a confirmé son inscription.\nAdministrateur : {admin.get_full_name() or admin.email} <{admin.email}>\n\n"
+             f"Examiner et activer : {lien}\n"),
+            'emails/notification.html',
+            {'titre': 'Une entreprise attend son activation',
+             'intro': f"« {entreprise.nom} » a confirmé son inscription et attend votre validation.",
+             'lignes': [('Entreprise', entreprise.nom), ('Type', entreprise.get_type_entreprise_display()),
+                        ('Pays', entreprise.pays), ('Administrateur', admin.get_full_name() or admin.email),
+                        ('Email', admin.email)],
+             'bouton_url': lien, 'bouton_label': 'Examiner et activer'},
         )
     except Exception:  # noqa: BLE001 - une panne d'email ne doit pas bloquer l'inscription
         pass

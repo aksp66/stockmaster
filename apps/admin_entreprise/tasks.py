@@ -8,8 +8,10 @@ from decimal import Decimal
 
 from celery import shared_task
 from django.db.models import F, Sum
+from django.urls import reverse
 from django.utils import timezone
 
+from apps.core.emails import lien_absolu
 from apps.entreprises.models import Entreprise, ParametresEntreprise
 
 from .notifications import destinataires, envoyer, notifier_alerte
@@ -84,7 +86,14 @@ def envoyer_suggestions_ia():
                  + ("\n\n… et d'autres dans l'espace responsable achat." if len(suggestions) > 20 else "")
                  + "\n\nPour ne plus recevoir ces emails : Paramètres de l'espace admin entreprise.")
         emails = destinataires(entreprise, ['responsable_achat', 'admin_ent'])
-        envoyer(f"Suggestions d'achat du {timezone.localdate():%d/%m/%Y}", corps, emails)
+        contexte = {
+            'titre': f"{len(suggestions)} produit{'s' if len(suggestions) > 1 else ''} à commander",
+            'intro': f"D'après les prévisions IA, voici ce qu'il faut commander pour {entreprise.nom}.",
+            'liste': [l[2:] for l in lignes],
+            'suite': "… et d'autres dans l'espace responsable achat." if len(suggestions) > 20 else '',
+            'bouton_url': lien_absolu(reverse('responsable_achat:suggestions_list')), 'bouton_label': "Voir les suggestions d'achat",
+        }
+        envoyer(f"Suggestions d'achat du {timezone.localdate():%d/%m/%Y}", corps, emails, contexte)
         nb_emails += bool(emails)
     return nb_emails
 
@@ -105,18 +114,27 @@ def envoyer_rapports_hebdo():
         nb_ruptures = totaux.filter(total__lte=0).count() + totaux.filter(total__isnull=True).count()
         mouvements = Mouvement.objects.filter(produit__entreprise=entreprise, date_mouvement__gte=depuis)
         valeur_txt = f"{valeur:,.0f}".replace(',', ' ')
+        chiffres = [
+            ("Valeur du stock", f"{valeur_txt} FCFA"),
+            ("Produits en rupture", nb_ruptures),
+            ("Alertes non traitées", Alerte.objects.filter(produit__entreprise=entreprise, lue=False).count()),
+            ("Entrées sur 7 jours", mouvements.filter(type_mouvement=TypeMouvement.ENTREE).count()),
+            ("Sorties sur 7 jours", mouvements.filter(type_mouvement=TypeMouvement.SORTIE).count()),
+            ("Commandes en attente",
+             BonCommande.objects.filter(entreprise=entreprise, statut__in=['envoye', 'recu_partiel']).count()),
+        ]
         corps = (
             f"Rapport hebdomadaire de {entreprise.nom} ({depuis:%d/%m} – {timezone.localdate():%d/%m/%Y})\n\n"
-            f"Valeur du stock          : {valeur_txt} FCFA\n"
-            f"Produits en rupture      : {nb_ruptures}\n"
-            f"Alertes non traitées     : {Alerte.objects.filter(produit__entreprise=entreprise, lue=False).count()}\n"
-            f"Entrées sur 7 jours      : {mouvements.filter(type_mouvement=TypeMouvement.ENTREE).count()}\n"
-            f"Sorties sur 7 jours      : {mouvements.filter(type_mouvement=TypeMouvement.SORTIE).count()}\n"
-            f"Commandes en attente     : "
-            f"{BonCommande.objects.filter(entreprise=entreprise, statut__in=['envoye', 'recu_partiel']).count()}\n\n"
-            "Pour ne plus recevoir ce rapport : Paramètres de l'espace admin entreprise."
+            + "".join(f"{libelle:<25}: {valeur_}\n" for libelle, valeur_ in chiffres)
+            + "\nPour ne plus recevoir ce rapport : Paramètres de l'espace admin entreprise."
         )
         emails = destinataires(entreprise, ['admin_ent'])
-        envoyer("Rapport hebdomadaire", corps, emails)
+        contexte = {
+            'titre': 'Rapport hebdomadaire',
+            'intro': f"Synthèse de {entreprise.nom} du {depuis:%d/%m} au {timezone.localdate():%d/%m/%Y}.",
+            'lignes': chiffres,
+            'bouton_url': lien_absolu(reverse('admin_entreprise:dashboard')), 'bouton_label': 'Ouvrir le tableau de bord',
+        }
+        envoyer("Rapport hebdomadaire", corps, emails, contexte)
         nb_emails += bool(emails)
     return nb_emails
