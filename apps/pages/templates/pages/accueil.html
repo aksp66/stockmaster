@@ -4,210 +4,219 @@
 {% block nav_accueil %}active{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/accueil.css' %}">
+<script>document.documentElement.classList.add('ac-js');</script>
 
+<!-- ══════════════════ HERO ══════════════════ -->
+<section class="ac-hero">
+  <span class="ac-blob b1"></span><span class="ac-blob b2"></span><span class="ac-blob b3"></span>
+  <div class="ac-hero-grid">
+    <div class="ac-reveal ac-left">
+      <span class="ac-kicker"><span class="ac-dot"></span> Gestion de stock avec prévisions IA</span>
+      <h1>Gérez vos stocks<br><span class="ac-rotator" data-mots='["intelligemment","sans surprise","en équipe","depuis votre téléphone"]'>intelligemment</span></h1>
+      <p class="lead">Suivez vos entrepôts, scannez vos entrées et sorties, et laissez l'IA prévoir la consommation des 30 prochains jours pour commander au bon moment.</p>
+      <div class="ac-cta">
+        <a href="{% url 'accounts:inscription' %}" class="btn-or ac-shine" style="padding:13px 28px;font-size:15px;"><i class="fas fa-rocket"></i> Créer mon entreprise</a>
+        <a href="{% url 'pages:contact' %}" class="btn-ghost" style="padding:13px 28px;font-size:15px;"><i class="fas fa-phone"></i> Parler à un expert</a>
+      </div>
+      <div class="ac-trust">
+        <span><i class="fas fa-check-circle"></i> Données isolées par entreprise</span>
+        <span><i class="fas fa-check-circle"></i> Installable sur mobile</span>
+        <span><i class="fas fa-check-circle"></i> Saisie possible hors ligne</span>
+      </div>
+    </div>
 
-<section class="text-center py-16 fade-up">
-  <div style="display:inline-flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:#ea580c;margin-bottom:22px;">
-    <i class="fas fa-brain" style="font-size:11px;"></i> Propulsé par Prophet &amp; RandomForest
-  </div>
-  <h1 style="font-size:clamp(2rem,5vw,3.6rem);font-weight:800;color:#111827;line-height:1.15;letter-spacing:-.04em;margin-bottom:20px;">
-    Gérez vos stocks<br>
-    <span style="background:linear-gradient(135deg,#f97316,#ea580c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">intelligemment</span>
-  </h1>
-  <p style="font-size:1.1rem;color:#6b7280;max-width:600px;margin:0 auto 32px;line-height:1.7;">
-    Anticipez les ruptures, optimisez vos commandes et pilotez plusieurs entrepôts en temps réel grâce à l'IA prédictive.
-  </p>
-  <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
-    <a href="{% url 'accounts:inscription' %}" class="btn-or" style="padding:13px 28px;font-size:15px;">
-      <i class="fas fa-rocket"></i> Démarrer gratuitement
-    </a>
-    <a href="{% url 'pages:contact' %}" class="btn-ghost" style="padding:13px 28px;font-size:15px;">
-      <i class="fas fa-phone"></i> Parler à un expert
-    </a>
-  </div>
-  <!-- Badges de réassurance -->
-  <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:28px;">
-    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#6b7280;">
-      <i class="fas fa-check-circle" style="color:#059669;"></i> Sans carte bancaire
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#6b7280;">
-      <i class="fas fa-check-circle" style="color:#059669;"></i> Données isolées par entreprise
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#6b7280;">
-      <i class="fas fa-check-circle" style="color:#059669;"></i> Support 7j/7
+    <div class="ac-stage ac-reveal ac-right" style="--d:.15s;">
+      <span class="ac-chip c1"><i class="fas fa-triangle-exclamation"></i> Rupture prévue dans 6 jours</span>
+      <span class="ac-chip c2"><i class="fas fa-barcode"></i> Entrée scannée</span>
+      <span class="ac-chip c3"><i class="fas fa-cart-shopping"></i> Commande suggérée</span>
+      <div class="ac-mock">
+        <div class="ac-mock-bar"><i></i><i></i><i></i><b>Tableau de bord</b></div>
+        <div class="ac-kpis">
+          <div class="ac-kpi"><small>Produits actifs</small><strong data-count="248">248</strong></div>
+          <div class="ac-kpi warn"><small>Sous le seuil</small><strong data-count="7">7</strong></div>
+          <div class="ac-kpi ok"><small>Entrepôts</small><strong data-count="3">3</strong></div>
+        </div>
+        <div class="ac-chart">
+          <div class="ac-chart-head"><span>Stock du produit</span><em>Prévision IA · 30 jours</em></div>
+          <svg viewBox="0 0 300 130" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="ac-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--or)" stop-opacity=".28"/><stop offset="1" stop-color="var(--or)" stop-opacity="0"/></linearGradient></defs>
+            <line class="ac-seuil" x1="0" y1="102" x2="300" y2="102"/>
+            <path class="ac-area" d="M0 30 C25 24 40 44 62 40 S100 52 122 58 S160 66 190 80 L190 130 L0 130 Z"/>
+            <path class="ac-line" d="M0 30 C25 24 40 44 62 40 S100 52 122 58 S160 66 190 80"/>
+            <path class="ac-pred" d="M190 80 C220 92 250 104 300 118"/>
+            <circle class="ac-pt" cx="236" cy="102" r="6"/>
+          </svg>
+        </div>
+        <div class="ac-bars" aria-hidden="true">
+          <i style="--i:0;--h:38%"></i><i style="--i:1;--h:62%"></i><i style="--i:2;--h:48%"></i><i style="--i:3;--h:80%"></i>
+          <i style="--i:4;--h:55%"></i><i style="--i:5;--h:92%"></i><i style="--i:6;--h:66%"></i><i style="--i:7;--h:74%"></i>
+        </div>
+        <div class="ac-note">Aperçu illustratif</div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════
-     CHIFFRES CLÉS
-══════════════════════════════════════ -->
-{# Chiffres réels uniquement (entreprises activées, avis publiés) : rien n'est affiché tant qu'il n'y a pas de données #}
-{% if nb_entreprises or nb_avis %}
-<section style="background:#fff7ed;border-radius:20px;padding:40px;margin:20px 0 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:30px;text-align:center;" class="delay-1 fade-up">
-  {% if nb_entreprises %}
-  <div>
-    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">{{ nb_entreprises }}</div>
-    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">entreprise{{ nb_entreprises|pluralize }} cliente{{ nb_entreprises|pluralize }}</div>
+<!-- ══════════════════ BANDEAU ══════════════════ -->
+<div class="ac-marquee ac-reveal" aria-hidden="true">
+  <div class="ac-track">
+    <span><i class="fas fa-barcode"></i> Scan code-barres</span>
+    <span><i class="fas fa-warehouse"></i> Multi-entrepôts</span>
+    <span><i class="fas fa-calculator"></i> Valorisation CUMP et FIFO</span>
+    <span><i class="fas fa-brain"></i> Prévisions IA à 30 jours</span>
+    <span><i class="fas fa-bell"></i> Alertes de rupture</span>
+    <span><i class="fas fa-mobile-screen"></i> Application installable</span>
+    <span><i class="fas fa-wifi"></i> Saisie hors ligne</span>
+    <span><i class="fas fa-file-export"></i> Exports CSV et PDF</span>
+    <span><i class="fas fa-users"></i> 7 rôles</span>
+    <span><i class="fas fa-clipboard-list"></i> Journal d'audit</span>
+    <span><i class="fas fa-palette"></i> Thèmes de couleurs</span>
   </div>
+</div>
+
+<!-- ══════════════════ CHIFFRES RÉELS (uniquement s'il y a des données) ══════════════════ -->
+{% if nb_entreprises or nb_avis %}
+<section class="ac-stats ac-reveal">
+  {% if nb_entreprises %}
+  <div><strong data-count="{{ nb_entreprises }}">{{ nb_entreprises }}</strong><span>entreprise{{ nb_entreprises|pluralize }} cliente{{ nb_entreprises|pluralize }}</span></div>
   {% endif %}
   {% if nb_avis %}
-  <div>
-    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">{{ note_moyenne|floatformat:1 }}/5</div>
-    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">note moyenne ({{ nb_avis }} avis vérifié{{ nb_avis|pluralize }})</div>
-  </div>
-  <div>
-    <div style="font-size:2.4rem;font-weight:800;color:#f97316;line-height:1;">{{ pct_recommande }}%</div>
-    <div style="font-size:13.5px;color:#6b7280;margin-top:6px;font-weight:500;">recommandent StockMaster</div>
-  </div>
+  <div><strong data-count="{{ note_moyenne|stringformat:'.1f' }}" data-dec="1" data-suffixe="/5">{{ note_moyenne|floatformat:1 }}/5</strong><span>note moyenne ({{ nb_avis }} avis vérifié{{ nb_avis|pluralize }})</span></div>
+  <div><strong data-count="{{ pct_recommande }}" data-suffixe="%">{{ pct_recommande }}%</strong><span>recommandent StockMaster</span></div>
   {% endif %}
 </section>
 {% endif %}
 
-<!-- ══════════════════════════════════════
-     FONCTIONNALITÉS CLÉS
-══════════════════════════════════════ -->
-<section class="mb-20 delay-2 fade-up">
-  <div class="text-center mb-12">
-    <h2 style="font-size:2rem;font-weight:800;color:#111827;letter-spacing:-.03em;">Tout ce dont vous avez besoin</h2>
-    <p style="color:#6b7280;margin-top:8px;font-size:1rem;">Une plateforme complète pour chaque rôle dans votre entreprise.</p>
+<!-- ══════════════════ FONCTIONNALITÉS ══════════════════ -->
+<section class="ac-section">
+  <div class="ac-head ac-reveal">
+    <span class="ac-kicker"><i class="fas fa-layer-group"></i> Fonctionnalités</span>
+    <h2>Tout ce dont vous avez besoin</h2>
+    <p>Une plateforme complète, pensée pour chaque personne qui touche au stock dans votre entreprise.</p>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+  <div class="ac-grid">
+    <div class="ac-card ac-reveal" style="--d:0s"><div class="ac-ico" style="background:#fff7ed;color:#f97316;"><i class="fas fa-brain"></i></div><h3>Prévisions IA</h3><p>Chaque nuit, Prophet (ou RandomForest) prévoit la consommation des 30 prochains jours de chaque produit, avec un score de confiance.</p></div>
+    <div class="ac-card ac-reveal" style="--d:.06s"><div class="ac-ico" style="background:#eff6ff;color:#2563eb;"><i class="fas fa-barcode"></i></div><h3>Scan code-barres</h3><p>Scannez un code ou saisissez une référence : entrée ou sortie en quelques secondes, depuis le téléphone ou avec un lecteur.</p></div>
+    <div class="ac-card ac-reveal" style="--d:.12s"><div class="ac-ico" style="background:#ecfdf5;color:#059669;"><i class="fas fa-chart-pie"></i></div><h3>Tableaux de bord</h3><p>Alertes de rupture, valorisation du stock au CUMP et en FIFO, marges au coût réel, exports CSV et PDF.</p></div>
+    <div class="ac-card ac-reveal" style="--d:.18s"><div class="ac-ico" style="background:#fffbeb;color:#d97706;"><i class="fas fa-warehouse"></i></div><h3>Multi-entrepôts</h3><p>Plusieurs entrepôts et emplacements, transferts entre sites, inventaires avec ajustement du stock.</p></div>
+    <div class="ac-card ac-reveal" style="--d:.24s"><div class="ac-ico" style="background:#f5f3ff;color:#7c3aed;"><i class="fas fa-users"></i></div><h3>Sept rôles</h3><p>Super admin, administrateur, gestionnaire, responsable achat, magasinier, comptable et auditeur : chacun voit ce qui le concerne.</p></div>
+    <div class="ac-card ac-reveal" style="--d:.3s"><div class="ac-ico" style="background:#fef2f2;color:#dc2626;"><i class="fas fa-mobile-screen"></i></div><h3>Mobile et hors ligne</h3><p>Application installable (PWA) : les mouvements saisis sans réseau sont envoyés au retour de la connexion. API REST sécurisée par jeton.</p></div>
+    <div class="ac-card ac-reveal" style="--d:.36s"><div class="ac-ico" style="background:#ecfeff;color:#0e7490;"><i class="fas fa-shield-halved"></i></div><h3>Sécurité et traçabilité</h3><p>Journal d'audit des actions sensibles, limitation des tentatives de connexion, déconnexion automatique réglable, données séparées entre entreprises.</p></div>
+    <div class="ac-card ac-reveal" style="--d:.42s"><div class="ac-ico" style="background:#fdf2f8;color:#be185d;"><i class="fas fa-palette"></i></div><h3>À vos couleurs</h3><p>Six thèmes de couleurs au choix : l'administrateur change l'apparence de toute l'application pour son entreprise.</p></div>
+  </div>
+</section>
 
-    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
-      <div style="width:48px;height:48px;background:#fff7ed;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-        <i class="fas fa-brain" style="color:#f97316;font-size:20px;"></i>
-      </div>
-      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Prédiction IA</h3>
-      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">Prophet + RandomForest : prévisions à 30/60/90 jours avec score de confiance et alertes automatiques.</p>
+<!-- ══════════════════ UN ESPACE PAR RÔLE ══════════════════ -->
+<section class="ac-section">
+  <div class="ac-head ac-reveal">
+    <span class="ac-kicker"><i class="fas fa-user-gear"></i> Pour chaque rôle</span>
+    <h2>Un espace adapté à chacun</h2>
+    <p>Chaque collaborateur arrive directement sur les écrans de son métier.</p>
+  </div>
+  <div class="ac-tabs ac-reveal">
+    <div class="ac-tablist" role="tablist" aria-label="Rôles">
+      <button class="ac-tab" role="tab" type="button" aria-selected="true"><i class="fas fa-user-shield"></i> Administrateur</button>
+      <button class="ac-tab" role="tab" type="button" aria-selected="false"><i class="fas fa-boxes-stacked"></i> Gestionnaire de stock</button>
+      <button class="ac-tab" role="tab" type="button" aria-selected="false"><i class="fas fa-file-invoice"></i> Responsable achat</button>
+      <button class="ac-tab" role="tab" type="button" aria-selected="false"><i class="fas fa-barcode"></i> Magasinier</button>
+      <button class="ac-tab" role="tab" type="button" aria-selected="false"><i class="fas fa-calculator"></i> Comptable</button>
+      <button class="ac-tab" role="tab" type="button" aria-selected="false"><i class="fas fa-magnifying-glass-chart"></i> Auditeur</button>
     </div>
-
-    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
-      <div style="width:48px;height:48px;background:#eff6ff;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-        <i class="fas fa-barcode" style="color:#2563eb;font-size:20px;"></i>
+    <div>
+      <div class="ac-panel" role="tabpanel">
+        <h3>Administrateur de l'entreprise</h3><p>Il configure l'entreprise et garde la main sur les accès.</p>
+        <ul><li><i class="fas fa-check"></i> Invite les collaborateurs par email et leur attribue un rôle.</li>
+          <li><i class="fas fa-check"></i> Crée les entrepôts et les catégories, choisit le thème de couleurs.</li>
+          <li><i class="fas fa-check"></i> Règle les notifications par email et la durée de déconnexion automatique.</li>
+          <li><i class="fas fa-check"></i> Lance l'analyse IA et exporte ses données.</li></ul>
       </div>
-      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Scan code-barres</h3>
-      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">Opérations terrain ultra-rapides via PWA (iOS/Android) ou lecteur USB. Entrée/sortie en 2 secondes.</p>
-    </div>
-
-    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
-      <div style="width:48px;height:48px;background:#ecfdf5;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-        <i class="fas fa-chart-pie" style="color:#059669;font-size:20px;"></i>
+      <div class="ac-panel" role="tabpanel" hidden>
+        <h3>Gestionnaire de stock</h3><p>Il tient le catalogue et le stock au jour le jour.</p>
+        <ul><li><i class="fas fa-check"></i> Crée ou importe (CSV) les produits, avec seuils d'alerte et prix.</li>
+          <li><i class="fas fa-check"></i> Enregistre entrées, sorties, pertes, transferts, retours et ajustements.</li>
+          <li><i class="fas fa-check"></i> Lance et valide les inventaires, avec ajustement automatique du stock.</li>
+          <li><i class="fas fa-check"></i> Traite les alertes de seuil, de rupture et d'expiration.</li></ul>
       </div>
-      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Tableaux de bord</h3>
-      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">KPIs temps réel, alertes de rupture, valorisation FIFO/CUMP, exports PDF et Excel.</p>
-    </div>
-
-    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
-      <div style="width:48px;height:48px;background:#fffbeb;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-        <i class="fas fa-warehouse" style="color:#d97706;font-size:20px;"></i>
+      <div class="ac-panel" role="tabpanel" hidden>
+        <h3>Responsable achat</h3><p>Il transforme les prévisions en commandes.</p>
+        <ul><li><i class="fas fa-check"></i> Gère les fournisseurs et leurs conditions.</li>
+          <li><i class="fas fa-check"></i> Reçoit des suggestions d'achat issues des prévisions, qui préremplissent le bon de commande.</li>
+          <li><i class="fas fa-check"></i> Suit chaque commande : brouillon, envoyée, reçue, clôturée, avec PDF.</li>
+          <li><i class="fas fa-check"></i> Réceptionne la marchandise, ce qui met le stock à jour.</li></ul>
       </div>
-      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Multi-entrepôts</h3>
-      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">Gérez plusieurs entrepôts et emplacements depuis une seule interface. Transferts en quelques clics.</p>
-    </div>
-
-    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
-      <div style="width:48px;height:48px;background:#f5f3ff;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-        <i class="fas fa-users" style="color:#7c3aed;font-size:20px;"></i>
+      <div class="ac-panel" role="tabpanel" hidden>
+        <h3>Magasinier</h3><p>Il travaille sur le terrain, souvent au téléphone.</p>
+        <ul><li><i class="fas fa-check"></i> Scanne les produits pour enregistrer entrées et sorties.</li>
+          <li><i class="fas fa-check"></i> Saisit un mouvement rapide, avec le prix de vente pratiqué.</li>
+          <li><i class="fas fa-check"></i> Compte les produits lors des inventaires, éventuellement à l'aveugle.</li>
+          <li><i class="fas fa-check"></i> Continue de saisir sans réseau : l'envoi se fait au retour de la connexion.</li></ul>
       </div>
-      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">Gestion des rôles</h3>
-      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">7 rôles distincts : super admin, admin, gestionnaire, acheteur, magasinier, auditeur, comptable.</p>
-    </div>
-
-    <div class="card-hover" style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:28px;">
-      <div style="width:48px;height:48px;background:#fef2f2;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-        <i class="fas fa-plug" style="color:#dc2626;font-size:20px;"></i>
+      <div class="ac-panel" role="tabpanel" hidden>
+        <h3>Comptable</h3><p>Il dispose de chiffres cohérents avec les mouvements.</p>
+        <ul><li><i class="fas fa-check"></i> Valorisation du stock au CUMP et en FIFO, en inventaire permanent.</li>
+          <li><i class="fas fa-check"></i> Marges calculées au coût réel de chaque vente, nettes des retours clients.</li>
+          <li><i class="fas fa-check"></i> Rapports de période réconciliés : début, flux, fin.</li>
+          <li><i class="fas fa-check"></i> Exports CSV et PDF.</li></ul>
       </div>
-      <h3 style="font-size:16px;font-weight:800;color:#111827;margin-bottom:8px;">API REST &amp; Intégrations</h3>
-      <p style="font-size:13.5px;color:#6b7280;line-height:1.7;">API DRF + JWT pour vos applications mobiles. Import/export CSV et Excel natif.</p>
+      <div class="ac-panel" role="tabpanel" hidden>
+        <h3>Auditeur</h3><p>Il contrôle sans pouvoir rien modifier.</p>
+        <ul><li><i class="fas fa-check"></i> Consulte le journal d'audit des actions sensibles.</li>
+          <li><i class="fas fa-check"></i> Examine les mouvements, les écarts d'inventaire et la valorisation.</li>
+          <li><i class="fas fa-check"></i> Accès en lecture seule : aucune donnée ne peut être changée.</li>
+          <li><i class="fas fa-check"></i> Exporte les éléments de contrôle.</li></ul>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════
-     COMMENT ÇA MARCHE
-══════════════════════════════════════ -->
-<section class="mb-20 delay-3 fade-up">
-  <div class="text-center mb-12">
-    <h2 style="font-size:2rem;font-weight:800;color:#111827;letter-spacing:-.03em;">Comment ça marche ?</h2>
-    <p style="color:#6b7280;margin-top:8px;">Opérationnel en moins de 15 minutes.</p>
+<!-- ══════════════════ PARCOURS ══════════════════ -->
+<section class="ac-section">
+  <div class="ac-head ac-reveal">
+    <span class="ac-kicker"><i class="fas fa-route"></i> Mise en route</span>
+    <h2>Comment ça marche ?</h2>
+    <p>De l'inscription à la première commande suggérée, en cinq étapes.</p>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;position:relative;">
-    {% for step in steps %}
-    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
-      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 4px 14px rgba(249,115,22,.3);">
-        <span style="color:white;font-weight:800;font-size:18px;">{{ forloop.counter }}</span>
-      </div>
-      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">{{ step.titre }}</h3>
-      <p style="font-size:13px;color:#6b7280;line-height:1.6;">{{ step.description }}</p>
-    </div>
-    {% empty %}
-    <!-- Fallback si pas de contexte Django -->
-    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
-      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="color:white;font-weight:800;font-size:18px;">1</span></div>
-      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">Créez votre entreprise</h3>
-      <p style="font-size:13px;color:#6b7280;line-height:1.6;">Inscription en 2 minutes, invitez votre équipe par email.</p>
-    </div>
-    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
-      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="color:white;font-weight:800;font-size:18px;">2</span></div>
-      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">Importez vos produits</h3>
-      <p style="font-size:13px;color:#6b7280;line-height:1.6;">Via CSV, Excel ou saisie manuelle. Codes-barres automatiquement vérifiés.</p>
-    </div>
-    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
-      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="color:white;font-weight:800;font-size:18px;">3</span></div>
-      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">L'IA analyse et prédit</h3>
-      <p style="font-size:13px;color:#6b7280;line-height:1.6;">Après 7 jours de données, les prédictions et suggestions d'achat se lancent automatiquement.</p>
-    </div>
-    <div style="text-align:center;padding:28px 20px;background:white;border:1.5px solid #f3f4f6;border-radius:18px;" class="card-hover">
-      <div style="width:52px;height:52px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><span style="color:white;font-weight:800;font-size:18px;">4</span></div>
-      <h3 style="font-size:15px;font-weight:700;color:#111827;margin-bottom:8px;">Commandez au bon moment</h3>
-      <p style="font-size:13px;color:#6b7280;line-height:1.6;">Bons de commande générés automatiquement selon les suggestions. Zéro rupture.</p>
-    </div>
-    {% endfor %}
+  <div class="ac-steps">
+    <div class="ac-step"><div class="ac-num" style="--i:0">1</div><div><h3>Inscrivez votre entreprise</h3><p>Formulaire, confirmation de l'email, puis activation par l'équipe StockMaster.</p></div></div>
+    <div class="ac-step"><div class="ac-num" style="--i:1">2</div><div><h3>Configurez</h3><p>Entrepôts, catégories, collaborateurs et rôles, thème de couleurs.</p></div></div>
+    <div class="ac-step"><div class="ac-num" style="--i:2">3</div><div><h3>Importez vos produits</h3><p>Par fichier CSV ou saisie, avec un stock initial par entrepôt.</p></div></div>
+    <div class="ac-step"><div class="ac-num" style="--i:3">4</div><div><h3>Suivez et anticipez</h3><p>Mouvements, scan, alertes. Les prévisions démarrent dès 14 jours de sorties enregistrées.</p></div></div>
+    <div class="ac-step"><div class="ac-num" style="--i:4">5</div><div><h3>Commandez</h3><p>Les suggestions d'achat préremplissent vos bons de commande.</p></div></div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════
-     TÉMOIGNAGES : derniers avis clients réellement publiés (modérés)
-══════════════════════════════════════ -->
+<!-- ══════════════════ AVIS RÉELS ══════════════════ -->
 {% if derniers_avis %}
-<section class="mb-20 delay-4 fade-up">
-  <div class="text-center mb-10">
-    <h2 style="font-size:2rem;font-weight:800;color:#111827;letter-spacing:-.03em;">Ils nous font confiance</h2>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;">
+<section class="ac-section">
+  <div class="ac-head ac-reveal"><h2>Ils nous font confiance</h2></div>
+  <div class="ac-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));">
     {% for avis in derniers_avis %}
-    <div style="background:white;border:1.5px solid #f3f4f6;border-radius:18px;padding:24px;position:relative;" class="card-hover">
-      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in avis.etoiles_range %}<i class="fas fa-star" style="color:#f97316;font-size:13px;"></i>{% endfor %}{% for i in avis.etoiles_vides_range %}<i class="fas fa-star" style="color:#e5e7eb;font-size:13px;"></i>{% endfor %}</div>
-      <i class="fas fa-quote-left" style="color:#fed7aa;font-size:18px;margin-bottom:10px;display:block;"></i>
+    <div class="ac-avis ac-reveal" style="--d:{{ forloop.counter0 }}00ms;">
+      <div style="display:flex;gap:3px;margin-bottom:14px;">{% for i in avis.etoiles_range %}<i class="fas fa-star" style="color:var(--or);font-size:13px;"></i>{% endfor %}{% for i in avis.etoiles_vides_range %}<i class="fas fa-star" style="color:#e5e7eb;font-size:13px;"></i>{% endfor %}</div>
+      <i class="fas fa-quote-left" style="color:var(--or-border);font-size:18px;margin-bottom:10px;display:block;"></i>
       <p style="font-size:13.5px;color:#4b5563;line-height:1.7;font-style:italic;">"{{ avis.commentaire }}"</p>
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:10px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">{{ avis.prenom|slice:":1"|upper }}</div>
-        <div><div style="font-size:13px;font-weight:700;color:#111827;">{{ avis.prenom }} {{ avis.nom|slice:":1" }}.</div><div style="font-size:11.5px;color:#f97316;">{{ avis.poste }} · {{ avis.entreprise.nom }}</div></div>
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--or-l));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:white;flex-shrink:0;">{{ avis.prenom|slice:":1"|upper }}</div>
+        <div><div style="font-size:13px;font-weight:700;color:#111827;">{{ avis.prenom }} {{ avis.nom|slice:":1" }}.</div><div style="font-size:11.5px;color:var(--or);">{{ avis.poste }} · {{ avis.entreprise.nom }}</div></div>
       </div>
     </div>
     {% endfor %}
   </div>
-  <div style="text-align:center;margin-top:18px;"><a href="{% url 'pages:entreprises' %}" style="color:#f97316;font-weight:600;font-size:14px;">Voir tous les avis →</a></div>
+  <div style="text-align:center;margin-top:18px;"><a href="{% url 'pages:entreprises' %}" style="color:var(--or);font-weight:600;font-size:14px;">Voir tous les avis →</a></div>
 </section>
 {% endif %}
 
-<!-- ══════════════════════════════════════
-     CTA FINAL
-══════════════════════════════════════ -->
-<section style="background:linear-gradient(135deg,#1a1208,#2d1f12);border-radius:24px;padding:56px 32px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;" class="delay-4 fade-up">
-  <div style="position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(249,115,22,.08);border-radius:50%;"></div>
-  <div style="position:absolute;bottom:-30px;left:-30px;width:150px;height:150px;background:rgba(249,115,22,.06);border-radius:50%;"></div>
-  <h2 style="font-size:2rem;font-weight:800;color:white;letter-spacing:-.03em;margin-bottom:14px;position:relative;">Prêt à transformer votre gestion de stock ?</h2>
-  <p style="color:rgba(255,255,255,.65);font-size:1rem;margin-bottom:28px;position:relative;">{% if nb_entreprises > 1 %}Rejoignez les {{ nb_entreprises }} entreprises qui anticipent déjà leurs ruptures avec l'IA.{% else %}Anticipez vos ruptures de stock grâce à l'IA.{% endif %}</p>
-  <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;position:relative;">
-    <a href="{% url 'accounts:inscription' %}" class="btn-or" style="padding:13px 30px;font-size:15px;">
-      <i class="fas fa-rocket"></i> Essai gratuit — sans engagement
-    </a>
-    <a href="{% url 'pages:contact' %}" style="display:inline-flex;align-items:center;gap:8px;padding:13px 30px;font-size:15px;font-weight:600;color:rgba(255,255,255,.75);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='white';" onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,.75)';">
-      <i class="fas fa-phone"></i> Démo personnalisée
-    </a>
+<!-- ══════════════════ APPEL FINAL ══════════════════ -->
+<section class="ac-final ac-reveal">
+  <span class="ac-blob b1"></span><span class="ac-blob b2"></span>
+  <h2>Prêt à garder le contrôle de votre stock ?</h2>
+  <p>{% if nb_entreprises > 1 %}Rejoignez les {{ nb_entreprises }} entreprises qui anticipent déjà leurs ruptures.{% else %}Anticipez vos ruptures de stock grâce aux prévisions de consommation.{% endif %}</p>
+  <div class="ac-cta">
+    <a href="{% url 'accounts:inscription' %}" class="btn-or ac-shine" style="padding:13px 30px;font-size:15px;"><i class="fas fa-rocket"></i> Créer mon entreprise</a>
+    <a href="{% url 'pages:contact' %}" class="ac-out-btn"><i class="fas fa-phone"></i> Demander une démo</a>
   </div>
 </section>
-
 {% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/accueil.js' %}" defer></script>{% endblock %}

@@ -111,7 +111,6 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [ ] **Mentions légales et CGU** : modèles en ligne (`/mentions-legales/`, `/conditions/`). Renseigner les variables `LEGAL_*` du `.env` (éditeur, adresse, hébergeur, juridiction…) et **faire relire les textes par un juriste** avant publication.
 - [ ] Sauvegardes automatiques PostgreSQL + dossier `media/` (voir la liste de vérification de [DEPLOIEMENT.md](DEPLOIEMENT.md)).
 - [ ] Premier déploiement réel avec Caddy, puis dérouler la liste de vérification de `DEPLOIEMENT.md`.
-- [ ] Valider les deux promesses restantes de la page d'accueil, qui ne sont pas des chiffres mesurés : « Support 7j/7 » et « Opérationnel en moins de 15 minutes ». Les garder seulement si elles sont vraies.
 - [ ] Configurer le SMTP en production (`EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD`) et vérifier la réception des emails d'alerte, du rapport hebdomadaire et des suggestions IA (ils dépendent aussi de Celery Beat).
 
 ### P2 — Fonctionnalités incomplètes

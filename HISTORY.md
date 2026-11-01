@@ -268,3 +268,10 @@ Avec `test_securite_generique.py` (matrice des accès, isolation entre entrepris
 - L'inactivité est contrôlée côté serveur (middleware `InactiviteSessionMiddleware`, horodatage dans la session) ; migration `entreprises.0004`.
 - La connexion de l'application mobile reste réglée globalement (`JWT_REFRESH_JOURS`) : le renouvellement des jetons recrée une durée par défaut, ce qui rendrait un réglage par entreprise incohérent sans surcharge du renouvellement.
 - **Tests** : 245.
+
+### Page d accueil animée
+
+- Refonte de `pages/accueil.html` : hero avec fond animé, mot du titre qui change, maquette de tableau de bord inclinable (courbe de prévision qui se dessine, barres, pastilles flottantes, marquée « Aperçu illustratif »), bandeau défilant, chiffres réels en compteurs animés (affichés seulement s ils existent), huit cartes à lueur qui suit le curseur, onglets interactifs « un espace par rôle » (navigables au clavier), parcours en cinq étapes dont la ligne se remplit au défilement, avis réels et appel final animé. Fichiers : `static/css/accueil.css`, `static/js/accueil.js` ; CSS et JavaScript natifs, sans dépendance externe (PWA).
+- Animations coupées pour les visiteurs qui demandent moins de mouvement (`prefers-reduced-motion`) ; sans JavaScript, tout le contenu reste visible.
+- **Contenu corrigé** : retirés « prévisions à 30/60/90 jours » (l IA prévoit 30 jours), « dès 7 jours de données » (14), « Support 7j/7 », « Opérationnel en moins de 15 minutes », « Zéro rupture » et « bons de commande générés automatiquement » (ils sont préremplis). Chaque rôle est décrit d après ses vraies fonctions.
+- Aucun débordement horizontal mesuré ; **Tests** : 248.

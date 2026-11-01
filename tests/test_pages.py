@@ -206,3 +206,26 @@ class TogoEtSessionsTests(EntrepriseTestCase):
         self.client.post(url, {'section': 'notifications', 'alertes_email': 'on', 'ia_email': 'on'})
         p.refresh_from_db()
         self.assertEqual((p.alertes_email, p.rapport_hebdo, p.ia_email), (True, False, True))
+
+
+class AccueilAnimeeTests(EntrepriseTestCase):
+
+    def test_page_complete_et_ressources(self):
+        html = self.client.get(reverse('pages:accueil')).content.decode()
+        for attendu in ('css/accueil.css', 'js/accueil.js', 'ac-hero', 'ac-rotator', 'role="tablist"', 'ac-steps', 'Aperçu illustratif'):
+            self.assertIn(attendu, html)
+        self.assertEqual(html.count('role="tabpanel"'), 6)  # un panneau par rôle
+        self.assertEqual(html.count('role="tab"'), 6)
+
+    def test_aucune_promesse_inexacte(self):
+        html = self.client.get(reverse('pages:accueil')).content.decode()
+        for faux in ('30/60/90', '7j/7', 'moins de 15 minutes', 'Zéro rupture', 'générés automatiquement', 'Après 7 jours'):
+            self.assertNotIn(faux, html)
+        self.assertIn('14 jours', html)  # seuil réel de la tâche IA
+
+    def test_chiffres_publics_uniquement_s_ils_existent(self):
+        from apps.entreprises.models import Entreprise
+        Entreprise.objects.update(est_active=False)
+        self.assertNotIn('ac-stats', self.client.get(reverse('pages:accueil')).content.decode())
+        Entreprise.objects.update(est_active=True)
+        self.assertIn('ac-stats', self.client.get(reverse('pages:accueil')).content.decode())
