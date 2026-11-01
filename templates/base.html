@@ -49,8 +49,9 @@
     .btn-ghost:hover { background:#fff7ed; border-color:#fed7aa; color:var(--or); }
     .faq-item { border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
     .faq-trigger { cursor:pointer; width:100%; background:none; border:none; text-align:left; padding:18px 20px; font-family: var(--font-body); }
-    .faq-body { display:none; padding:0 20px 18px; }
-    .faq-item.open .faq-body { display:block; }
+    .faq-body { display:grid; grid-template-rows:0fr; transition:grid-template-rows .35s ease; }
+    .faq-in { overflow:hidden; min-height:0; }
+    .faq-item.open .faq-body { grid-template-rows:1fr; }
     .faq-item.open .faq-chevron { transform:rotate(180deg); }
     .faq-chevron { transition:transform .25s; }
     .msg-success { background:#ecfdf5; border-left:4px solid #059669; color:#065f46; }

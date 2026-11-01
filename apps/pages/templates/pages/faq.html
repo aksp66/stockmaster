@@ -6,16 +6,7 @@
 {% block content %}
 <div style="max-width:800px;margin:0 auto;">
 
-  <div style="text-align:center;margin-bottom:48px;">
-    <div style="display:inline-flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:#ea580c;margin-bottom:16px;">
-      <i class="fas fa-circle-question" style="font-size:11px;"></i> Questions fréquentes
-    </div>
-    <h1 style="font-size:2.2rem;font-weight:800;color:#111827;letter-spacing:-.04em;margin-bottom:12px;">Foire aux questions</h1>
-    <p style="color:#6b7280;font-size:1rem;max-width:480px;margin:0 auto;line-height:1.7;">
-      Tout ce que vous devez savoir sur StockMaster. Vous ne trouvez pas votre réponse ?
-      <a href="{% url 'pages:contact' %}" style="color:#f97316;font-weight:600;text-decoration:none;">Contactez-nous</a>.
-    </p>
-  </div>
+  {% include "pages/_hero.html" with kicker="Questions fréquentes" icone="circle-question" titre="Foire aux questions" sous="Tout ce que vous devez savoir sur StockMaster. Vous ne trouvez pas votre réponse ? Utilisez la page Contact." %}
 
   <!-- Catégories de recherche rapide -->
   <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px;">
@@ -32,7 +23,7 @@
   </div>
 
   <!-- Questions -->
-  <div style="display:flex;flex-direction:column;gap:10px;" id="faq-list">
+  <div style="display:flex;flex-direction:column;gap:10px;" id="faq-list" data-stagger>
 
     {% for q in faqs %}
     <div class="faq-item" data-cat="{{ q.categorie }}">
@@ -43,11 +34,11 @@
         </div>
         <i class="fas fa-chevron-down faq-chevron" style="color:#f97316;font-size:13px;flex-shrink:0;margin-left:12px;"></i>
       </button>
-      <div class="faq-body">
+      <div class="faq-body"><div class="faq-in">
         <div style="padding:0 22px 18px {% if q.icone %}66px{% endif %};font-size:14px;color:#4b5563;line-height:1.8;">
           {{ q.reponse|safe }}
         </div>
-      </div>
+      </div></div>
     </div>
     {% endfor %}
   </div>

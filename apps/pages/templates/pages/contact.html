@@ -7,15 +7,7 @@
 <div style="max-width:900px;margin:0 auto;">
 
   <!-- En-tête -->
-  <div style="text-align:center;margin-bottom:48px;">
-    <div style="display:inline-flex;align-items:center;gap:8px;background:#fff7ed;border:1px solid #fed7aa;padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:#ea580c;margin-bottom:16px;">
-      <i class="fas fa-headset" style="font-size:11px;"></i> Support réactif 7j/7
-    </div>
-    <h1 style="font-size:2.2rem;font-weight:800;color:#111827;letter-spacing:-.04em;margin-bottom:12px;">Contactez-nous</h1>
-    <p style="color:#6b7280;font-size:1rem;max-width:480px;margin:0 auto;line-height:1.7;">
-      Une question, un projet ou une démo ? Écrivez-nous, nous vous répondons <strong style="color:#111827;">sous 24h ouvrées</strong>.
-    </p>
-  </div>
+  {% include "pages/_hero.html" with kicker="Nous sommes à votre écoute" icone="headset" titre="Contactez-nous" sous="Une question, un projet ou une démo ? Écrivez-nous, nous vous répondons dès que possible." %}
 
   <div style="display:grid;grid-template-columns:1fr 380px;gap:32px;" class="contact-grid">
 

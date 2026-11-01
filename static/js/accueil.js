@@ -4,6 +4,14 @@
   var calme = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
+  // ── Apparition en cascade des enfants d'un conteneur [data-stagger] ───────
+  $$('[data-stagger]').forEach(function (conteneur) {
+    Array.prototype.slice.call(conteneur.children).forEach(function (enfant, i) {
+      enfant.classList.add('ac-reveal');
+      enfant.style.setProperty('--d', Math.min(i, 10) * 0.05 + 's');
+    });
+  });
+
   // ── Apparition au défilement ──────────────────────────────────────────────
   var revele = function (el) { el.classList.add('ac-in'); };
   if (calme || !('IntersectionObserver' in window)) {

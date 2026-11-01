@@ -1,0 +1,7 @@
+<header class="pg-hero ac-reveal">
+  <span class="ac-blob b1"></span><span class="ac-blob b2"></span>
+  {% if nombre %}<span class="ac-kicker"><i class="fas fa-{{ icone|default:'circle-info' }}"></i> {{ nombre }} entreprise{{ nombre|pluralize }} cliente{{ nombre|pluralize }}</span>
+  {% elif kicker %}<span class="ac-kicker"><i class="fas fa-{{ icone|default:'circle-info' }}"></i> {{ kicker }}</span>{% endif %}
+  <h1>{{ titre }}</h1>
+  {% if sous %}<p>{{ sous }}</p>{% endif %}
+</header>

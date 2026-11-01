@@ -9,50 +9,7 @@
 {% block content %}
 <div style="max-width: 800px; margin: 0 auto">
   <!-- En-tête -->
-  <div style="text-align: center; margin-bottom: 48px">
-    <div
-      style="
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #1d4ed8;
-        margin-bottom: 16px;
-      "
-    >
-      <i class="fas fa-shield-halved" style="font-size: 11px"></i> Protection des données
-      – Mise à jour novembre 2026
-    </div>
-    <h1
-      style="
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #111827;
-        letter-spacing: -0.04em;
-        margin-bottom: 12px;
-      "
-    >
-      Politique de confidentialité
-    </h1>
-    <p
-      style="
-        color: #6b7280;
-        font-size: 1rem;
-        max-width: 520px;
-        margin: 0 auto;
-        line-height: 1.7;
-      "
-    >
-      StockMaster s'engage à protéger la vie privée de ses utilisateurs. Ce
-      document décrit précisément comment vos données sont collectées, utilisées
-      et protégées.
-    </p>
-  </div>
+  {% include "pages/_hero.html" with kicker="Protection des données" icone="shield-halved" titre="Politique de confidentialité" sous="StockMaster s'engage à protéger la vie privée de ses utilisateurs. Ce document décrit comment vos données sont collectées, utilisées et protégées." %}
 
   <!-- Table des matières -->
   <div
@@ -211,7 +168,7 @@
   </div>
 
   <!-- Sections -->
-  <div style="display: flex; flex-direction: column; gap: 32px">
+  <div style="display: flex; flex-direction: column; gap: 32px" data-stagger>
     <div
       id="s1"
       style="

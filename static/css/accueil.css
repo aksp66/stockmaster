@@ -174,3 +174,14 @@
   .ac-track { animation: none; }
   .ac-steps::after { width: 80%; transition: none; } .ac-steps .ac-num { background: var(--or); color: #fff; }
 }
+
+/* ── En-tête des pages publiques intérieures ─────────────────────────────── */
+.pg-hero { position: relative; overflow: hidden; isolation: isolate; text-align: center; padding: 46px 24px 42px; margin-bottom: 40px; border-radius: 28px;
+  background: linear-gradient(135deg, #fff, var(--or-dim)); border: 1.5px solid var(--or-border); }
+.pg-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .45;
+  background-image: radial-gradient(rgba(var(--or-rgb), .22) 1.2px, transparent 1.2px); background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 10%, transparent 70%); mask-image: radial-gradient(ellipse at 50% 0%, #000 10%, transparent 70%); }
+.pg-hero .ac-blob.b1 { width: 240px; height: 240px; top: -90px; left: -50px; }
+.pg-hero .ac-blob.b2 { width: 220px; height: 220px; bottom: -90px; right: -30px; }
+.pg-hero h1 { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; color: #111827; letter-spacing: -.03em; word-spacing: .06em; margin-bottom: 10px; }
+.pg-hero p { color: #6b7280; max-width: 560px; margin: 0 auto; line-height: 1.7; }

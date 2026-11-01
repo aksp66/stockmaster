@@ -8,9 +8,8 @@
   .a-completer { background: #fef3c7; color: #92400e; padding: 1px 7px; border-radius: 6px; font-weight: 600; font-size: 12.5px; }
   .alerte-juridique { background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: #92400e; }
 </style>
-<div class="juridique">
-  <h1>{{ titre }}</h1>
-  <p class="maj">Dernière mise à jour : novembre 2026</p>
+{% include "pages/_hero.html" with kicker="Informations légales" icone="scale-balanced" titre=titre sous="Dernière mise à jour : novembre 2026" %}
+<div class="juridique ac-reveal">
   {% if manquants and user.is_authenticated and user.role == 'super_admin' %}
   <div class="alerte-juridique"><strong>Réservé au super admin :</strong> {{ manquants|length }} information(s) de l'éditeur restent « À compléter »
     (variables <code>LEGAL_*</code> du fichier <code>.env</code>). Ce texte est un modèle de départ : faites-le relire par un juriste avant publication.</div>
