@@ -42,6 +42,12 @@ LEGAL = {cle: config(f'LEGAL_{cle.upper()}', default='') for cle in (
     'editeur', 'forme', 'capital', 'immatriculation', 'adresse', 'email', 'telephone', 'directeur_publication',
     'hebergeur', 'hebergeur_adresse', 'dpo_email', 'juridiction', 'droit_applicable')}
 
+# Sessions : expirent après une période sans activité (glissante) et à la fermeture du navigateur. Fermer un onglet
+# ne met pas fin à une session : c'est la fermeture du navigateur ou l'inactivité qui le fait.
+SESSION_COOKIE_AGE = config('SESSION_INACTIVITE_MINUTES', default=120, cast=int) * 60
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
 # Limitation des tentatives de connexion (voir apps/accounts/throttle.py)
 LOGIN_MAX_ESSAIS = 5            # par adresse IP et identifiant
 LOGIN_MAX_ESSAIS_IP = 30        # par adresse IP
@@ -120,7 +126,7 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME":  timedelta(hours=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=config("JWT_REFRESH_JOURS", default=7, cast=int)),
     "ROTATE_REFRESH_TOKENS":  True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),

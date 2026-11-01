@@ -25,8 +25,8 @@
         margin-bottom: 16px;
       "
     >
-      <i class="fas fa-shield-halved" style="font-size: 11px"></i> Conforme RGPD
-      – Mise à jour avril 2026
+      <i class="fas fa-shield-halved" style="font-size: 11px"></i> Protection des données
+      – Mise à jour novembre 2026
     </div>
     <h1
       style="
@@ -162,8 +162,7 @@
           text-decoration: none;
           padding: 4px 0;
         "
-        ><span style="color: #9ca3af; margin-right: 6px">6.</span> Vos droits
-        RGPD</a
+        ><span style="color: #9ca3af; margin-right: 6px">6.</span> Vos droits</a
       >
       <a
         href="#s7"
@@ -213,9 +212,6 @@
 
   <!-- Sections -->
   <div style="display: flex; flex-direction: column; gap: 32px">
-    {% block section_style %}background:white;border:1.5px solid
-    #f3f4f6;border-radius:16px;padding:28px; {% endblock %}
-
     <div
       id="s1"
       style="
@@ -272,13 +268,11 @@
         >
           <li><strong>Dénomination :</strong> StockMaster</li>
           <li>
-            <strong>Adresse :</strong> Lomé, Togo &amp; Paris (75001), France
+            <strong>Adresse :</strong> Lomé, Togo
           </li>
           <li>
-            <strong>Email DPO :</strong>
-            <a href="mailto:dpo@stockmaster.io" style="color: #f97316"
-              >dpo@stockmaster.io</a
-            >
+            <strong>Contact protection des données :</strong>
+            {% include "pages/_champ.html" with valeur=legal.dpo_email %}
           </li>
           <li><strong>Téléphone :</strong> +228 91 12 30 80</li>
         </ul>
@@ -764,7 +758,7 @@
         </ul>
         <p style="margin-top: 12px">
           Tous nos sous-traitants sont liés par un contrat de traitement des
-          données conforme au RGPD.
+          données conforme à la réglementation togolaise applicable.
         </p>
       </div>
     </div>
@@ -804,13 +798,14 @@
           ></i>
         </div>
         <h2 style="font-size: 17px; font-weight: 800; color: #111827">
-          6. Vos droits (RGPD)
+          6. Vos droits
         </h2>
       </div>
       <div style="font-size: 14px; color: #4b5563; line-height: 1.8">
         <p>
-          Conformément au Règlement Général sur la Protection des Données (RGPD
-          – UE 2016/679), vous disposez des droits suivants :
+          Conformément à la loi togolaise n° 2019-014 du 29 octobre 2019 relative à
+          la protection des données à caractère personnel, vous disposez des
+          droits suivants :
         </p>
         <div
           style="
@@ -933,11 +928,7 @@
         </div>
         <p style="margin-top: 14px">
           Pour exercer ces droits :
-          <a
-            href="mailto:dpo@stockmaster.io"
-            style="color: #f97316; font-weight: 600"
-            >dpo@stockmaster.io</a
-          >. Réponse garantie sous <strong>30 jours</strong>.
+          {% include "pages/_champ.html" with valeur=legal.dpo_email %}. Réponse garantie sous <strong>30 jours</strong>.
         </p>
       </div>
     </div>
@@ -1162,11 +1153,11 @@
       </div>
       <div style="font-size: 14px; color: #4b5563; line-height: 1.8">
         <p>
-          Les données sont hébergées sur des serveurs situés
-          <strong>en Europe</strong> (Allemagne / France). En cas de transfert
-          hors UE, nous veillons à l'application de mesures de protection
-          appropriées (Clauses Contractuelles Types de la Commission
-          européenne).
+          Le lieu d'hébergement des données est indiqué dans les
+          <a href="{% url 'pages:mentions_legales' %}" style="color: #f97316">mentions légales</a>.
+          En cas de transfert hors du Togo, nous veillons à ce que des garanties
+          appropriées protègent vos données, conformément à la réglementation
+          applicable.
         </p>
       </div>
     </div>
@@ -1225,23 +1216,17 @@
         >
           <div>
             <i class="fas fa-envelope" style="margin-right: 8px"></i
-            ><a
-              href="mailto:dpo@stockmaster.io"
-              style="color: #ea580c; font-weight: 700"
-              >dpo@stockmaster.io</a
-            >
+            >{% include "pages/_champ.html" with valeur=legal.dpo_email %}
           </div>
           <div>
-            <i class="fas fa-clock" style="margin-right: 8px"></i>Réponse sous
-            30 jours maximum (délai légal RGPD)
+            <i class="fas fa-clock" style="margin-right: 8px"></i>Réponse dans les meilleurs
+            délais
           </div>
         </div>
         <p style="margin-top: 14px; font-size: 13px">
           Vous pouvez également introduire une réclamation auprès de l'autorité
-          de contrôle compétente (CNIL en France :
-          <a href="https://www.cnil.fr" target="_blank" style="color: #ea580c"
-            >www.cnil.fr</a
-          >).
+          de contrôle compétente au Togo (Instance de Protection des Données à
+          Caractère Personnel).
         </p>
       </div>
     </div>

@@ -30,12 +30,7 @@
           <div>
             <div style="font-size:13.5px;font-weight:500;">{{ label }}</div>
           </div>
-          <label style="position:relative;display:inline-block;width:42px;height:24px;">
-            <input type="checkbox" name="{{ key }}" {% if actif %}checked{% endif %}
-                   style="opacity:0;width:0;height:0;position:absolute;">
-            <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked;this.style.background=this.previousElementSibling.checked?'var(--orange)':'#d1d5db';"
-                  style="position:absolute;cursor:pointer;inset:0;background:{% if actif %}var(--orange){% else %}#d1d5db{% endif %};border-radius:24px;transition:.2s;"></span>
-          </label>
+          <label class="ck-switch" style="margin-top:0;"><input type="checkbox" name="{{ key }}" {% if actif %}checked{% endif %}><span></span></label>
         </div>
         {% endfor %}
         <div style="margin-top:16px;display:flex;justify-content:flex-end;">

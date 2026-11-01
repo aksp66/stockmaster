@@ -125,5 +125,5 @@ class ConditionsView(PageJuridiqueView):
     template_name = 'pages/conditions.html'
 
 
-class PolitiqueView(TemplateView):
+class PolitiqueView(PageJuridiqueView):
     template_name = 'pages/politique.html'

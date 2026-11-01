@@ -46,7 +46,7 @@ FOURNISSEURS_DATA = [
     {"nom": "ConsomPro Sénégal",        "pays": "Sénégal",   "delai_moyen_jours": 10},
     {"nom": "MeubleForm CI",            "pays": "Côte d'Ivoire", "delai_moyen_jours": 14},
     {"nom": "ProHygiène Ghana",         "pays": "Ghana",     "delai_moyen_jours": 8},
-    {"nom": "GlobalStock Import",       "pays": "France",    "delai_moyen_jours": 21},
+    {"nom": "GlobalStock Import",       "pays": "Nigeria",   "delai_moyen_jours": 21},
     {"nom": "AsiaConnect Trading",      "pays": "Hong Kong", "delai_moyen_jours": 30},
 ]
 

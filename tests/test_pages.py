@@ -163,3 +163,46 @@ class PagesJuridiquesEtAlerteTests(EntrepriseTestCase):
         self.assertEqual(envoyes[0].to, [sa.email])
         self.assertIn('Nouvelle SARL', envoyes[0].subject)
         self.assertIn(str(ent.pk), envoyes[0].body)
+
+
+class TogoEtSessionsTests(EntrepriseTestCase):
+
+    def test_plus_de_reference_a_la_france_ni_au_rgpd(self):
+        for nom in ('pages:accueil', 'pages:contact', 'pages:politique', 'pages:mentions_legales', 'pages:conditions',
+                    'pages:faq'):
+            html = self.client.get(reverse(nom)).content.decode()
+            for interdit in ('France', 'RGPD', 'CNIL', 'Paris', '+33'):
+                self.assertNotIn(interdit, html, f'{interdit} dans {nom}')
+        self.assertIn('2019-014', self.client.get(reverse('pages:politique')).content.decode())
+
+    def test_politique_sans_style_affiche_en_clair(self):
+        self.assertNotIn('border-radius:16px;padding:28px;', self.client.get(reverse('pages:politique')).content.decode()
+                         .split('Sommaire')[-1].split('id="s1"')[0])
+
+    def test_un_seul_lien_mentions_legales_dans_le_pied_de_page(self):
+        html = self.client.get(reverse('pages:accueil')).content.decode()
+        self.assertEqual(html.count('>Mentions légales</a>'), 1)
+
+    def test_sessions_a_duree_limitee(self):
+        from django.conf import settings
+        self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
+        self.assertTrue(settings.SESSION_SAVE_EVERY_REQUEST)
+        self.assertLessEqual(settings.SESSION_COOKIE_AGE, 8 * 3600)
+        self.assertLessEqual(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].days, 7)
+
+    def test_interrupteurs_des_parametres_sans_double_bascule(self):
+        self.connecter('admin_ent')
+        html = self.client.get(reverse('admin_entreprise:parametres')).content.decode()
+        self.assertIn('class="ck-switch"', html)
+        self.assertNotIn("previousElementSibling.checked=!", html)  # l'ancien script inversait la case une 2e fois
+
+    def test_enregistrement_des_notifications_dans_les_deux_sens(self):
+        from apps.entreprises.models import ParametresEntreprise
+        self.connecter('admin_ent')
+        url = reverse('admin_entreprise:parametres')
+        self.client.post(url, {'section': 'notifications', 'rapport_hebdo': 'on'})
+        p = ParametresEntreprise.pour(self.ent)
+        self.assertEqual((p.alertes_email, p.rapport_hebdo, p.ia_email), (False, True, False))
+        self.client.post(url, {'section': 'notifications', 'alertes_email': 'on', 'ia_email': 'on'})
+        p.refresh_from_db()
+        self.assertEqual((p.alertes_email, p.rapport_hebdo, p.ia_email), (True, False, True))
