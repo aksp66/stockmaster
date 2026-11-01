@@ -1,0 +1,65 @@
+/* Pages d'authentification : connexion, inscription, réinitialisation, invitation. */
+.au-stage { position: relative; isolation: isolate; padding: 8px 0 24px; }
+.au-stage > .ac-blob { z-index: -1; }
+.au-shell { display: grid; grid-template-columns: 1fr 1.05fr; max-width: 1000px; margin: 0 auto; border-radius: 28px; overflow: hidden;
+  background: #fff; border: 1.5px solid var(--or-border); box-shadow: 0 30px 70px -28px rgba(var(--or-rgb), .45), 0 8px 24px rgba(17, 24, 39, .06); }
+.au-wide .au-shell { grid-template-columns: 1fr; max-width: 760px; }
+.au-wide .au-side { display: none; }
+
+/* Panneau de marque */
+.au-side { position: relative; overflow: hidden; padding: 44px 38px; color: #fff; display: flex; flex-direction: column; justify-content: center;
+  background: linear-gradient(140deg, #1a1208, #3a2410 60%, #1a1208); background-size: 200% 200%; animation: ac-bg 14s ease infinite; }
+.au-side .ac-blob { opacity: .4; filter: blur(50px); }
+.au-side h2 { position: relative; font-family: var(--font-display); font-size: 1.7rem; font-weight: 800; line-height: 1.2; letter-spacing: -.02em; word-spacing: .06em; margin: 18px 0 12px; color: #fff; }
+.au-side h2 span { color: var(--or-l); }
+.au-side p { position: relative; color: rgba(255,255,255,.7); line-height: 1.7; font-size: 14px; margin-bottom: 22px; }
+.au-logo { position: relative; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-display); font-weight: 800; font-size: 19px; color: #fff; }
+.au-logo b { width: 38px; height: 38px; border-radius: 11px; background: var(--or); display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(var(--or-rgb), .5); }
+.au-logo em { font-style: normal; color: var(--or-l); }
+.au-points { position: relative; list-style: none; display: grid; gap: 12px; }
+.au-points li { display: flex; gap: 12px; align-items: center; font-size: 13.5px; color: rgba(255,255,255,.85); opacity: 0; transform: translateX(-16px); animation: au-in .6s cubic-bezier(.2,.8,.2,1) forwards; }
+.au-points li:nth-child(1) { animation-delay: .3s; } .au-points li:nth-child(2) { animation-delay: .5s; } .au-points li:nth-child(3) { animation-delay: .7s; } .au-points li:nth-child(4) { animation-delay: .9s; }
+.au-points i { width: 32px; height: 32px; border-radius: 10px; background: rgba(var(--or-rgb), .25); color: var(--or-l); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+@keyframes au-in { to { opacity: 1; transform: none; } }
+
+/* Formulaire */
+.au-main { padding: 44px 40px; background: #fff; }
+.au-wide .au-main { padding: 36px 34px; }
+.au-title { text-align: center; margin-bottom: 26px; }
+.au-ico { width: 58px; height: 58px; border-radius: 18px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; font-size: 24px;
+  background: var(--or-dim); color: var(--or); animation: au-pop .7s cubic-bezier(.3,1.6,.5,1) both; }
+.au-ico.ok { background: var(--green-dim); color: var(--green); }
+@keyframes au-pop { from { transform: scale(.4) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.au-title h1, .au-title h2 { font-family: var(--font-display); font-size: 1.55rem; font-weight: 800; color: #111827; letter-spacing: -.02em; word-spacing: .06em; }
+.au-title p { color: #6b7280; font-size: 13.5px; margin-top: 6px; line-height: 1.6; }
+.au-field { margin-bottom: 16px; }
+.au-field label { display: block; font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+.au-input { position: relative; }
+.au-input > i.lead { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 13px; pointer-events: none; transition: color .2s; }
+.au-input input { width: 100%; height: 46px; padding: 0 44px 0 40px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 14px; font-family: var(--font-body); background: #fafaf9; transition: all .2s; }
+.au-input input:focus { outline: none; background: #fff; border-color: var(--or); box-shadow: 0 0 0 4px rgba(var(--or-rgb), .13); }
+.au-input:focus-within > i.lead { color: var(--or); }
+.au-input.err input { border-color: var(--red); background: var(--red-dim); }
+.au-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border: none; background: none; color: #9ca3af; cursor: pointer; border-radius: 9px; }
+.au-eye:hover { color: var(--or); background: var(--or-dim); }
+.au-err { color: var(--red); font-size: 12px; margin-top: 5px; display: flex; gap: 6px; align-items: center; }
+.au-alert { background: var(--red-dim); color: #b91c1c; border: 1.5px solid #fecaca; border-radius: 12px; padding: 11px 14px; font-size: 13px; margin-bottom: 16px; animation: au-shake .4s; }
+@keyframes au-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.au-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; font-size: 13px; }
+.au-check { display: inline-flex; align-items: center; gap: 8px; color: #4b5563; cursor: pointer; }
+.au-check input { width: 16px; height: 16px; accent-color: var(--or); }
+.au-row a, .au-foot a { color: var(--or); font-weight: 600; text-decoration: none; }
+.au-row a:hover, .au-foot a:hover { text-decoration: underline; }
+.au-submit { width: 100%; justify-content: center; height: 48px; font-size: 15px; border-radius: 12px; }
+.au-foot { text-align: center; color: #6b7280; font-size: 13.5px; margin-top: 22px; }
+.au-strength { height: 5px; border-radius: 5px; background: #f3f4f6; margin-top: 8px; overflow: hidden; }
+.au-strength i { display: block; height: 100%; width: 0; border-radius: 5px; background: var(--red); transition: width .3s, background .3s; }
+.au-hint { font-size: 11.5px; color: #9ca3af; margin-top: 5px; }
+.au-steps { display: flex; justify-content: center; gap: 8px; margin-bottom: 22px; }
+
+@media (max-width: 860px) {
+  .au-shell { grid-template-columns: 1fr; border-radius: 22px; }
+  .au-side { display: none; }
+  .au-main { padding: 30px 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .au-points li { opacity: 1; transform: none; animation: none; } .au-side { animation: none; } }

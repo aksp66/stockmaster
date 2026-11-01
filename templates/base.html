@@ -9,7 +9,8 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'css/inscription.css' %}">
+  <link rel="stylesheet" href="{% static 'css/accueil.css' %}">
+  <script>document.documentElement.classList.add('ac-js');</script>
 
   <link rel="stylesheet" href="{% static 'css/stockmaster.css' %}" />
   <style>
@@ -351,6 +352,7 @@ setTimeout(() => {
   });
 }, 4000);
 </script>
+<script src="{% static 'js/accueil.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
 {% include 'partials/cookies.html' %}
 </body>

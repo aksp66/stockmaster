@@ -1,5 +1,7 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Inscription – Votre
-entreprise{% endblock %} {% block content %}
+{% extends 'auth_base.html' %}
+{% block title %}Inscription – Votre entreprise{% endblock %}
+{% block auth_class %}au-wide{% endblock %}
+{% block auth_content %}
 <div class="wrap">
   <div class="stepper">
     <div class="step">

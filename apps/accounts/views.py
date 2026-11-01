@@ -227,6 +227,12 @@ class ConnexionView(LoginView):
     template_name = 'accounts/connexion.html'
     redirect_authenticated_user = True
 
+    def form_valid(self, form):
+        reponse = super().form_valid(form)
+        # « Se souvenir de moi » : la session survit à la fermeture du navigateur (l'inactivité reste appliquée)
+        self.request.session['_se_souvenir'] = self.request.POST.get('remember') == 'on'
+        return reponse
+
     def post(self, request, *args, **kwargs):
         if throttle.est_bloque(request, request.POST.get('username')):
             messages.error(request, "Trop de tentatives de connexion. Réessayez dans quelques minutes.")

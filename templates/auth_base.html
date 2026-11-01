@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load static %}
+{# Gabarit commun des pages d'authentification : panneau de marque animé (masqué en mode large et sur mobile) + carte de formulaire #}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/inscription.css' %}">
+<div class="au-stage {% block auth_class %}{% endblock %}">
+  <span class="ac-blob b1"></span><span class="ac-blob b2"></span>
+  <div class="au-shell ac-reveal">
+    <aside class="au-side">
+      <span class="ac-blob b2"></span>
+      <a href="{% url 'pages:accueil' %}" class="au-logo"><b><i class="fas fa-boxes-stacked"></i></b><span>Stock<em>Master</em></span></a>
+      {% block auth_side %}
+      <h2>Reprenez la main sur <span>votre stock</span></h2>
+      <p>Un seul outil pour suivre vos entrepôts, scanner vos mouvements et anticiper les ruptures.</p>
+      <ul class="au-points">
+        <li><i class="fas fa-bell"></i> Alertes avant la rupture</li>
+        <li><i class="fas fa-barcode"></i> Scan des entrées et des sorties</li>
+        <li><i class="fas fa-brain"></i> Prévisions de consommation à 30 jours</li>
+        <li><i class="fas fa-users"></i> Un espace adapté à chaque rôle</li>
+      </ul>
+      {% endblock %}
+    </aside>
+    <div class="au-main">{% block auth_content %}{% endblock %}</div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/auth.js' %}" defer></script>{% block auth_js %}{% endblock %}{% endblock %}

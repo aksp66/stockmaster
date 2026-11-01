@@ -1,227 +1,53 @@
-/* static/css/inscription.css */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-.wrap {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-}
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin-bottom: 2rem;
-}
-.step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex: 1;
-  position: relative;
-}
-.step:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  width: 100%;
-  height: 1px;
-  background: #e5e7eb;
-}
-.step-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 500;
-  z-index: 1;
-  position: relative;
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
-  color: #6b7280;
-}
-.step-dot.done {
-  background: #f97316;
-  border-color: #f97316;
-  color: #fff;
-}
-.step-dot.active {
-  background: #fff;
-  border-color: #f97316;
-  color: #f97316;
-}
-.step-label {
-  font-size: 11px;
-  color: #9ca3af;
-  text-align: center;
-  max-width: 72px;
-}
-.step-label.active {
-  color: #f97316;
-  font-weight: 500;
-}
-.card {
-  background: #ffffff;
-  border: 0.5px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 1.5rem;
-}
-h2 {
-  font-size: 18px;
-  font-weight: 500;
-  color: #111827;
-  margin-bottom: 4px;
-}
-.sub {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 1.5rem;
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 1.5rem;
-}
-.type-card {
-  border: 1.5px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 14px 12px;
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
-}
-.type-card:hover {
-  border-color: #f97316;
-  background: #fff7ed;
-}
-.type-card.selected {
-  border-color: #f97316;
-  background: #fff7ed;
-}
-.type-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-  font-size: 16px;
-}
-.type-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #111827;
-  margin-bottom: 2px;
-}
-.type-desc {
-  font-size: 11px;
-  color: #6b7280;
-  line-height: 1.4;
-}
-.roles-box {
-  background: #f9fafb;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 1.5rem;
-}
-.roles-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: #6b7280;
-  margin-bottom: 8px;
-}
-.role-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #ffffff;
-  border: 0.5px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 3px 10px;
-  font-size: 12px;
-  color: #111827;
-  margin: 3px 3px 3px 0;
-}
-.role-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-.field {
-  margin-bottom: 1rem;
-}
-.field label {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: #6b7280;
-  margin-bottom: 4px;
-}
-.field input,
-.field select,
-.field textarea {
-  width: 100%;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-}
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.btn-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-top: 1rem;
-}
-.btn-primary {
-  background: #f97316;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 9px 24px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.btn-primary:hover {
-  background: #ea580c;
-}
-.btn-secondary {
-  background: transparent;
-  border: 0.5px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 9px 20px;
-  font-size: 14px;
-  color: #6b7280;
-  cursor: pointer;
-}
-.btn-secondary:hover {
-  background: #f9fafb;
-}
-.success-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #f97316;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
-  font-size: 24px;
-  color: #fff;
-}
+/* Assistant d'inscription (4 étapes). Limité à .au-wide : aucune règle globale. */
+.au-wide .wrap { max-width: none; margin: 0; padding: 0; }
+.au-wide .stepper { display: flex; align-items: flex-start; margin-bottom: 30px; }
+.au-wide .step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; position: relative; }
+.au-wide .step:not(:last-child)::after { content: ""; position: absolute; top: 17px; left: 50%; width: 100%; height: 3px; border-radius: 3px; background: #f3f4f6; }
+.au-wide .step:has(.step-dot.done):not(:last-child)::after { background: linear-gradient(90deg, var(--or), var(--or-l)); animation: wz-line .8s cubic-bezier(.4,0,.2,1) both; transform-origin: left; }
+@keyframes wz-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.au-wide .step-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 14px; font-weight: 700;
+  z-index: 1; position: relative; border: 2px solid #e5e7eb; background: #fff; color: #9ca3af; transition: all .3s; }
+.au-wide .step-dot.done { background: var(--or); border-color: var(--or); color: #fff; box-shadow: 0 6px 16px rgba(var(--or-rgb), .35); }
+.au-wide .step-dot.active { border-color: var(--or); color: var(--or); box-shadow: 0 0 0 5px rgba(var(--or-rgb), .15); animation: ac-ping 2.2s infinite; }
+.au-wide .step-label { font-size: 11.5px; color: #9ca3af; text-align: center; font-weight: 600; }
+.au-wide .step-label.active { color: var(--or); }
+
+.au-wide .wrap > .card, .au-wide .wrap .card { background: none; border: none; box-shadow: none; padding: 0; border-radius: 0; animation: au-in .5s cubic-bezier(.2,.8,.2,1) both; opacity: 1; transform: none; }
+.au-wide .wrap h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; color: #111827; letter-spacing: -.02em; margin-bottom: 4px; }
+.au-wide .sub { font-size: 14px; color: #6b7280; margin-bottom: 22px; line-height: 1.6; }
+.au-wide .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+.au-wide .type-card { border: 1.5px solid #e5e7eb; border-radius: 16px; padding: 16px 14px; cursor: pointer; background: #fff; position: relative; overflow: hidden;
+  transition: transform .2s, border-color .2s, box-shadow .2s, background .2s; animation: au-in .5s cubic-bezier(.2,.8,.2,1) both; }
+.au-wide .type-card:nth-child(1) { animation-delay: .05s; } .au-wide .type-card:nth-child(2) { animation-delay: .1s; } .au-wide .type-card:nth-child(3) { animation-delay: .15s; }
+.au-wide .type-card:nth-child(4) { animation-delay: .2s; } .au-wide .type-card:nth-child(5) { animation-delay: .25s; } .au-wide .type-card:nth-child(6) { animation-delay: .3s; }
+.au-wide .type-card:hover { border-color: var(--or-border); transform: translateY(-4px); box-shadow: 0 16px 30px -14px rgba(var(--or-rgb), .35); }
+.au-wide .type-card.selected { border-color: var(--or); background: var(--or-dim); box-shadow: 0 0 0 4px rgba(var(--or-rgb), .13); }
+.au-wide .type-card.selected::after { content: "\f00c"; font-family: "Font Awesome 6 Free", "Font Awesome 5 Free"; font-weight: 900; position: absolute; top: 10px; right: 10px;
+  width: 22px; height: 22px; border-radius: 50%; background: var(--or); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; animation: au-pop .4s cubic-bezier(.3,1.6,.5,1) both; }
+.au-wide .type-icon { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 17px; transition: transform .3s cubic-bezier(.3,1.6,.5,1); }
+.au-wide .type-card:hover .type-icon { transform: rotate(-8deg) scale(1.1); }
+.au-wide .type-name { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+.au-wide .type-desc { font-size: 12px; color: #6b7280; line-height: 1.5; }
+.au-wide .roles-box { background: #fafaf9; border: 1.5px dashed var(--or-border); border-radius: 14px; padding: 14px; margin-bottom: 22px; }
+.au-wide .roles-title { font-size: 12px; font-weight: 700; color: #6b7280; margin-bottom: 8px; }
+.au-wide .role-pill { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e5e7eb; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; color: #374151; margin: 3px 4px 3px 0; animation: au-pop .35s cubic-bezier(.3,1.6,.5,1) both; }
+.au-wide .role-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+.au-wide .field { margin-bottom: 16px; }
+.au-wide .field label { display: block; font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+.au-wide .field input, .au-wide .field select, .au-wide .field textarea { width: 100%; height: 46px; border: 1.5px solid var(--border); border-radius: 12px; padding: 0 14px;
+  font-size: 14px; font-family: var(--font-body); background: #fafaf9; transition: all .2s; }
+.au-wide .field textarea { height: auto; padding: 12px 14px; }
+.au-wide .field input:focus, .au-wide .field select:focus, .au-wide .field textarea:focus { outline: none; background: #fff; border-color: var(--or); box-shadow: 0 0 0 4px rgba(var(--or-rgb), .13); }
+.au-wide .field-error { color: var(--red); font-size: 12px; margin-top: 5px; }
+.au-wide .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.au-wide .btn-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; }
+.au-wide .btn-primary { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--or-l), var(--or) 55%, var(--or-d)); color: #fff; border: none; border-radius: 12px; padding: 12px 26px;
+  font-family: var(--font-display); font-size: 14.5px; font-weight: 600; cursor: pointer; text-decoration: none; transition: transform .15s, box-shadow .2s; box-shadow: 0 8px 20px -8px rgba(var(--or-rgb), .6); }
+.au-wide .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -8px rgba(var(--or-rgb), .6); }
+.au-wide .btn-secondary { display: inline-flex; align-items: center; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 11px 22px; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; text-decoration: none; transition: all .2s; }
+.au-wide .btn-secondary:hover { border-color: var(--or-border); color: var(--or); background: var(--or-dim); }
+.au-wide .success-icon { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, var(--or-l), var(--or-d)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;
+  font-size: 28px; color: #fff; box-shadow: 0 12px 28px rgba(var(--or-rgb), .4); animation: au-pop .7s cubic-bezier(.3,1.6,.5,1) both; }
+@media (max-width: 560px) { .au-wide .grid, .au-wide .row { grid-template-columns: 1fr; } .au-wide .btn-row { flex-direction: column-reverse; align-items: stretch; } .au-wide .btn-row > * { justify-content: center; text-align: center; } }
+@media (prefers-reduced-motion: reduce) { .au-wide .step-dot.active, .au-wide .type-card, .au-wide .wrap .card { animation: none; } }

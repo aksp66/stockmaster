@@ -1,39 +1,33 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Mot de passe oublié
-– StockMaster{% endblock %} {% block content %}
-<div
-  class="max-w-md mx-auto bg-white border border-gray-200 rounded-2xl p-8 shadow-sm"
->
-  <i class="fas fa-key text-orange-500 text-3xl mb-4 block text-center"></i>
-  <h2 class="text-2xl font-bold text-center text-gray-900">
-    Mot de passe oublié ?
-  </h2>
-  <p class="text-center text-gray-500 text-sm mt-2 mb-6">
-    Saisissez votre email, nous vous enverrons un lien de réinitialisation.
-  </p>
-  <form method="post">
-    {% csrf_token %}
-    <div class="mb-4">
-      <label class="block text-sm font-medium text-gray-700"
-        >Email professionnel</label
-      >
-      <input
-        type="email"
-        name="email"
-        class="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-orange-500 focus:border-orange-500"
-        placeholder="nom@entreprise.fr"
-      />
-    </div>
-    <button
-      type="submit"
-      class="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition"
-    >
-      Envoyer le lien
-    </button>
-  </form>
-  <p class="text-center text-xs text-gray-400 mt-6">
-    <a href="{% url 'accounts:connexion' %}" class="text-orange-500"
-      >Retour à la connexion</a
-    >
-  </p>
+{% extends 'auth_base.html' %}
+{% block title %}Mot de passe oublié – StockMaster{% endblock %}
+
+{% block auth_side %}
+<h2>Un oubli, <span>pas un drame</span></h2>
+<p>Saisissez l'adresse email de votre compte : nous vous envoyons un lien pour choisir un nouveau mot de passe.</p>
+<ul class="au-points">
+  <li><i class="fas fa-envelope"></i> Le lien arrive par email</li>
+  <li><i class="fas fa-clock"></i> Il est valable un temps limité</li>
+  <li><i class="fas fa-shield-halved"></i> Votre ancien mot de passe reste actif tant que vous n'en choisissez pas un autre</li>
+</ul>
+{% endblock %}
+
+{% block auth_content %}
+<div class="au-title">
+  <div class="au-ico"><i class="fas fa-key"></i></div>
+  <h1>Mot de passe oublié ?</h1>
+  <p>Saisissez votre email, nous vous enverrons un lien de réinitialisation.</p>
 </div>
+<form method="post" data-attente="Envoi…">
+  {% csrf_token %}
+  <div class="au-field">
+    <label for="id_email">Email professionnel</label>
+    <div class="au-input {% if form.email.errors %}err{% endif %}">
+      <i class="fas fa-envelope lead"></i>
+      <input type="email" id="id_email" name="email" value="{{ form.email.value|default:'' }}" placeholder="nom@entreprise.com" autocomplete="email" required autofocus>
+    </div>
+    {% if form.email.errors %}<div class="au-err"><i class="fas fa-circle-exclamation"></i> {{ form.email.errors.0 }}</div>{% endif %}
+  </div>
+  <button type="submit" class="btn b-or au-submit ac-shine"><i class="fas fa-paper-plane"></i> Envoyer le lien</button>
+</form>
+<p class="au-foot"><a href="{% url 'accounts:connexion' %}"><i class="fas fa-arrow-left"></i> Retour à la connexion</a></p>
 {% endblock %}

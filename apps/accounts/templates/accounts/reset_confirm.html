@@ -1,41 +1,45 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'auth_base.html' %}
+{% block title %}Nouveau mot de passe – StockMaster{% endblock %}
 
-{% block title %}Nouveau mot de passe{% endblock %}
-{% block page_title %}Réinitialisation{% endblock %}
-{% block page_sub %}Définir un nouveau mot de passe{% endblock %}
+{% block auth_side %}
+<h2>Choisissez un mot de passe <span>solide</span></h2>
+<p>Un bon mot de passe est long, unique et difficile à deviner.</p>
+<ul class="au-points">
+  <li><i class="fas fa-ruler"></i> 8 caractères au minimum</li>
+  <li><i class="fas fa-font"></i> Mélangez majuscules, minuscules et chiffres</li>
+  <li><i class="fas fa-ban"></i> Évitez les mots de passe courants ou proches de votre email</li>
+</ul>
+{% endblock %}
 
-{% block content %}
-<div class="max-w-md mx-auto py-8 au a1">
-  <div class="card p-6">
-    <div class="text-center mb-5">
-      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 text-orange-600 mb-3">
-        <i class="fas fa-lock-open text-xl"></i>
-      </div>
-      <h2 class="text-xl font-bold text-gray-800">Nouveau mot de passe</h2>
-      <p class="text-sm text-gray-500 mt-1">Votre mot de passe doit comporter au moins 8 caractères.</p>
-    </div>
-
-    <form method="post">
-      {% csrf_token %}
-      {{ form.non_field_errors }}
-      
-      <div class="mb-4">
-        <label class="block text-sm font-medium mb-1">Nouveau mot de passe</label>
-        <input type="password" name="new_password1" class="fin w-full" required>
-        {{ form.new_password1.errors }}
-      </div>
-      
-      <div class="mb-5">
-        <label class="block text-sm font-medium mb-1">Confirmer le mot de passe</label>
-        <input type="password" name="new_password2" class="fin w-full" required>
-        {{ form.new_password2.errors }}
-      </div>
-
-      <button type="submit" class="btn b-or w-full justify-center py-2.5">
-        <i class="fas fa-check mr-2"></i> Changer mon mot de passe
-      </button>
-    </form>
-  </div>
+{% block auth_content %}
+<div class="au-title">
+  <div class="au-ico"><i class="fas fa-lock-open"></i></div>
+  <h1>Nouveau mot de passe</h1>
+  <p>Votre mot de passe doit comporter au moins 8 caractères.</p>
 </div>
+{% if form.non_field_errors %}<div class="au-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% if validlink == False %}
+<div class="au-alert" role="alert"><i class="fas fa-circle-exclamation"></i> Ce lien n'est plus valable. <a href="{% url 'accounts:restauration' %}" style="color:inherit;font-weight:700;">Demandez-en un nouveau.</a></div>
+{% else %}
+<form method="post" data-attente="Enregistrement…">
+  {% csrf_token %}
+  <div class="au-field">
+    <label for="id_new_password1">Nouveau mot de passe</label>
+    <div class="au-input {% if form.new_password1.errors %}err{% endif %}">
+      <i class="fas fa-lock lead"></i>
+      <input type="password" id="id_new_password1" name="new_password1" autocomplete="new-password" data-strength required autofocus>
+    </div>
+    {% for e in form.new_password1.errors %}<div class="au-err"><i class="fas fa-circle-exclamation"></i> {{ e }}</div>{% endfor %}
+  </div>
+  <div class="au-field">
+    <label for="id_new_password2">Confirmer le mot de passe</label>
+    <div class="au-input {% if form.new_password2.errors %}err{% endif %}">
+      <i class="fas fa-lock lead"></i>
+      <input type="password" id="id_new_password2" name="new_password2" autocomplete="new-password" required>
+    </div>
+    {% for e in form.new_password2.errors %}<div class="au-err"><i class="fas fa-circle-exclamation"></i> {{ e }}</div>{% endfor %}
+  </div>
+  <button type="submit" class="btn b-or au-submit ac-shine"><i class="fas fa-check"></i> Changer mon mot de passe</button>
+</form>
+{% endif %}
 {% endblock %}

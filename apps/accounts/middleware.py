@@ -54,5 +54,6 @@ class InactiviteSessionMiddleware:
                 messages.info(request, "Vous avez été déconnecté après une période d'inactivité.")
                 return redirect('accounts:connexion')
             request.session[self.CLE] = maintenant
-            request.session.set_expiry(0 if fermeture else self.DUREE_MAX_COOKIE)
+            request.session.set_expiry(
+                0 if fermeture and not request.session.get('_se_souvenir') else self.DUREE_MAX_COOKIE)
         return self.get_response(request)

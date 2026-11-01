@@ -1,5 +1,7 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Inscription –
-Compte administrateur{% endblock %} {% block content %}
+{% extends 'auth_base.html' %}
+{% block title %}Inscription – Compte administrateur{% endblock %}
+{% block auth_class %}au-wide{% endblock %}
+{% block auth_content %}
 <div class="wrap">
   <div class="stepper">
     <div class="step">
@@ -78,7 +80,7 @@ Compte administrateur{% endblock %} {% block content %}
       {% endif %}
 
       <div style="font-size: 12px; color: #6b7280; margin-top: -6px; margin-bottom: 1rem;">
-        Application sécurisée — vos données sont chiffrées (TLS + AES-256)
+        Connexion chiffrée (HTTPS) : votre mot de passe est stocké sous forme hachée, jamais en clair.
       </div>
 
       <div class="btn-row">

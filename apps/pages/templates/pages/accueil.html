@@ -4,9 +4,6 @@
 {% block nav_accueil %}active{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/accueil.css' %}">
-<script>document.documentElement.classList.add('ac-js');</script>
-
 <!-- ══════════════════ HERO ══════════════════ -->
 <section class="ac-hero">
   <span class="ac-blob b1"></span><span class="ac-blob b2"></span><span class="ac-blob b3"></span>
@@ -219,4 +216,3 @@
 </section>
 {% endblock %}
 
-{% block extra_js %}<script src="{% static 'js/accueil.js' %}" defer></script>{% endblock %}

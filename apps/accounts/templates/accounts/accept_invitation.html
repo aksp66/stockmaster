@@ -1,36 +1,33 @@
-{% extends 'base.html' %}
-<!-- Pas de sous-titre pour cette page -->
-{% block title %}Activer mon compte{% endblock %}
-<!-- Pas de sous-titre pour cette page -->
-{% block content %}
-<div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-sm border">
-  <h2 class="text-xl font-bold mb-4">Définir votre mot de passe</h2>
-  <p class="mb-4">
-    Bonjour {{ user.first_name }}, veuillez choisir votre mot de passe.
-  </p>
-  <form method="post">
-    {% csrf_token %}
-    <div class="mb-4">
-      <label>Mot de passe</label>
-      <input
-        type="password"
-        name="password1"
-        class="w-full border rounded px-3 py-2"
-        required
-      />
-    </div>
-    <div class="mb-4">
-      <label>Confirmer</label>
-      <input
-        type="password"
-        name="password2"
-        class="w-full border rounded px-3 py-2"
-        required
-      />
-    </div>
-    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded">
-      Activer mon compte
-    </button>
-  </form>
+{% extends 'auth_base.html' %}
+{% block title %}Activer mon compte – StockMaster{% endblock %}
+
+{% block auth_side %}
+<h2>Bienvenue dans <span>l'équipe</span></h2>
+<p>Votre administrateur vous a invité à rejoindre l'espace de gestion de stock de votre entreprise. Il ne reste qu'à choisir votre mot de passe.</p>
+<ul class="au-points">
+  <li><i class="fas fa-user-check"></i> Compte créé par votre administrateur</li>
+  <li><i class="fas fa-key"></i> Vous seul connaissez votre mot de passe</li>
+  <li><i class="fas fa-user-gear"></i> Un espace adapté à votre rôle</li>
+</ul>
+{% endblock %}
+
+{% block auth_content %}
+<div class="au-title">
+  <div class="au-ico"><i class="fas fa-user-plus"></i></div>
+  <h1>Définir votre mot de passe</h1>
+  <p>Bonjour {{ user.first_name }}, choisissez votre mot de passe pour activer votre compte.</p>
 </div>
+<form method="post" data-attente="Activation…">
+  {% csrf_token %}
+  <div class="au-field">
+    <label for="id_password1">Mot de passe</label>
+    <div class="au-input"><i class="fas fa-lock lead"></i><input type="password" id="id_password1" name="password1" autocomplete="new-password" data-strength required autofocus></div>
+    <div class="au-hint">8 caractères minimum.</div>
+  </div>
+  <div class="au-field">
+    <label for="id_password2">Confirmer</label>
+    <div class="au-input"><i class="fas fa-lock lead"></i><input type="password" id="id_password2" name="password2" autocomplete="new-password" required></div>
+  </div>
+  <button type="submit" class="btn b-or au-submit ac-shine"><i class="fas fa-check"></i> Activer mon compte</button>
+</form>
 {% endblock %}

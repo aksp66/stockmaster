@@ -1,5 +1,7 @@
-{% extends 'base.html' %} {% load static %} {% block title %}Confirmation
-d'inscription - StockMaster{% endblock %} {% block content %}
+{% extends 'auth_base.html' %}
+{% block title %}Confirmation d'inscription - StockMaster{% endblock %}
+{% block auth_class %}au-wide{% endblock %}
+{% block auth_content %}
 
 <div class="wrap">
   <div class="stepper">
@@ -61,9 +63,9 @@ d'inscription - StockMaster{% endblock %} {% block content %}
       </div>
       <div style="font-size: 13px; color: #111827; line-height: 2">
         1. Confirmer votre email<br />
-        2. Ajouter vos produits & entrepôts<br />
-        3. Inviter votre équipe par email<br />
-        4. Scanner votre premier article
+        2. Attendre l'activation de votre entreprise par l'équipe StockMaster<br />
+        3. Ajouter vos entrepôts et vos produits<br />
+        4. Inviter votre équipe, puis scanner votre premier article
       </div>
     </div>
     <a
