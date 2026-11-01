@@ -168,8 +168,13 @@ def modifier_utilisateur(request, user_id):
     utilisateur = get_object_or_404(Utilisateur, id=user_id, entreprise=request.user.entreprise)
     if request.method == 'POST':
         ancien_role = utilisateur.role
-        utilisateur.first_name = request.POST.get('first_name')
-        utilisateur.last_name = request.POST.get('last_name')
+        prenom = (request.POST.get('first_name') or '').strip()[:150]
+        nom = (request.POST.get('last_name') or '').strip()[:150]
+        if not prenom or not nom:
+            messages.error(request, "Le prénom et le nom sont obligatoires.")
+            return redirect('admin_entreprise:modifier_utilisateur', user_id=utilisateur.pk)
+        utilisateur.first_name = prenom
+        utilisateur.last_name = nom
         nouveau_role = request.POST.get('role')
         if utilisateur == request.user and nouveau_role != ancien_role:
             messages.error(request, "Vous ne pouvez pas modifier votre propre rôle.")

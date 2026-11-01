@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST, require_GET
 import json, csv
 from apps.core import csv_safe
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from apps.accounts.decorators import role_required
 from apps.stock.models import (
@@ -115,6 +115,70 @@ def produits_liste(request):
     return render(request, 'gestionnaire/produit_list.html', context)
 
 
+def _decimal_saisi(data, champ, erreurs, libelle, defaut=None, obligatoire=False):
+    """Nombre décimal positif ou nul d'un formulaire. Ajoute un message à `erreurs` s'il est invalide."""
+    brut = (data.get(champ) or '').strip().replace(',', '.').replace('\u00a0', '').replace(' ', '')
+    if not brut:
+        if obligatoire:
+            erreurs.append(f"{libelle} : valeur obligatoire.")
+        return defaut
+    try:
+        valeur = Decimal(brut)
+    except InvalidOperation:
+        erreurs.append(f"{libelle} : « {brut} » n'est pas un nombre.")
+        return defaut
+    if not valeur.is_finite() or valeur < 0 or valeur >= 10 ** 12:
+        erreurs.append(f"{libelle} : valeur comprise entre 0 et 999 999 999 999 attendue.")
+        return defaut
+    return valeur
+
+
+def _entier_saisi(data, champ, erreurs, libelle, defaut, minimum, maximum):
+    brut = (data.get(champ) or '').strip()
+    if not brut:
+        return defaut
+    try:
+        valeur = int(brut)
+    except ValueError:
+        erreurs.append(f"{libelle} : « {brut} » n'est pas un nombre entier.")
+        return defaut
+    if not minimum <= valeur <= maximum:
+        erreurs.append(f"{libelle} : valeur comprise entre {minimum} et {maximum} attendue.")
+        return defaut
+    return valeur
+
+
+def _valider_produit(data, ent, produit=None):
+    """Champs d'un formulaire produit : (valeurs prêtes à enregistrer, liste d'erreurs)."""
+    erreurs = []
+    nom = (data.get('nom') or '').strip()
+    if not nom:
+        erreurs.append("Le nom du produit est obligatoire.")
+    elif len(nom) > 200:
+        erreurs.append("Le nom du produit est limité à 200 caractères.")
+    code_barres = (data.get('code_barres') or '').strip()
+    if len(code_barres) > 100:
+        erreurs.append("Le code-barres est limité à 100 caractères.")
+    elif code_barres and Produit.objects.filter(entreprise=ent, code_barres=code_barres).exclude(
+            pk=getattr(produit, 'pk', None)).exists():
+        erreurs.append("Ce code-barres est déjà utilisé par un autre produit.")
+    unite = data.get('unite', 'unite')
+    if unite not in {c for c, _ in Produit._meta.get_field('unite_mesure').choices}:
+        erreurs.append("Unité de mesure inconnue.")
+    valeurs = {
+        'nom': nom,
+        'code_barres': code_barres,
+        'unite_mesure': unite,
+        'seuil_alerte': _decimal_saisi(data, 'seuil_alerte', erreurs, "Seuil d'alerte", Decimal(0)),
+        'prix_unitaire': _decimal_saisi(data, 'prix_unitaire', erreurs, "Prix d'achat", Decimal(0)),
+        'prix_vente': _decimal_saisi(data, 'prix_vente', erreurs, "Prix de vente", None),
+        'description': (data.get('description') or '').strip(),
+        'delai_reappro': _entier_saisi(data, 'delai_reappro', erreurs, "Délai de réapprovisionnement", 7, 0, 365),
+        'qte_min_commande': _entier_saisi(data, 'qte_min_commande', erreurs, "Quantité minimale de commande", 1, 1, 1_000_000),
+    }
+    return valeurs, erreurs
+
+
 @login_required
 @role_required('gestionnaire', 'admin_ent', 'super_admin')
 def produit_form(request, pk=None):
@@ -129,49 +193,36 @@ def produit_form(request, pk=None):
 
     if request.method == 'POST':
         data = request.POST
+        valeurs, erreurs = _valider_produit(data, ent, produit)
+        sku = (data.get('sku') or '').strip()
+        if not produit:
+            if not sku:
+                erreurs.append("La référence (SKU) est obligatoire.")
+            elif len(sku) > 100:
+                erreurs.append("La référence (SKU) est limitée à 100 caractères.")
+            elif Produit.objects.filter(sku=sku, entreprise=ent).exists():
+                erreurs.append("Ce SKU existe déjà.")
+        try:
+            categorie = categories.filter(pk=data.get('categorie') or None).first()
+            fournisseur = fournisseurs.filter(pk=data.get('fournisseur') or None).first()
+        except (ValueError, ValidationError):
+            categorie = fournisseur = None
+            erreurs.append("Catégorie ou fournisseur invalide.")
+        if erreurs:
+            for erreur in erreurs:
+                messages.error(request, erreur)
+            return redirect('gestionnaire:produit_edit', pk=produit.pk) if produit else redirect('gestionnaire:produit_ajouter')
+        valeurs.update(categorie=categorie, fournisseur_principal=fournisseur)
         if produit:
-            # Modification
-            produit.nom = data.get('nom')
-            # SKU non modifiable (readonly)
-            produit.code_barres = data.get('code_barres', '')
-            produit.unite_mesure = data.get('unite', 'unite')
-            produit.seuil_alerte = Decimal(data.get('seuil_alerte', 0))
-            produit.prix_unitaire = Decimal(data.get('prix_unitaire', 0))
-            prix_vente = data.get('prix_vente')
-            produit.prix_vente = Decimal(prix_vente) if prix_vente else None
-            produit.description = data.get('description', '')
-            cat_id = data.get('categorie')
-            produit.categorie = categories.filter(pk=cat_id).first() if cat_id else None
-            fourn_id = data.get('fournisseur')
-            produit.fournisseur_principal = fournisseurs.filter(pk=fourn_id).first() if fourn_id else None
-            # champs supplémentaires
-            produit.delai_reappro = int(data.get('delai_reappro', 7))
-            produit.qte_min_commande = int(data.get('qte_min_commande', 1))
+            # Modification (le SKU n'est pas modifiable)
+            for champ, valeur in valeurs.items():
+                setattr(produit, champ, valeur)
             produit.est_actif = data.get('est_actif') == 'on'
             produit.save()
             messages.success(request, f"Produit « {produit.nom} » mis à jour.")
         else:
             # Création
-            sku = data.get('sku')
-            if Produit.objects.filter(sku=sku, entreprise=ent).exists():
-                messages.error(request, "Ce SKU existe déjà.")
-                return redirect('gestionnaire:produit_ajouter')
-            produit = Produit.objects.create(
-                entreprise=ent,
-                nom=data.get('nom'),
-                sku=sku,
-                code_barres=data.get('code_barres', ''),
-                unite_mesure=data.get('unite', 'unite'),
-                seuil_alerte=Decimal(data.get('seuil_alerte', 0)),
-                prix_unitaire=Decimal(data.get('prix_unitaire', 0)),
-                prix_vente=Decimal(data.get('prix_vente', 0)) if data.get('prix_vente') else None,
-                description=data.get('description', ''),
-                categorie=categories.filter(pk=data.get('categorie') or None).first(),
-                fournisseur_principal=fournisseurs.filter(pk=data.get('fournisseur') or None).first(),
-                delai_reappro=int(data.get('delai_reappro', 7)),
-                qte_min_commande=int(data.get('qte_min_commande', 1)),
-                est_actif=True,
-            )
+            produit = Produit.objects.create(entreprise=ent, sku=sku, est_actif=True, **valeurs)
             # Stock initial
             stock_initial = _prix_saisi(data.get('stock_initial')) or Decimal(0)
             entrepot_id = data.get('entrepot_initial')
@@ -534,12 +585,16 @@ def scan_view(request):
 
 
 @login_required
+@role_required('gestionnaire', 'admin_ent', 'magasinier', 'super_admin')
 @require_POST
 def api_scan(request):
     """API AJAX pour la résolution d'un code-barres."""
     ent  = request.user.entreprise
-    data = json.loads(request.body)
-    code = data.get('code', '').strip()
+    try:
+        data = json.loads(request.body)
+        code = str(data.get('code') or '').strip()
+    except (ValueError, AttributeError):
+        return JsonResponse({'found': False, 'message': 'Requête invalide'}, status=400)
     produit = Produit.objects.filter(
         Q(code_barres=code) | Q(sku=code), entreprise=ent
     ).first()
@@ -603,6 +658,8 @@ def inventaire_creer(request):
             entrepot=entrepot,
             utilisateur_demarrage=request.user,
             note=note,
+            masquer_stock=request.POST.get('masquer_stock') == 'on',
+            ajustement_auto=request.POST.get('ajustement_auto') == 'on',
         )
         # Pré-remplir les lignes avec le stock théorique actuel (éventuellement limité à une catégorie)
         stocks = Stock.objects.filter(entrepot=entrepot).select_related('produit', 'emplacement')
@@ -662,8 +719,8 @@ def inventaire_saisie(request, pk):
         'nb_ecarts': nb_ecarts,
         'progression': progression,
         'pret_validation': pret_validation,
-        'ajustement_auto': True,
-        'masquer_stock': False,
+        'ajustement_auto': session.ajustement_auto,
+        'masquer_stock': session.masquer_stock,
         'nb_alertes_actives': Alerte.objects.filter(produit__entreprise=ent, lue=False).count(),
     }
     return render(request, 'gestionnaire/inventaire_session_detail.html', context)
@@ -683,7 +740,7 @@ def inventaire_valider(request, pk):
                 # Appliquer les écarts
                 for ligne in session.lignes.filter(quantite_comptee__isnull=False):
                     ecart = ligne.ecart()  # utilise la méthode du modèle
-                    if ecart != 0:
+                    if ecart != 0 and session.ajustement_auto:
                         mouv = Mouvement.objects.create(
                             type_mouvement=TypeMouvement.AJUSTEMENT,
                             produit=ligne.produit,
@@ -700,12 +757,17 @@ def inventaire_valider(request, pk):
         except ValidationError as e:
             messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
             return redirect('gestionnaire:inventaire_saisie', pk=pk)
-        for ligne in session.lignes.filter(quantite_comptee__isnull=False).select_related('produit'):
-            if ligne.ecart() != 0:
-                _verifier_seuil(ligne.produit, session.entrepot)
+        if session.ajustement_auto:
+            for ligne in session.lignes.filter(quantite_comptee__isnull=False).select_related('produit'):
+                if ligne.ecart() != 0:
+                    _verifier_seuil(ligne.produit, session.entrepot)
         AuditLog.log(request, TypeAction.VALIDATION_INVENTAIRE,
-                     f"Inventaire validé : {session.entrepot.nom}", objet=session)
-        messages.success(request, "Inventaire validé. Les ajustements ont été appliqués.")
+                     f"Inventaire validé : {session.entrepot.nom}"
+                     + ("" if session.ajustement_auto else " (sans ajustement du stock)"), objet=session)
+        if session.ajustement_auto:
+            messages.success(request, "Inventaire validé. Les ajustements ont été appliqués.")
+        else:
+            messages.success(request, "Inventaire validé. Le stock n'a pas été modifié : les écarts restent consultables.")
         return redirect('gestionnaire:inventaires')
     # Si accès GET, rediriger vers la page de saisie
     return redirect('gestionnaire:inventaire_saisie', pk=pk)
@@ -727,7 +789,7 @@ def inventaire_session_annuler(request, pk):
 @login_required
 @role_required('gestionnaire', 'admin_ent', 'super_admin')
 def alertes_liste(request):
-    from decimal import Decimal
+    from decimal import Decimal, InvalidOperation
     ent = get_entreprise(request)
     statut = request.GET.get('statut', 'actives')
     

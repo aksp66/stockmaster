@@ -141,9 +141,9 @@
           <div style="font-weight:600;font-size:13px;">{{ a.produit.nom }}</div>
           <div class="mono" style="font-size:11px;color:var(--text-m);">{{ a.produit.sku }}</div>
         </td>
-        <td><span class="badge {% if a.type == 'rupture' %}bg-re{% else %}bg-or{% endif %}">{{ a.get_type_display }}</span></td>
-        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ a.date_acquittement|date:"d/m/Y H:i" }}</td>
-        <td style="font-size:13px;">{{ a.acquitte_par.get_full_name|default:"—" }}</td>
+        <td><span class="badge {% if a.type_alerte == 'rupture' %}bg-re{% else %}bg-or{% endif %}">{{ a.get_type_alerte_display }}</span></td>
+        <td class="mono" style="font-size:12px;color:var(--text-m);">{{ a.date_lecture|date:"d/m/Y H:i" }}</td>
+        <td style="font-size:13px;">{{ a.lue_par.get_full_name|default:"—" }}</td>
       </tr>
       {% endfor %}
     </tbody>

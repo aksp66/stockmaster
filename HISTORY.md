@@ -228,3 +228,21 @@ Méthode : contrôles Django (`check --deploy`), recherche de motifs dangereux d
 **Constaté sans défaut** : aucune fuite ni modification entre entreprises sur toutes les URL à identifiant ; aucune réponse 500 sur ces requêtes hostiles ; matrice des accès conforme (les écarts volontaires sont documentés dans le test) ; pas de SQL brut, de `eval`, de désérialisation ni de commande système ; redirection après connexion sûre ; jetons d'invitation et de confirmation à usage unique et à durée limitée ; mots de passe hachés.
 
 **Tests** : 206 (dont `test_securite_generique.py` : matrice des accès et isolation entre entreprises, qui couvrent automatiquement toute nouvelle route).
+
+### Refonte, étape 7 — tests par rôle et par cas de figure
+
+**Robot de parcours intégré aux tests (donc à la CI)** — `tests/test_robustesse.py` :
+- rend toutes les pages de tous les espaces et signale toute variable de gabarit qui échoue alors que l'objet existe (attribut inexistant sur un modèle) ; traverser un `None` reste toléré ;
+- envoie un POST vide à chaque route et à chaque page de détail : aucun ne doit produire d'erreur serveur ;
+- vérifie que l'auditeur (lecture seule) ne modifie aucune donnée, quelle que soit la route ou la méthode (POST, PUT, DELETE).
+Avec `test_securite_generique.py` (matrice des accès, isolation entre entreprises), toute nouvelle route est contrôlée automatiquement.
+
+**Défauts trouvés par ces tests et corrigés**
+- **Page des mouvements du gestionnaire : erreur 500 dès qu'un mouvement n'a pas d'auteur** (mouvements créés par l'API, l'import ou la synchronisation).
+- **Fiche produit (création et modification) sans validation** : formulaire vide → erreur 500 ; nombre mal formé, négatif ou démesuré → erreur 500 ; nom pouvant être effacé. Validation complète : champs obligatoires, longueurs, nombres (virgule décimale acceptée), unité, code-barres déjà utilisé.
+- `api_scan` du gestionnaire : corps JSON vide ou invalide → 500, et aucun contrôle de rôle (comptable et auditeur pouvaient l'appeler).
+- Modification d'un utilisateur par l'admin avec un formulaire vide : erreur 500 (prénom NULL) ; création d'un fournisseur sans nom : 500.
+- **Gabarits qui affichaient des champs inexistants** (valeurs vides sans erreur) : alertes de la fiche produit (type, date, statut) et liste des alertes acquittées (type, date, auteur de l'acquittement).
+- **Champs documentés comme manquants, désormais en base** (migration `stock.0009`) : fournisseur (code, site web, code postal, ville — jamais enregistrée —, délai de paiement, devise, remise habituelle), date d'envoi du bon de commande (« Envoyé le » toujours vide), remise par ligne de commande (conservée), options d'inventaire « masquer le stock théorique » (comptage à l'aveugle) et « ajustement automatique » (sans lui, la validation clôt la session sans toucher au stock).
+
+**Tests** : 227.

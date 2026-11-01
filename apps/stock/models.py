@@ -172,6 +172,15 @@ class Fournisseur(TimestampMixin):
         verbose_name=_("Entreprise")
     )
     notes = models.TextField(blank=True, verbose_name=_("Notes internes"))
+    code = models.CharField(max_length=30, blank=True, verbose_name=_("Code fournisseur"))
+    site_web = models.URLField(blank=True, verbose_name=_("Site web"))
+    code_postal = models.CharField(max_length=20, blank=True, verbose_name=_("Code postal"))
+    ville = models.CharField(max_length=100, blank=True, verbose_name=_("Ville"))
+    delai_paiement = models.PositiveSmallIntegerField(default=30, verbose_name=_("Délai de paiement (jours)"))
+    devise = models.CharField(
+        max_length=3, default='XOF', choices=[('XOF', 'XOF — Franc CFA'), ('EUR', 'EUR — Euro'), ('USD', 'USD — Dollar')],
+        verbose_name=_("Devise"))
+    remise = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name=_("Remise habituelle (%)"))
 
     class Meta:
         verbose_name = _("Fournisseur")
@@ -563,6 +572,8 @@ class BonCommande(TimestampMixin):
         verbose_name=_("Entreprise")
     )
 
+    date_envoi = models.DateTimeField(null=True, blank=True, verbose_name=_("Envoyé le"))
+
     class Meta:
         verbose_name = _("Bon de commande")
         verbose_name_plural = _("Bons de commande")
@@ -634,6 +645,9 @@ class LigneCommande(TimestampMixin):
         verbose_name=_("Prix unitaire HT")
     )
 
+    remise = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name=_("Remise (%)"),
+                                 help_text=_("Information : le prix unitaire enregistré est déjà net de remise."))
+
     class Meta:
         verbose_name = _("Ligne de commande")
         verbose_name_plural = _("Lignes de commande")
@@ -693,6 +707,13 @@ class InventaireSession(TimestampMixin):
         verbose_name=_("Validé par")
     )
     note = models.TextField(blank=True, verbose_name=_("Note"))
+
+    masquer_stock = models.BooleanField(
+        default=False, verbose_name=_("Masquer le stock théorique aux compteurs"),
+        help_text=_("Comptage à l'aveugle : le compteur ne voit pas la quantité attendue."))
+    ajustement_auto = models.BooleanField(
+        default=True, verbose_name=_("Ajustement automatique"),
+        help_text=_("À la validation, des mouvements d'ajustement alignent le stock sur les quantités comptées."))
 
     class Meta:
         verbose_name = _("Session d'inventaire")

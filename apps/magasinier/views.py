@@ -391,6 +391,7 @@ def inventaire_create(request):
             utilisateur_demarrage=request.user,
             statut='en_cours',
             note=request.POST.get('commentaire', '').strip(),
+            masquer_stock=request.POST.get('masquer_stock') == 'on',
         )
         # Pré-remplir les lignes avec le stock théorique actuel (éventuellement limité à une catégorie)
         stocks = Stock.objects.filter(entrepot=entrepot).select_related('produit', 'emplacement')

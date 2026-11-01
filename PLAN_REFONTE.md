@@ -34,7 +34,7 @@ Inventaire des actions du super admin, constat de ce qui est validé (confirmati
 ### 6. Audit de sécurité et revue de code — fait
 `check --deploy`, matrice rôle × URL, isolation entre entreprises, CSRF, injection, téléversements, en-têtes de sécurité, limitation des tentatives de connexion, secrets, dépendances.
 
-### 7. Tests par rôle et par cas de figure
+### 7. Tests par rôle et par cas de figure — fait
 Parcours automatisés pour chaque rôle (accès autorisé / refusé sur chaque route, cas limites des formulaires), robot de parcours des pages intégré à la CI.
 
 ### 8. Clôture

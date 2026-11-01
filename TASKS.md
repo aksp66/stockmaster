@@ -103,10 +103,6 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 ### P2 — Fonctionnalités incomplètes
 - [ ] **Module `apps/ia/views.py` (routes `/ia/…`)** : code hérité, inutilisable en l'état (templates `ia/*.html` absents ; champs et modèles inexistants : `date_prediction`, `consommation_prevue`, `actif`, `MouvementStock`, `LigneBonCommande`). Les écrans IA réellement utilisés sont `admin_entreprise` → IA et `responsable_achat` → Prédictions / Suggestions. Décider : supprimer ces routes ou les réécrire. Les tâches Celery (`apps/ia/tasks.py`) ne sont pas concernées.
 - [ ] Statistiques fournisseurs hebdomadaires (tâche prévue, jamais écrite).
-- [ ] Formulaire fournisseur : champs sans colonne en base (code, description longue, site web, ville, code postal, délai de paiement, remise, devise). Les ajouter au modèle `Fournisseur` (migration) ou les retirer du formulaire.
-- [ ] Remise par ligne de BC : appliquée au prix net à l'enregistrement mais non conservée. Ajouter un champ `remise` à `LigneCommande` si elle doit apparaître sur le PDF.
-- [ ] Options d'inventaire affichées mais non implémentées : « masquer le stock théorique aux compteurs » et « ajustement automatique ».
-- [ ] Bon de commande : « Envoyé le » toujours vide (pas de champ `date_envoi`). L'ajouter, et l'enregistrer lors de l'envoi.
 
 ### P3 — Améliorations
 - [ ] Étendre les tests : API REST (JWT, scan, mouvements hors ligne), exports CSV/PDF, valorisation CUMP/FIFO du comptable, tâches IA.
@@ -117,4 +113,3 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [ ] Journalisation (`LOGGING`) en production vers `logs/`.
 - [ ] Tableau de bord auditeur : icône par type d'action dans le fil d'activité (toujours l'icône par défaut).
 - [ ] Préférences de scan du magasinier (sons, vibration…) : la section est masquée tant qu'aucune n'est implémentée.
-- [ ] Intégrer le robot de parcours des pages (`string_if_invalid` + échecs de résolution) à la CI pour détecter automatiquement tout nouveau décalage template / modèle.

@@ -74,7 +74,7 @@
           </div>
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Ville</label>
-            <input type="text" name="ville" value="" class="fin" placeholder="Paris">
+            <input type="text" name="ville" value="{{ fournisseur.ville|default:'' }}" class="fin" placeholder="Paris">
           </div>
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Pays</label>
@@ -105,9 +105,9 @@
           <div class="fi" style="margin-bottom:0;">
             <label class="fl">Devise</label>
             <select name="devise" class="fin">
+              <option value="XOF" {% if fournisseur.devise == 'XOF' or not fournisseur %}selected{% endif %}>XOF — Franc CFA</option>
               <option value="EUR" {% if fournisseur.devise == 'EUR' %}selected{% endif %}>EUR — Euro</option>
               <option value="USD" {% if fournisseur.devise == 'USD' %}selected{% endif %}>USD — Dollar</option>
-              <option value="XOF" {% if fournisseur.devise == 'XOF' %}selected{% endif %}>XOF — Franc CFA</option>
             </select>
           </div>
           <div class="fi" style="margin-bottom:0;">

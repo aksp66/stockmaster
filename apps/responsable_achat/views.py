@@ -65,19 +65,38 @@ def dashboard(request):
     return render(request, 'responsable_achat/dashboard.html', context)
 
 # ---------- Fournisseurs ----------
+def _entier(valeur, defaut, minimum=0, maximum=3650):
+    try:
+        return min(max(int(valeur), minimum), maximum)
+    except (TypeError, ValueError):
+        return defaut
+
+
+def _remise(valeur):
+    try:
+        remise = Decimal(str(valeur or 0).replace(',', '.'))
+    except InvalidOperation:
+        return Decimal(0)
+    return min(max(remise, Decimal(0)), Decimal(100)) if remise.is_finite() else Decimal(0)
+
+
 def _champs_fournisseur(d):
     """Champs Fournisseur depuis le POST (accepte les noms du formulaire HTML et ceux du modèle)."""
-    try:
-        delai = int(d.get('delai_livraison') or d.get('delai_moyen_jours') or 7)
-    except ValueError:
-        delai = 7
+    delai = _entier(d.get('delai_livraison') or d.get('delai_moyen_jours'), 7)
     return {
+        'code': (d.get('code') or '').strip()[:30],
+        'site_web': (d.get('site_web') or '').strip()[:200],
+        'code_postal': (d.get('code_postal') or '').strip()[:20],
+        'ville': (d.get('ville') or '').strip()[:100],
+        'delai_paiement': _entier(d.get('delai_paiement'), 30),
+        'devise': d.get('devise') if d.get('devise') in ('XOF', 'EUR', 'USD') else 'XOF',
+        'remise': _remise(d.get('remise')),
         'contact': d.get('contact_nom', d.get('contact', '')),
         'email': d.get('email', ''),
         'telephone': d.get('telephone', ''),
         'adresse': d.get('adresse', ''),
         'pays': d.get('pays', ''),
-        'delai_moyen_jours': max(delai, 0),
+        'delai_moyen_jours': delai,
         'notes': d.get('description', d.get('notes', '')),
         'est_actif': d.get('actif', '1') != '0',
     }
@@ -137,9 +156,13 @@ def fournisseur_detail(request, pk):
 def fournisseur_create(request):
     if request.method == 'POST':
         d = request.POST
+        nom = (d.get('nom') or '').strip()[:200]
+        if not nom:
+            messages.error(request, "Le nom du fournisseur est obligatoire.")
+            return render(request, 'responsable_achat/fournisseur_form.html', {'fournisseur': None})
         Fournisseur.objects.create(
             entreprise=_entreprise(request),
-            nom=d['nom'],
+            nom=nom,
             **_champs_fournisseur(d),
         )
         messages.success(request, "Fournisseur créé.")
@@ -153,7 +176,11 @@ def fournisseur_edit(request, pk):
     four = get_object_or_404(Fournisseur, pk=pk, entreprise=ent)
     if request.method == 'POST':
         d = request.POST
-        four.nom = d['nom']
+        nom = (d.get('nom') or '').strip()[:200]
+        if not nom:
+            messages.error(request, "Le nom du fournisseur est obligatoire.")
+            return redirect('responsable_achat:fournisseur_edit', pk=pk)
+        four.nom = nom
         for champ, valeur in _champs_fournisseur(d).items():
             setattr(four, champ, valeur)
         four.save()
@@ -207,8 +234,9 @@ def _lignes_depuis_post(post):
         except InvalidOperation:
             continue
         if l.get('produit') and qte > 0 and prix >= 0:
-            prix_net = (prix * (100 - min(max(remise, Decimal(0)), Decimal(100))) / 100).quantize(Decimal('0.01'))
-            resultat.append((l['produit'], qte, prix_net))
+            remise = min(max(remise, Decimal(0)), Decimal(100)) if remise.is_finite() else Decimal(0)
+            prix_net = (prix * (100 - remise) / 100).quantize(Decimal('0.01'))
+            resultat.append((l['produit'], qte, prix_net, remise.quantize(Decimal('0.01'))))
     return resultat
 
 
@@ -226,11 +254,14 @@ def _ligne_depuis_suggestion(request, ent):
 
 
 def _enregistrer_lignes(bc, post, ent):
-    for pid, qte, prix in _lignes_depuis_post(post):
-        prod = Produit.objects.filter(pk=pid, entreprise=ent).first()
+    for pid, qte, prix, remise in _lignes_depuis_post(post):
+        try:
+            prod = Produit.objects.filter(pk=pid, entreprise=ent).first()
+        except (ValueError, ValidationError):
+            continue
         if prod:
-            LigneCommande.objects.create(bon_commande=bc, produit=prod,
-                                         quantite_commandee=qte, prix_unitaire_ht=prix)
+            LigneCommande.objects.create(bon_commande=bc, produit=prod, quantite_commandee=qte,
+                                         prix_unitaire_ht=prix, remise=remise)
 
 @login_required
 @role_required('responsable_achat', 'admin_ent', 'super_admin')
@@ -370,6 +401,8 @@ def _changer_statut(request, bc, statut):
         return False
     ancien = bc.statut
     bc.statut = statut
+    if statut == 'envoye':
+        bc.date_envoi = timezone.now()
     if statut in ['recu_complet', 'cloture']:
         bc.utilisateur_validation = request.user
         bc.date_livraison_effective = bc.date_livraison_effective or timezone.now().date()
