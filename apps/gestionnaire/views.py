@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST, require_GET
 import json, csv
+from apps.core import csv_safe
 from datetime import timedelta
 from decimal import Decimal
 
@@ -328,6 +329,9 @@ def produit_import(request):
     ent = get_entreprise(request)
     if request.method == 'POST' and request.FILES.get('fichier'):
         import io
+        if request.FILES['fichier'].size > 5 * 1024 * 1024:
+            messages.error(request, "Fichier trop volumineux (5 Mo maximum) : découpez-le en plusieurs fichiers.")
+            return redirect('gestionnaire:produit_import')
         try:
             decoded = request.FILES['fichier'].read().decode('utf-8-sig')
         except UnicodeDecodeError:
@@ -862,7 +866,7 @@ def export_stock_csv(entreprise):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="stock.csv"'
     response.write('\ufeff')  # BOM pour UTF-8
-    writer = csv.writer(response)
+    writer = csv_safe.writer(response)
     writer.writerow(['Produit', 'SKU', 'Entrepôt', 'Emplacement', 'Quantité', 'Unité', 'Valeur (FCFA)'])
     stocks = Stock.objects.filter(entrepot__entreprise=entreprise).select_related('produit', 'entrepot', 'emplacement')
     for s in stocks:
@@ -878,7 +882,7 @@ def export_alertes_csv(entreprise):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="alertes.csv"'
     response.write('\ufeff')
-    writer = csv.writer(response)
+    writer = csv_safe.writer(response)
     writer.writerow(['Date', 'Produit', 'Type', 'Message', 'Priorité'])
     alertes = Alerte.objects.filter(produit__entreprise=entreprise, lue=False).select_related('produit')
     for a in alertes:
@@ -895,7 +899,7 @@ def export_valorisation_csv(entreprise):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="valorisation.csv"'
     response.write('\ufeff')
-    writer = csv.writer(response)
+    writer = csv_safe.writer(response)
     writer.writerow(['Produit', 'SKU', 'Quantité totale', 'Prix unitaire moyen (FCFA)', 'Valeur totale (FCFA)'])
     produits = Produit.objects.filter(entreprise=entreprise, est_actif=True)
     for p in produits:
@@ -968,7 +972,7 @@ def _export_mouvements_csv(ent):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="mouvements.csv"'
     response.write('\ufeff')
-    writer = csv.writer(response)
+    writer = csv_safe.writer(response)
     writer.writerow(['Date','Type','Produit','SKU','Quantité','Source','Destination','Référence','Utilisateur'])
     mouvs = Mouvement.objects.filter(produit__entreprise=ent).select_related(
         'produit','entrepot_source','entrepot_destination','utilisateur').order_by('-date_mouvement')
@@ -989,7 +993,7 @@ def _export_stock_csv(ent):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="stock.csv"'
     response.write('\ufeff')
-    writer = csv.writer(response)
+    writer = csv_safe.writer(response)
     writer.writerow(['Produit','SKU','Entrepôt','Emplacement','Quantité','Unité','Valeur HT'])
     for s in Stock.objects.filter(entrepot__entreprise=ent).select_related('produit','entrepot','emplacement'):
         writer.writerow([

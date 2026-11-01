@@ -32,6 +32,15 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = []
 
+# Inscription : après confirmation de son email, l'entreprise reste en attente tant que le super admin ne l'a pas
+# activée. Mettre ENTREPRISE_VALIDATION_MANUELLE=False dans .env pour l'activer automatiquement à la confirmation.
+ENTREPRISE_VALIDATION_MANUELLE = config('ENTREPRISE_VALIDATION_MANUELLE', default=True, cast=bool)
+
+# Limitation des tentatives de connexion (voir apps/accounts/throttle.py)
+LOGIN_MAX_ESSAIS = 5            # par adresse IP et identifiant
+LOGIN_MAX_ESSAIS_IP = 30        # par adresse IP
+LOGIN_DUREE_BLOCAGE = 15 * 60   # secondes
+
 
 # Application definition
 
@@ -77,16 +86,18 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'apps.accounts.middleware.EntrepriseActiveMiddleware',  # après les sessions, l'authentification et les messages
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 # ── DRF ──────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.api.authentication.EntrepriseJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+        "apps.api.permissions.EntrepriseActive",
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
@@ -150,6 +161,14 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 LOGOUT_REDIRECT_URL = 'pages:accueil'
+
+# En-têtes de sécurité (le HTTPS, HSTS et les cookies « secure » sont activés dans prod.py)
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+X_FRAME_OPTIONS = 'DENY'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 
 # Password validation

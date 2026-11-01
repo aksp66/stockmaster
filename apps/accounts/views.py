@@ -19,8 +19,9 @@ from django.urls import reverse_lazy
 from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmView, PasswordResetDoneView, PasswordResetCompleteView
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.http import HttpResponse
 
-
+from . import throttle
 
 User = get_user_model()
 
@@ -180,10 +181,14 @@ def confirmer_email(request, token):
         user.save()
         # Active aussi l'entreprise si besoin
         entreprise = user.entreprise
-        if entreprise:
+        if entreprise and not settings.ENTREPRISE_VALIDATION_MANUELLE:
             entreprise.est_active = True
             entreprise.save()
         token_obj.delete()
+        if entreprise and not entreprise.est_active:
+            messages.success(request, "Votre adresse email est confirmée. Votre entreprise doit maintenant être "
+                                      "validée par l'équipe StockMaster : vous pourrez vous connecter dès son activation.")
+            return redirect('accounts:connexion')
         messages.success(request, "Votre compte a été activé ! Vous pouvez maintenant vous connecter.")
         # Option : connecter automatiquement l'utilisateur
         # login(request, user)
@@ -201,6 +206,14 @@ def confirmation_inscription(request):
 class ConnexionView(LoginView):
     template_name = 'accounts/connexion.html'
     redirect_authenticated_user = True
+
+    def post(self, request, *args, **kwargs):
+        if throttle.est_bloque(request, request.POST.get('username')):
+            messages.error(request, "Trop de tentatives de connexion. Réessayez dans quelques minutes.")
+            reponse = self.render_to_response(self.get_context_data(form=self.get_form()))
+            reponse.status_code = 429
+            return reponse
+        return super().post(request, *args, **kwargs)
 
     def get_success_url(self):
         user = self.request.user

@@ -4,6 +4,18 @@ ROLES_LECTURE  = ["admin_ent", "gestionnaire", "responsable_achat",
                   "magasinier", "auditeur", "comptable", "super_admin"]
 ROLES_ECRITURE = ["admin_ent", "gestionnaire", "magasinier"]
 
+class EntrepriseActive(BasePermission):
+    """Refuse l'API aux utilisateurs dont l'entreprise est désactivée ou en attente d'activation."""
+    message = "Votre entreprise est désactivée ou en attente d'activation."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated or getattr(user, "role", "") == "super_admin" or not user.entreprise_id:
+            return True
+        from apps.entreprises.models import entreprise_est_active
+        return entreprise_est_active(user.entreprise_id)
+
+
 class IsMagasinier(BasePermission):
     """Permet de créer des mouvements de stock."""
     def has_permission(self, request, view):

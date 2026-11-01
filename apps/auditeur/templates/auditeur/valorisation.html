@@ -1,4 +1,5 @@
 {% extends 'auditeur/base_auditeur.html' %}
+{% load core_ui %}
 {% block title %}Valorisation{% endblock %}
 {% block page_title %}Valorisation du stock{% endblock %}
 {% block page_sub %}Méthodes FIFO / CUMP · {{ user.entreprise.nom }}{% endblock %}
@@ -133,12 +134,12 @@ const palette = ['#f97316','#fb923c','#fdba74','#fde68a','#d97706','#ea580c','#c
 
 new Chart(document.getElementById('chart-cat').getContext('2d'), {
   type:'bar',
-  data:{ labels:{{ labels_cat|safe }}, datasets:[{ data:{{ data_cat|safe }}, backgroundColor:palette, borderRadius:6 }] },
+  data:{ labels:{{ labels_cat|json_js }}, datasets:[{ data:{{ data_cat|json_js }}, backgroundColor:palette, borderRadius:6 }] },
   options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>v.toLocaleString('fr')+'FCFA' } } } }
 });
 new Chart(document.getElementById('chart-pie').getContext('2d'), {
   type:'doughnut',
-  data:{ labels:{{ labels_cat|safe }}, datasets:[{ data:{{ data_cat|safe }}, backgroundColor:palette, borderWidth:2, borderColor:'white' }] },
+  data:{ labels:{{ labels_cat|json_js }}, datasets:[{ data:{{ data_cat|json_js }}, backgroundColor:palette, borderWidth:2, borderColor:'white' }] },
   options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } }, cutout:'65%' }
 });
 </script>

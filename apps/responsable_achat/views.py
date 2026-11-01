@@ -15,6 +15,7 @@ from apps.stock.models import (
 from apps.stock.models import PredictionStock, Categorie, Mouvement, TypeMouvement
 from .models import UserPreferences
 import csv
+from apps.core import csv_safe
 import io
 from xml.sax.saxutils import escape
 from datetime import timedelta, date
@@ -251,7 +252,7 @@ def boncommande_list(request):
     if request.GET.get('export') == 'csv':
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="bons_commande.csv"'
-        writer = csv.writer(response)
+        writer = csv_safe.writer(response)
         writer.writerow(['Numéro', 'Fournisseur', 'Date commande', 'Statut', 'Total HT', 'Livraison prévue'])
         for bc in qs:
             writer.writerow([bc.numero, bc.fournisseur.nom, bc.date_commande, bc.get_statut_display(),
@@ -599,7 +600,7 @@ def exports_view(request):
             qs = qs.filter(statut=statut)
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="bons_commande.csv"'
-        writer = csv.writer(response)
+        writer = csv_safe.writer(response)
         writer.writerow(['Numéro', 'Fournisseur', 'Date commande', 'Statut', 'Total HT', 'Date livraison prévue', 'Entrepôt destination'])
         for bc in qs:
             writer.writerow([bc.numero, bc.fournisseur.nom, bc.date_commande, bc.get_statut_display(), bc.total_ht(), bc.date_livraison_prevue, bc.entrepot_destination.nom if bc.entrepot_destination else ''])
@@ -618,7 +619,7 @@ def exports_view(request):
         qs = Fournisseur.objects.filter(entreprise=ent, est_actif=True)
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="fournisseurs.csv"'
-        writer = csv.writer(response)
+        writer = csv_safe.writer(response)
         writer.writerow(['Nom', 'Contact', 'Email', 'Téléphone', 'Pays', 'Délai moyen (jours)'])
         for f in qs:
             writer.writerow([f.nom, f.contact, f.email, f.telephone, f.pays, f.delai_moyen_jours])
@@ -637,7 +638,7 @@ def exports_view(request):
         predictions = PredictionStock.objects.filter(produit__entreprise=ent).select_related('produit')
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="predictions_ia.csv"'
-        writer = csv.writer(response)
+        writer = csv_safe.writer(response)
         writer.writerow(['Produit', 'SKU', 'Date cible', 'Quantité prévue', 'Borne inf', 'Borne sup', 'Confiance', 'Modèle'])
         for p in predictions:
             writer.writerow([p.produit.nom, p.produit.sku, p.date_cible, p.quantite_prevue, p.borne_inferieure, p.borne_superieure, p.confiance, p.modele_utilise])
@@ -657,7 +658,7 @@ def exports_view(request):
         suggestions = _calculer_suggestions(ent)
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="suggestions_achat.csv"'
-        writer = csv.writer(response)
+        writer = csv_safe.writer(response)
         writer.writerow(['Produit', 'Stock actuel', 'Jours avant rupture', 'Quantité suggérée', 'Urgence'])
         for s in suggestions:
             writer.writerow([s['produit'].nom, s['stock_actuel'], '' if s['jours_rupture'] is None else s['jours_rupture'], s['quantite_suggeree'], 'Urgent' if s['urgent'] else 'À planifier'])

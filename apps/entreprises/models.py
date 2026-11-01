@@ -101,3 +101,22 @@ def cle_theme(entreprise_id):
 @receiver(post_save, sender=ParametresEntreprise)
 def invalider_cache_theme(sender, instance, **kwargs):
     cache.delete(cle_theme(instance.entreprise_id))
+
+
+def cle_entreprise_active(entreprise_id):
+    return f"stockmaster:entreprise-active:{entreprise_id}"
+
+
+def entreprise_est_active(entreprise_id):
+    """État actif d'une entreprise (mis en cache une minute ; invalidé dès qu'elle est enregistrée)."""
+    cle = cle_entreprise_active(entreprise_id)
+    actif = cache.get(cle)
+    if actif is None:
+        actif = bool(Entreprise.objects.filter(pk=entreprise_id, est_active=True).exists())
+        cache.set(cle, actif, 60)
+    return actif
+
+
+@receiver(post_save, sender=Entreprise)
+def invalider_cache_entreprise_active(sender, instance, **kwargs):
+    cache.delete(cle_entreprise_active(instance.pk))

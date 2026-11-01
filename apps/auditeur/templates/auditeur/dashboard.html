@@ -1,4 +1,5 @@
 {% extends 'auditeur/base_auditeur.html' %}
+{% load core_ui %}
 {% block title %}Tableau de bord{% endblock %}
 {% block page_title %}Tableau de bord Audit{% endblock %}
 {% block page_sub %}Contrôle & surveillance · {{ user.entreprise.nom }}{% endblock %}
@@ -141,10 +142,10 @@ const ctx = document.getElementById('chart-valeur').getContext('2d');
 new Chart(ctx, {
   type: 'line',
   data: {
-    labels: {{ labels_valeur|safe }},
+    labels: {{ labels_valeur|json_js }},
     datasets: [{
       label: 'Valeur stock (FCFA)',
-      data: {{ data_valeur|safe }},
+      data: {{ data_valeur|json_js }},
       borderColor: '#f97316',
       backgroundColor: 'rgba(249,115,22,.08)',
       borderWidth: 2.5,

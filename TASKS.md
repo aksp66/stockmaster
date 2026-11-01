@@ -105,7 +105,6 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [ ] Statistiques fournisseurs hebdomadaires (tâche prévue, jamais écrite).
 - [ ] Formulaire fournisseur : champs sans colonne en base (code, description longue, site web, ville, code postal, délai de paiement, remise, devise). Les ajouter au modèle `Fournisseur` (migration) ou les retirer du formulaire.
 - [ ] Remise par ligne de BC : appliquée au prix net à l'enregistrement mais non conservée. Ajouter un champ `remise` à `LigneCommande` si elle doit apparaître sur le PDF.
-- [ ] `boncommande_changer_statut` (`/commandes/<id>/statut/<statut>/`) change l'état sur une requête GET. Le passer en POST ou le supprimer (les nouvelles actions envoyer / clôturer / annuler le remplacent).
 - [ ] Options d'inventaire affichées mais non implémentées : « masquer le stock théorique aux compteurs » et « ajustement automatique ».
 - [ ] Bon de commande : « Envoyé le » toujours vide (pas de champ `date_envoi`). L'ajouter, et l'enregistrer lors de l'envoi.
 

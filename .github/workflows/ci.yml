@@ -48,5 +48,12 @@ jobs:
           ALLOWED_HOSTS: stock.example.com
         run: python manage.py check --deploy --fail-level ERROR
 
+      - name: Audit des dépendances (vulnérabilités connues)
+        # Ne bloque pas la livraison : une nouvelle alerte doit être traitée, pas empêcher un correctif urgent.
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --no-deps --disable-pip
+
       - name: Tests
         run: python manage.py test --settings=config.settings.test --noinput

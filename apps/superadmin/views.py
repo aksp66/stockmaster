@@ -4,6 +4,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.http import HttpResponse
 import csv
+from apps.core import csv_safe
 from datetime import date
 from apps.entreprises.models import Entreprise, TypeEntreprise
 from apps.accounts.models import Utilisateur, RoleUtilisateur
@@ -260,7 +261,7 @@ def logs_audit_view(request):
         reponse = HttpResponse(content_type='text/csv; charset=utf-8')
         reponse['Content-Disposition'] = 'attachment; filename="logs_audit.csv"'
         reponse.write('\ufeff')
-        w = csv.writer(reponse, delimiter=';')
+        w = csv_safe.writer(reponse, delimiter=';')
         w.writerow(['Date', 'Utilisateur', 'Entreprise', 'Action', 'Description', 'Adresse IP'])
         for log in logs[:5000]:
             w.writerow([log.created_at.strftime('%d/%m/%Y %H:%M:%S'), log.utilisateur.email if log.utilisateur else 'Système',

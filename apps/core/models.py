@@ -128,10 +128,8 @@ class AuditLog(models.Model):
 
     @staticmethod
     def _get_ip(request):
-        xff = request.META.get('HTTP_X_FORWARDED_FOR')
-        if xff:
-            return xff.split(',')[0].strip()
-        return request.META.get('REMOTE_ADDR')
+        from apps.accounts.throttle import adresse_ip
+        return adresse_ip(request) or None
 
 
 class Notification(models.Model):

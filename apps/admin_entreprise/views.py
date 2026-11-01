@@ -18,6 +18,7 @@ from django.db import models
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 import csv
+from apps.core import csv_safe
 from apps.stock.models import Entrepot, Categorie, PredictionStock, Alerte, Produit
 from apps.accounts.models import RoleUtilisateur
 from django.utils.crypto import get_random_string
@@ -446,7 +447,7 @@ def export_utilisateurs_csv(request):
     utilisateurs = entreprise.utilisateurs.all()
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="utilisateurs.csv"'
-    writer = csv.writer(response)
+    writer = csv_safe.writer(response)
     writer.writerow(['Nom', 'Email', 'Rôle', 'Actif', 'Date inscription'])
     for u in utilisateurs:
         writer.writerow([u.get_full_name(), u.email, u.get_role_display(), u.is_active, u.date_joined.strftime('%d/%m/%Y')])
@@ -457,7 +458,7 @@ def export_entrepots_csv(request):
     entrepots = Entrepot.objects.filter(entreprise=entreprise)
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="entrepots.csv"'
-    writer = csv.writer(response)
+    writer = csv_safe.writer(response)
     writer.writerow(['Nom', 'Adresse', 'Ville', 'Pays', 'Responsable'])
     for e in entrepots:
         writer.writerow([e.nom, e.adresse, e.ville, e.pays, e.responsable.get_full_name() if e.responsable else ''])
@@ -468,7 +469,7 @@ def export_predictions_csv(request):
     predictions = PredictionStock.objects.filter(produit__entreprise=entreprise).select_related('produit')         .order_by('produit__nom', '-created_at')
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="predictions_ia.csv"'
-    writer = csv.writer(response)
+    writer = csv_safe.writer(response)
     writer.writerow(['Produit', 'Calculée le', 'Date cible', 'Consommation prévue (total)', 'Consommation / jour',
                      'Borne basse (total)', 'Borne haute (total)', 'Confiance (%)', 'Quantité recommandée'])
     for p in predictions:

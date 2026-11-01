@@ -9,7 +9,6 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 import json
 import csv
 import uuid
@@ -536,6 +535,7 @@ def parametres(request):
 
 
 @login_required
+@role_required('magasinier', 'admin_ent', 'gestionnaire', 'super_admin')
 @require_GET
 def produit_search_ajax(request):
     q = request.GET.get('q', '').strip()

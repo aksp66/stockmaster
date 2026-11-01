@@ -1,4 +1,5 @@
 {% extends 'gestionnaire/base_gestionnaire.html' %}
+{% load core_ui %}
 {% load stock_ui %}
 {% block title %}{{ produit.nom }}{% endblock %}
 {% block page_title %}{{ produit.nom }}{% endblock %}
@@ -505,10 +506,10 @@
 <script>
 // ── Graphique évolution du stock ─────────────────────────
 const ctx = document.getElementById('chart-stock').getContext('2d');
-const labels  = {{ labels_stock|safe }};
-const entrees = {{ data_entrees|safe }};
-const sorties = {{ data_sorties|safe }};
-const stock   = {{ data_stock|safe }};
+const labels  = {{ labels_stock|json_js }};
+const entrees = {{ data_entrees|json_js }};
+const sorties = {{ data_sorties|json_js }};
+const stock   = {{ data_stock|json_js }};
 
 new Chart(ctx, {
   type: 'line',

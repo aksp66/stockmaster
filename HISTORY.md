@@ -210,3 +210,21 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
   - l'admin d'entreprise ne peut plus supprimer, désactiver ou rétrograder le dernier admin actif de son entreprise ;
   - le changement de statut d'un bon de commande par l'URL `/commandes/<id>/statut/<statut>/` n'accepte plus que POST (il modifiait l'état sur une simple requête GET).
 - **Tests** : 181.
+
+### Refonte, étape 6 — audit de sécurité et revue de code
+
+Méthode : contrôles Django (`check --deploy`), recherche de motifs dangereux dans le code, audit générique calculé sur **toutes** les routes (matrice rôle × espace, puis chaque URL à identifiant essayée par un utilisateur d'une autre entreprise avec les identifiants réels de l'entreprise A, en GET et en POST, avec comparaison de l'état de la base avant et après), audit des dépendances (`pip-audit`).
+
+**Failles et défauts corrigés**
+- **XSS stockée dans les graphiques** : les tableaux de bord de l'auditeur, du comptable et la fiche produit insèrent des données dans un `<script>` avec `|safe`. Un nom de catégorie contenant `</script>` s'exécutait chez l'auditeur ou l'admin (élévation de privilège entre rôles). Nouveau filtre `json_js` qui échappe `<`, `>`, `&`.
+- **Une entreprise désactivée continuait de travailler** : le contrôle `entreprise_active_required` existait mais n'était utilisé nulle part, si bien que « désactiver une entreprise » n'avait aucun effet, ni sur le web ni par l'API mobile. Nouveau middleware (utilisateur déconnecté avec un message) et authentification JWT qui refusent ses utilisateurs ; connexion API refusée. L'état est mis en cache une minute et invalidé à l'enregistrement de l'entreprise.
+- **Aucune limitation des tentatives de connexion** (force brute) : 5 échecs par adresse IP et identifiant, 30 par adresse, blocage de 15 minutes, même avec le bon mot de passe ; connexion réussie = compteur remis à zéro ; vaut pour le web et l'API. L'adresse IP du journal d'audit ne peut plus être falsifiée par un en-tête `X-Forwarded-For` envoyé par le client.
+- **Inscription** : la confirmation de l'email activait automatiquement l'entreprise, ce qui rendait inutile la validation par le super admin (liste « en attente d'activation »). L'entreprise reste maintenant en attente jusqu'à son activation. Réglable : `ENTREPRISE_VALIDATION_MANUELLE=False` rétablit l'ancien comportement.
+- **Erreur 500 du super admin** : sans entreprise rattachée, tout espace d'entreprise plantait ; il est désormais renvoyé vers son tableau de bord.
+- **Injection de formules dans les exports CSV** : un nom de produit ou de fournisseur commençant par `=`, `+`, `-` ou `@` était exécuté à l'ouverture dans Excel. Les 16 exports passent par `apps/core/csv_safe.py` (les nombres, même négatifs, ne sont pas modifiés).
+- Recherche de produits du magasinier ouverte à tout utilisateur connecté : réservée aux rôles concernés. Import CSV de produits limité à 5 Mo. En-têtes de sécurité ajoutés (Referrer-Policy, Cross-Origin-Opener-Policy, X-Frame-Options, cookies HttpOnly et SameSite). Import inutilisé de `csrf_exempt` retiré.
+- **Dépendances : 98 vulnérabilités connues** dans Django 6.0.4, Pillow 12.2.0, Django REST Framework 3.17.1 et WeasyPrint 68.1. Mises à jour vers Django 6.0.8, Pillow 13.0.0, DRF 3.18.2 et WeasyPrint 70.0 ; plus aucune vulnérabilité connue, tous les tests passent. `pip-audit` ajouté à la CI (sans bloquer la livraison).
+
+**Constaté sans défaut** : aucune fuite ni modification entre entreprises sur toutes les URL à identifiant ; aucune réponse 500 sur ces requêtes hostiles ; matrice des accès conforme (les écarts volontaires sont documentés dans le test) ; pas de SQL brut, de `eval`, de désérialisation ni de commande système ; redirection après connexion sûre ; jetons d'invitation et de confirmation à usage unique et à durée limitée ; mots de passe hachés.
+
+**Tests** : 206 (dont `test_securite_generique.py` : matrice des accès et isolation entre entreprises, qui couvrent automatiquement toute nouvelle route).

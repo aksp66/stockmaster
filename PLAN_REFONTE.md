@@ -31,7 +31,7 @@ Bannière de consentement aux cookies (accepter / refuser / personnaliser, mémo
 ### 5. Actions du super admin et validations — fait
 Inventaire des actions du super admin, constat de ce qui est validé (confirmation, POST, journalisation), puis généralisation aux autres rôles : confirmations pour les actions destructrices, journal d'audit des actions sensibles.
 
-### 6. Audit de sécurité et revue de code
+### 6. Audit de sécurité et revue de code — fait
 `check --deploy`, matrice rôle × URL, isolation entre entreprises, CSRF, injection, téléversements, en-têtes de sécurité, limitation des tentatives de connexion, secrets, dépendances.
 
 ### 7. Tests par rôle et par cas de figure

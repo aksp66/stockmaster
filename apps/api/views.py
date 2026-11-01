@@ -36,13 +36,19 @@ User = get_user_model()
 class LoginView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
-        username = request.data.get("username", "")
+        from apps.accounts import throttle
+        from apps.entreprises.models import entreprise_est_active
+        username = str(request.data.get("username", ""))
         password = request.data.get("password", "")
-        user = authenticate(request, username=username, password=password)
+        if throttle.est_bloque(request._request, username):
+            return Response({"detail": "Trop de tentatives. Réessayez dans quelques minutes."}, status=429)
+        user = authenticate(request._request, username=username, password=password)
         if not user:
             return Response({"detail": "Identifiants incorrects."}, status=401)
         if not user.is_active:
             return Response({"detail": "Compte désactivé."}, status=403)
+        if user.role != "super_admin" and user.entreprise_id and not entreprise_est_active(user.entreprise_id):
+            return Response({"detail": "Votre entreprise est désactivée ou en attente d'activation."}, status=403)
         refresh = RefreshToken.for_user(user)
         return Response({
             "access": str(refresh.access_token),

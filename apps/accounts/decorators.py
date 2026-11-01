@@ -16,6 +16,13 @@ def role_required(*roles):
                 return redirect('accounts:connexion')
             # Super admin a toujours accès ; sinon le rôle doit être explicitement autorisé.
             if request.user.role == 'super_admin' or request.user.role in roles:
+                # Le super admin n'est rattaché à aucune entreprise : un espace d'entreprise n'aurait aucune donnée
+                # à lui montrer (et plusieurs vues échoueraient). Il est renvoyé vers son propre tableau de bord.
+                if (request.user.role == 'super_admin' and request.user.entreprise_id is None
+                        and tuple(roles) != ('super_admin',)):
+                    messages.info(request, "Cet espace appartient à une entreprise : le super administrateur "
+                                           "n'y est rattaché à aucune. Utilisez le tableau de bord de la plateforme.")
+                    return redirect('superadmin:dashboard')
                 return view_func(request, *args, **kwargs)
             messages.error(request, "Vous n'avez pas accès à cette section.")
             return redirect('pages:accueil')
