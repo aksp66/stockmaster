@@ -27,6 +27,11 @@ class TypeAction(models.TextChoices):
     RECEPTION_BC         = 'reception_bc',         _('Réception bon de commande')
     EXPORT               = 'export',               _('Export de données')
     IA_ANALYSE           = 'ia_analyse',           _('Analyse IA déclenchée')
+    SUPPRESSION_PRODUIT  = 'suppression_produit',  _('Archivage produit')
+    ANNULATION_BC        = 'annulation_bc',        _('Annulation bon de commande')
+    CLOTURE_BC           = 'cloture_bc',           _('Clôture bon de commande')
+    SUPPRESSION_FOURN    = 'suppression_fournisseur', _('Suppression fournisseur')
+    PARAMETRES           = 'parametres',           _('Modification des paramètres')
     AUTRE                = 'autre',                _('Autre')
 
 

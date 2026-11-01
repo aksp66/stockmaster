@@ -28,7 +28,7 @@ Passer en revue chaque page des 7 espaces + pages publiques : en-têtes, grilles
 ### 4. Pages publiques et conformité — fait (FAQ et politique existaient ; mentions légales et CGU restent à rédiger avec le service juridique)
 Bannière de consentement aux cookies (accepter / refuser / personnaliser, mémorisé), page FAQ, politique de confidentialité, mentions légales, conditions d'utilisation.
 
-### 5. Actions du super admin et validations
+### 5. Actions du super admin et validations — fait
 Inventaire des actions du super admin, constat de ce qui est validé (confirmation, POST, journalisation), puis généralisation aux autres rôles : confirmations pour les actions destructrices, journal d'audit des actions sensibles.
 
 ### 6. Audit de sécurité et revue de code

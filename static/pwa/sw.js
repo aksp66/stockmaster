@@ -10,7 +10,7 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
-const APP_VERSION    = "stockmaster-v1.2.0";  // à incrémenter après chaque `npm run build` (CSS servi depuis le cache)
+const APP_VERSION    = "stockmaster-v1.3.0";  // à incrémenter après chaque `npm run build` (CSS servi depuis le cache)
 const CACHE_STATIC   = `${APP_VERSION}-static`;
 const CACHE_PAGES    = `${APP_VERSION}-pages`;
 const CACHE_API      = `${APP_VERSION}-api`;
@@ -28,6 +28,7 @@ const STATIC_ASSETS = [
   "/static/pwa/app.js",
   "/static/css/output.css",
   "/static/css/stockmaster.css",
+  "/static/js/stockmaster.js",
   "/static/sounds/beep_ok.mp3",
   "/static/sounds/beep_err.mp3",
 ];

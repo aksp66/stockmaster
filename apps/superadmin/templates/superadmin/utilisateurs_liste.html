@@ -131,7 +131,7 @@
             </button>
             {% endif %}
             {% if u.est_actif %}
-            <form method="post" action="{% url 'superadmin:desactiver_utilisateur' u.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm" title="Désactiver">
+            <form data-confirm="Cet utilisateur ne pourra plus se connecter. Vous pourrez le réactiver à tout moment." data-confirm-title="Désactiver cet utilisateur ?" data-confirm-label="Désactiver" method="post" action="{% url 'superadmin:desactiver_utilisateur' u.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm" title="Désactiver">
               <i class="fas fa-ban"></i>
             </button></form>
             {% else %}

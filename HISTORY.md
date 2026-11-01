@@ -196,3 +196,17 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - **FAQ** réécrite à partir de `apps/pages/faq_data.py` (15 questions en 5 catégories, filtre « Tout voir »). Les anciennes réponses contenaient des affirmations fausses ou invérifiables : prévisions « à 30, 60 et 90 jours » (la tâche IA prévoit 30 jours), « nombre illimité d'entrepôts », « réponse sous 2h ouvrées ». Les nouvelles décrivent ce que l'application fait (14 jours de données minimum pour une prévision, valorisation CUMP / FIFO, six rôles, thèmes, PWA hors ligne, etc.).
 - Reste à rédiger : mentions légales et conditions générales d'utilisation (contenu juridique à fournir), et à confirmer ou retirer « Support 7j/7 » et « Opérationnel en moins de 15 minutes » sur l'accueil.
 - **Tests** : 168.
+
+### Refonte, étape 5 — actions du super admin et validations
+
+**Constat sur le super admin** : ses actions étaient déjà en POST uniquement, avec garde contre l'auto-désactivation. Mais aucune n'était journalisée (la page « Logs d'audit » lisait un modèle que rien n'alimentait, avec des filtres et un export CSV sans effet), il n'y avait aucune confirmation, et il pouvait se rétrograder ou désactiver le dernier super admin.
+
+- **Un seul journal d'audit** : `apps.core.models.AuditLog` (déjà lu par l'espace auditeur). Le modèle en doublon de `superadmin` (vide) est supprimé. Nouveaux types : archivage de produit, annulation et clôture de bon de commande, suppression de fournisseur, modification des paramètres.
+- **Toutes les actions du super admin sont journalisées** avec auteur, adresse IP, état avant / après : activation et désactivation d'entreprise, suppression douce, activation et désactivation d'utilisateur, changement de rôle. La page des logs filtre vraiment (recherche, famille d'action, dates), pagine en gardant les filtres et exporte en CSV.
+- **Garde-fous** : impossible de désactiver ou rétrograder le dernier super admin actif, de modifier son propre rôle, ou de donner un rôle d'entreprise à un compte sans entreprise. Les changements de rôle et la suppression d'entreprise ne se font plus qu'en POST.
+- **Mêmes validations pour les autres rôles** :
+  - confirmation commune (`data-confirm`, fenêtre au style de l'application, `static/js/stockmaster.js`) sur les actions sans confirmation : désactivation d'entreprise ou d'utilisateur, analyse IA, acquittement de toutes les alertes, envoi et clôture d'un bon de commande ; le `confirm()` brut du navigateur est remplacé. Les actions qui avaient déjà un modal (archivage de produit, annulation de commande, validation d'inventaire, fournisseur) le gardent ;
+  - journalisation des invitations, modifications, changements de rôle, désactivations et suppressions d'utilisateurs, des paramètres et du thème, de l'analyse IA, de l'archivage de produits, des transitions de bons de commande, de la suppression de fournisseurs et d'entrepôts ;
+  - l'admin d'entreprise ne peut plus supprimer, désactiver ou rétrograder le dernier admin actif de son entreprise ;
+  - le changement de statut d'un bon de commande par l'URL `/commandes/<id>/statut/<statut>/` n'accepte plus que POST (il modifiait l'état sur une simple requête GET).
+- **Tests** : 181.

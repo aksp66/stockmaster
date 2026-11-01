@@ -23,7 +23,7 @@
     </div>
   </div>
   {% if alertes_actives %}
-  <form method="post" action="{% url 'gestionnaire:alertes_acquitter_toutes' %}">
+  <form data-confirm="Toutes les alertes en cours seront marquées comme traitées." data-confirm-title="Acquitter toutes les alertes ?" data-confirm-label="Tout acquitter" data-confirm-tone="warning" method="post" action="{% url 'gestionnaire:alertes_acquitter_toutes' %}">
     {% csrf_token %}
     <button type="submit" class="btn b-gh"><i class="fas fa-check-double"></i> Tout acquitter</button>
   </form>

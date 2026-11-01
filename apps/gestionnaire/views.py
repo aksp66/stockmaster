@@ -1057,6 +1057,7 @@ def produit_delete(request, pk):
     if request.method == 'POST':
         produit.est_actif = False
         produit.save()
+        AuditLog.log(request, TypeAction.SUPPRESSION_PRODUIT, f"Produit « {produit.nom} » ({produit.sku}) archivé", produit)
         messages.success(request, f"Produit « {produit.nom} » désactivé.")
         return redirect('gestionnaire:produits')
     return redirect('gestionnaire:produits')

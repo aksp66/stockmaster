@@ -109,7 +109,7 @@
               <i class="fas fa-check"></i>
             </button></form>
             {% else %}
-            <form method="post" action="{% url 'superadmin:desactiver_entreprise' e.id %}" style="display:inline;">{% csrf_token %}<button type="submit"
+            <form data-confirm="Les utilisateurs de cette entreprise ne pourront plus travailler tant qu'elle est désactivée. Vous pourrez la réactiver à tout moment." data-confirm-title="Désactiver cette entreprise ?" data-confirm-label="Désactiver" method="post" action="{% url 'superadmin:desactiver_entreprise' e.id %}" style="display:inline;">{% csrf_token %}<button type="submit"
                class="btn btn-danger btn-sm" title="Désactiver">
               <i class="fas fa-ban"></i>
             </button></form>

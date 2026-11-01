@@ -17,13 +17,13 @@
     <a href="{% url 'responsable_achat:boncommande_pdf' bc.pk %}" class="btn b-gh b-sm"><i class="fas fa-file-pdf"></i> PDF</a>
     {% if bc.statut == 'brouillon' %}
     <a href="{% url 'responsable_achat:boncommande_edit' bc.pk %}" class="btn b-gh b-sm"><i class="fas fa-pen"></i> Modifier</a>
-    <form method="post" action="{% url 'responsable_achat:boncommande_envoyer' bc.pk %}" style="display:inline;">
+    <form data-confirm="Le bon de commande passe au statut « Envoyé » et ne pourra plus être modifié." data-confirm-title="Envoyer ce bon de commande ?" data-confirm-label="Envoyer" data-confirm-tone="info" method="post" action="{% url 'responsable_achat:boncommande_envoyer' bc.pk %}" style="display:inline;">
       {% csrf_token %}<button type="submit" class="btn b-or b-sm"><i class="fas fa-paper-plane"></i> Envoyer</button>
     </form>
     {% elif bc.statut == 'envoye' or bc.statut == 'recu_partiel' %}
     <a href="{% url 'responsable_achat:boncommande_reception' bc.pk %}" class="btn b-or"><i class="fas fa-truck-ramp-box"></i> Réceptionner</a>
     {% elif bc.statut == 'recu_complet' %}
-    <form method="post" action="{% url 'responsable_achat:boncommande_cloturer' bc.pk %}" style="display:inline;">
+    <form data-confirm="Une commande clôturée est archivée et n'accepte plus de réception." data-confirm-title="Clôturer ce bon de commande ?" data-confirm-label="Clôturer" data-confirm-tone="warning" method="post" action="{% url 'responsable_achat:boncommande_cloturer' bc.pk %}" style="display:inline;">
       {% csrf_token %}<button type="submit" class="btn b-or b-sm"><i class="fas fa-lock"></i> Clôturer</button>
     </form>
     {% endif %}

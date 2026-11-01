@@ -1052,3 +1052,22 @@ img, video, canvas, svg { max-width: 100%; }
 .ck-panel-foot { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--border); }
 body.ck-open { overflow: hidden; }
 @media (max-width: 560px) { .ck-actions { width: 100%; } .ck-actions .ck-btn { flex: 1 1 auto; } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONFIRMATION D'ACTION (static/js/stockmaster.js, attribut data-confirm)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cf-overlay { position: fixed; inset: 0; z-index: 1400; background: rgba(17, 24, 39, 0.5); display: flex;
+  align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(2px); animation: sm-fade 0.15s both; }
+.cf-overlay[hidden] { display: none; }
+.cf-box { width: 100%; max-width: 420px; background: #fff; border-radius: 18px; padding: 26px 24px 22px; text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3); animation: sm-zoom 0.2s both; }
+.cf-icon { width: 54px; height: 54px; border-radius: 16px; margin: 0 auto 14px; display: flex; align-items: center;
+  justify-content: center; font-size: 22px; }
+.cf-danger .cf-icon { background: var(--red-dim); color: var(--red); }
+.cf-warning .cf-icon { background: var(--yellow-dim); color: var(--yellow); }
+.cf-info .cf-icon { background: var(--or-dim); color: var(--or); }
+.cf-title { font-family: var(--font-display); font-size: 16.5px; font-weight: 700; color: var(--text-p); margin-bottom: 6px; }
+.cf-text { font-size: 13.5px; line-height: 1.65; color: var(--text-m); margin-bottom: 20px; }
+.cf-actions { display: flex; gap: 10px; }
+.cf-actions .btn { flex: 1; justify-content: center; }
+body.cf-open { overflow: hidden; }

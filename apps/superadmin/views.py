@@ -2,11 +2,31 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
+from django.http import HttpResponse
+import csv
+from datetime import date
 from apps.entreprises.models import Entreprise, TypeEntreprise
 from apps.accounts.models import Utilisateur, RoleUtilisateur
 from django.views.decorators.http import require_POST
 from apps.accounts.decorators import superadmin_required
-from .models import AuditLog
+from apps.core.models import AuditLog, TypeAction
+
+
+def _super_admins_actifs():
+    return Utilisateur.objects.filter(role=RoleUtilisateur.SUPER_ADMIN, is_active=True)
+
+
+def _dernier_super_admin(user):
+    """True si cet utilisateur est le seul super admin actif : le désactiver ou le rétrograder verrouillerait la plateforme."""
+    return user.role == RoleUtilisateur.SUPER_ADMIN and user.is_active and not _super_admins_actifs().exclude(pk=user.pk).exists()
+
+
+def _etat_entreprise(e):
+    return {'est_active': e.est_active}
+
+
+def _etat_utilisateur(u):
+    return {'is_active': u.is_active, 'role': u.role}
 
 # ==================== DASHBOARD ====================
 @superadmin_required
@@ -61,8 +81,11 @@ def liste_entreprises(request):
 @require_POST
 def activer_entreprise(request, entreprise_id):
     entreprise = get_object_or_404(Entreprise, id=entreprise_id)
+    avant = _etat_entreprise(entreprise)
     entreprise.est_active = True
     entreprise.save()
+    AuditLog.log(request, TypeAction.ACTIVATION_ENT, f"Entreprise « {entreprise.nom} » activée", entreprise,
+                 avant, _etat_entreprise(entreprise))
     messages.success(request, f"L'entreprise {entreprise.nom} a été activée.")
     return redirect('superadmin:entreprises')
 
@@ -70,8 +93,11 @@ def activer_entreprise(request, entreprise_id):
 @require_POST
 def desactiver_entreprise(request, entreprise_id):
     entreprise = get_object_or_404(Entreprise, id=entreprise_id)
+    avant = _etat_entreprise(entreprise)
     entreprise.est_active = False
     entreprise.save()
+    AuditLog.log(request, TypeAction.DESACTIVATION_ENT, f"Entreprise « {entreprise.nom} » désactivée", entreprise,
+                 avant, _etat_entreprise(entreprise))
     messages.warning(request, f"L'entreprise {entreprise.nom} a été désactivée.")
     return redirect('superadmin:entreprises')
 
@@ -88,13 +114,16 @@ def detail_entreprise(request, entreprise_id):
     return render(request, 'superadmin/entreprise_detail.html', context)
 
 @superadmin_required
+@require_POST
 def supprimer_entreprise_view(request, pk):
+    """« Suppression » douce : l'entreprise est désactivée, ses données sont conservées."""
     entreprise = get_object_or_404(Entreprise, id=pk)
-    if request.method == 'POST':
-        entreprise.est_active = False
-        entreprise.save()
-        messages.warning(request, f"L'entreprise {entreprise.nom} a été désactivée (soft delete).")
-        return redirect('superadmin:entreprises')
+    avant = _etat_entreprise(entreprise)
+    entreprise.est_active = False
+    entreprise.save()
+    AuditLog.log(request, TypeAction.SUPPRESSION_ENT, f"Entreprise « {entreprise.nom} » supprimée (désactivée, données conservées)",
+                 entreprise, avant, _etat_entreprise(entreprise))
+    messages.warning(request, f"L'entreprise {entreprise.nom} a été désactivée (suppression douce : ses données sont conservées).")
     return redirect('superadmin:entreprises')
 
 # ==================== UTILISATEURS ====================
@@ -139,9 +168,11 @@ def liste_utilisateurs(request):
 @require_POST
 def activer_utilisateur(request, user_id):
     user = get_object_or_404(Utilisateur, id=user_id)
+    avant = _etat_utilisateur(user)
     user.is_active = True
     user.est_actif = True
     user.save()
+    AuditLog.log(request, TypeAction.ACTIVATION_USER, f"Utilisateur {user.email} activé", user, avant, _etat_utilisateur(user))
     messages.success(request, f"L'utilisateur {user.email} a été activé.")
     return redirect('superadmin:utilisateurs')
 
@@ -152,29 +183,96 @@ def desactiver_utilisateur(request, user_id):
     if user == request.user:
         messages.error(request, "Vous ne pouvez pas désactiver votre propre compte.")
         return redirect('superadmin:utilisateurs')
+    if _dernier_super_admin(user):
+        messages.error(request, "Impossible : c'est le dernier super administrateur actif.")
+        return redirect('superadmin:utilisateurs')
+    avant = _etat_utilisateur(user)
     user.is_active = False
     user.est_actif = False
     user.save()
+    AuditLog.log(request, TypeAction.DESACTIVATION_USER, f"Utilisateur {user.email} désactivé", user, avant, _etat_utilisateur(user))
     messages.warning(request, f"L'utilisateur {user.email} a été désactivé.")
     return redirect('superadmin:utilisateurs')
 
 @superadmin_required
+@require_POST
 def changer_role_view(request, pk):
     user = get_object_or_404(Utilisateur, id=pk)
-    if request.method == 'POST':
-        new_role = request.POST.get('role')
-        if new_role in dict(RoleUtilisateur.choices):
-            user.role = new_role
-            user.save()
-            messages.success(request, f"Rôle de {user.get_full_name()} mis à jour : {user.get_role_display()}.")
-        else:
-            messages.error(request, "Rôle invalide.")
-        return redirect('superadmin:utilisateurs')
+    new_role = request.POST.get('role')
+    if new_role not in dict(RoleUtilisateur.choices):
+        messages.error(request, "Rôle invalide.")
+    elif user == request.user:
+        messages.error(request, "Vous ne pouvez pas modifier votre propre rôle.")
+    elif _dernier_super_admin(user) and new_role != RoleUtilisateur.SUPER_ADMIN:
+        messages.error(request, "Impossible : c'est le dernier super administrateur actif.")
+    elif new_role != RoleUtilisateur.SUPER_ADMIN and user.entreprise_id is None:
+        messages.error(request, "Cet utilisateur n'est rattaché à aucune entreprise : seul le rôle super administrateur lui convient.")
+    elif new_role != user.role:
+        avant = _etat_utilisateur(user)
+        user.role = new_role
+        user.save()
+        AuditLog.log(request, TypeAction.CHANGEMENT_ROLE,
+                     f"Rôle de {user.email} : {dict(RoleUtilisateur.choices)[avant['role']]} → {user.get_role_display()}",
+                     user, avant, _etat_utilisateur(user))
+        messages.success(request, f"Rôle de {user.get_full_name()} mis à jour : {user.get_role_display()}.")
     return redirect('superadmin:utilisateurs')
 
 # ==================== LOGS ====================
 
+FAMILLES_LOG = [
+    ('activation', 'Activation', 'activation'),
+    ('desactivation', 'Désactivation', 'desactivation'),
+    ('role', 'Changement de rôle', 'changement_role'),
+    ('suppression', 'Suppression', 'suppression'),
+    ('connexion', 'Connexion', 'connexion'),
+]
+
+
+def _famille(type_action):
+    """Famille d'affichage d'un type d'action (icône et couleur du journal)."""
+    if type_action == TypeAction.CHANGEMENT_ROLE:
+        return 'role'
+    for cle in ('desactivation', 'activation', 'suppression', 'connexion'):
+        if type_action.startswith(cle):
+            return cle
+    return 'autre'
+
+
 @superadmin_required
 def logs_audit_view(request):
-    logs = AuditLog.objects.all()
-    return render(request, 'superadmin/logs_audit.html', {'logs': logs})
+    logs = AuditLog.objects.select_related('utilisateur', 'entreprise')
+    q = request.GET.get('q', '').strip()
+    if q:
+        logs = logs.filter(Q(description__icontains=q) | Q(utilisateur__email__icontains=q) | Q(entreprise__nom__icontains=q))
+    famille = request.GET.get('type_action', '')
+    if famille == 'role':
+        logs = logs.filter(type_action=TypeAction.CHANGEMENT_ROLE)
+    elif famille in ('activation', 'desactivation', 'suppression', 'connexion'):
+        logs = logs.filter(type_action__startswith=famille)
+    for champ, op in (('date_debut', 'gte'), ('date_fin', 'lte')):
+        try:
+            jour = date.fromisoformat(request.GET.get(champ, ''))
+        except ValueError:
+            continue
+        logs = logs.filter(**{f'created_at__date__{op}': jour})
+
+    if request.GET.get('export') == 'csv':
+        reponse = HttpResponse(content_type='text/csv; charset=utf-8')
+        reponse['Content-Disposition'] = 'attachment; filename="logs_audit.csv"'
+        reponse.write('\ufeff')
+        w = csv.writer(reponse, delimiter=';')
+        w.writerow(['Date', 'Utilisateur', 'Entreprise', 'Action', 'Description', 'Adresse IP'])
+        for log in logs[:5000]:
+            w.writerow([log.created_at.strftime('%d/%m/%Y %H:%M:%S'), log.utilisateur.email if log.utilisateur else 'Système',
+                        log.entreprise.nom if log.entreprise else '', log.get_type_action_display(), log.description,
+                        log.ip_address or ''])
+        return reponse
+
+    page = Paginator(logs, 50).get_page(request.GET.get('page'))
+    for log in page:
+        log.famille = _famille(log.type_action)
+    filtres = request.GET.copy()
+    filtres.pop('page', None)
+    filtres.pop('export', None)
+    return render(request, 'superadmin/logs_audit.html', {'logs': page, 'page_obj': page, 'familles': FAMILLES_LOG,
+                                                           'qs': filtres.urlencode()})

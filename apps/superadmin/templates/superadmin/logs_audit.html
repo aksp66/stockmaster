@@ -9,7 +9,7 @@
     <h1>Logs d'audit</h1>
     <p class="subtitle">Traçabilité de toutes les actions importantes du système</p>
   </div>
-  <a href="?export=csv" class="btn btn-ghost">
+  <a href="?{% for k, v in request.GET.items %}{% if k != 'export' and k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}export=csv" class="btn btn-ghost">
     <i class="fas fa-download"></i> Exporter CSV
   </a>
 </div>
@@ -45,19 +45,19 @@
     <div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);position:relative;">
       <!-- Icône action -->
       <div style="flex-shrink:0;margin-top:2px;">
-        {% if log.type_action == 'activation' %}
+        {% if log.famille == 'activation' %}
         <div style="width:36px;height:36px;border-radius:8px;background:rgba(34,197,94,0.12);display:flex;align-items:center;justify-content:center;">
           <i class="fas fa-check" style="color:var(--green);font-size:14px;"></i>
         </div>
-        {% elif log.type_action == 'desactivation' %}
+        {% elif log.famille == 'desactivation' %}
         <div style="width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;">
           <i class="fas fa-ban" style="color:var(--red);font-size:14px;"></i>
         </div>
-        {% elif log.type_action == 'role' %}
+        {% elif log.famille == 'role' %}
         <div style="width:36px;height:36px;border-radius:8px;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;">
           <i class="fas fa-user-pen" style="color:var(--blue);font-size:14px;"></i>
         </div>
-        {% elif log.type_action == 'suppression' %}
+        {% elif log.famille == 'suppression' %}
         <div style="width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;">
           <i class="fas fa-trash-can" style="color:var(--red);font-size:14px;"></i>
         </div>
@@ -104,12 +104,12 @@
     </span>
     <div style="display:flex;gap:6px;">
       {% if logs.has_previous %}
-      <a href="?page={{ logs.previous_page_number }}" class="btn btn-ghost btn-sm">
+      <a href="?{{ qs }}&page={{ logs.previous_page_number }}" class="btn btn-ghost btn-sm">
         <i class="fas fa-chevron-left"></i>
       </a>
       {% endif %}
       {% if logs.has_next %}
-      <a href="?page={{ logs.next_page_number }}" class="btn btn-ghost btn-sm">
+      <a href="?{{ qs }}&page={{ logs.next_page_number }}" class="btn btn-ghost btn-sm">
         <i class="fas fa-chevron-right"></i>
       </a>
       {% endif %}

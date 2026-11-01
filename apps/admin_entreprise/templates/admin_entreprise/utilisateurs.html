@@ -200,7 +200,7 @@
             >
               <i class="fas fa-pen"></i>
             </a>
-            <form method="post" action="{% url 'admin_entreprise:desactiver_utilisateur' u.id %}" style="display:inline;">
+            <form data-confirm="Activer ou désactiver cet utilisateur modifie immédiatement son accès à l'application." data-confirm-title="Modifier l'accès de cet utilisateur ?" data-confirm-label="Confirmer" data-confirm-tone="warning" method="post" action="{% url 'admin_entreprise:desactiver_utilisateur' u.id %}" style="display:inline;">
               {% csrf_token %}
               <button
                 type="submit"
@@ -216,7 +216,7 @@
               method="post"
               action="{% url 'admin_entreprise:supprimer_utilisateur' u.id %}"
               style="display: inline"
-              onsubmit="return confirm('Supprimer définitivement {{ u.get_full_name }} ?');"
+              data-confirm="{{ u.get_full_name }} sera supprimé définitivement. Son historique de mouvements est conservé. Pour simplement retirer l'accès, désactivez plutôt le compte." data-confirm-title="Supprimer cet utilisateur ?" data-confirm-label="Supprimer"
             >
               {% csrf_token %}
               <button

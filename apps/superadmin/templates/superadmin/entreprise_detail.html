@@ -31,7 +31,7 @@
       <i class="fas fa-arrow-left"></i> Retour
     </a>
     {% if entreprise.est_active %}
-    <form method="post" action="{% url 'superadmin:desactiver_entreprise' entreprise.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger">
+    <form data-confirm="Les utilisateurs de cette entreprise ne pourront plus travailler tant qu'elle est désactivée. Vous pourrez la réactiver à tout moment." data-confirm-title="Désactiver cette entreprise ?" data-confirm-label="Désactiver" method="post" action="{% url 'superadmin:desactiver_entreprise' entreprise.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger">
       <i class="fas fa-ban"></i> Désactiver
     </button></form>
     {% else %}
@@ -168,7 +168,7 @@
             <i class="fas fa-user-pen"></i> Changer rôle
           </button>
           {% if u.est_actif %}
-          <form method="post" action="{% url 'superadmin:desactiver_utilisateur' u.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm">
+          <form data-confirm="Cet utilisateur ne pourra plus se connecter. Vous pourrez le réactiver à tout moment." data-confirm-title="Désactiver cet utilisateur ?" data-confirm-label="Désactiver" method="post" action="{% url 'superadmin:desactiver_utilisateur' u.id %}" style="display:inline;">{% csrf_token %}<button type="submit" class="btn btn-danger btn-sm">
             <i class="fas fa-ban"></i>
           </button></form>
           {% else %}

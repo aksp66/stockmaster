@@ -25,7 +25,7 @@ from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.db.models import OuterRef, Subquery
-from apps.core.models import ExportLog
+from apps.core.models import AuditLog, ExportLog, TypeAction
 from apps.stock.reappro import calculer_reappro
 
 def _entreprise(request):
@@ -175,6 +175,7 @@ def fournisseur_delete(request, pk):
     if request.method == 'POST':
         four.est_actif = False
         four.save()
+        AuditLog.log(request, TypeAction.SUPPRESSION_FOURN, f"Fournisseur « {four.nom} » désactivé", four)
         messages.success(request, "Fournisseur désactivé.")
         return redirect('responsable_achat:fournisseur_list')
     # La confirmation se fait dans la modale de la fiche fournisseur
@@ -366,17 +367,22 @@ def _changer_statut(request, bc, statut):
     if statut == 'envoye' and not bc.lignes.exists():
         messages.error(request, "Impossible d'envoyer un bon de commande sans ligne.")
         return False
+    ancien = bc.statut
     bc.statut = statut
     if statut in ['recu_complet', 'cloture']:
         bc.utilisateur_validation = request.user
         bc.date_livraison_effective = bc.date_livraison_effective or timezone.now().date()
     bc.save()
+    type_action = {'envoye': TypeAction.VALIDATION_BC, 'cloture': TypeAction.CLOTURE_BC, 'annule': TypeAction.ANNULATION_BC,
+                   'recu_complet': TypeAction.RECEPTION_BC, 'recu_partiel': TypeAction.RECEPTION_BC}.get(statut, TypeAction.AUTRE)
+    AuditLog.log(request, type_action, f"Bon de commande {bc.numero} : {ancien} → {statut}", bc, {'statut': ancien}, {'statut': statut})
     messages.success(request, f"Statut mis à jour : {bc.get_statut_display()}")
     return True
 
 
 @login_required
 @role_required('responsable_achat', 'admin_ent', 'super_admin')
+@require_POST
 def boncommande_changer_statut(request, pk, statut):
     ent = _entreprise(request)
     bc = get_object_or_404(BonCommande, pk=pk, entreprise=ent)

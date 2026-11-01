@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from apps.accounts.models import Utilisateur, RoleUtilisateur
+from apps.core.models import AuditLog, TypeAction
 from apps.entreprises.models import THEMES, Entreprise, ParametresEntreprise
 from decimal import Decimal, InvalidOperation
 from django.db.models import OuterRef, Subquery
@@ -83,6 +84,14 @@ def gestion_utilisateurs(request):
         'roles_disponibles': roles_disponibles,
     })
 
+def _dernier_admin(utilisateur):
+    """True si c'est le seul admin actif de son entreprise : le supprimer, le désactiver ou le rétrograder
+    laisserait l'entreprise sans personne pour la gérer."""
+    return (utilisateur.role == RoleUtilisateur.ADMIN_ENT and utilisateur.is_active
+            and not Utilisateur.objects.filter(entreprise=utilisateur.entreprise, role=RoleUtilisateur.ADMIN_ENT,
+                                               is_active=True).exclude(pk=utilisateur.pk).exists())
+
+
 @role_required('admin_ent', 'super_admin')
 def ajouter_utilisateur(request):
     if request.method == 'POST':
@@ -118,6 +127,7 @@ def ajouter_utilisateur(request):
         # Création d'un token d'invitation
         token_str = get_random_string(64)
         InvitationToken.objects.create(user=user, token=token_str)
+        AuditLog.log(request, TypeAction.CREATION_USER, f"Invitation de {email} au rôle {user.get_role_display()}", user)
         lien = request.build_absolute_uri(reverse('accounts:accept_invitation', args=[token_str]))
         
         sujet = "Invitation à rejoindre StockMaster"
@@ -164,8 +174,17 @@ def modifier_utilisateur(request, user_id):
             messages.error(request, "Vous ne pouvez pas modifier votre propre rôle.")
             nouveau_role = ancien_role
         if nouveau_role in request.user.entreprise.get_roles_disponibles():
+            if nouveau_role != ancien_role and _dernier_admin(utilisateur):
+                messages.error(request, "Impossible : c'est le dernier administrateur actif de l'entreprise.")
+                nouveau_role = ancien_role
             utilisateur.role = nouveau_role
         utilisateur.save()
+        if nouveau_role != ancien_role:
+            AuditLog.log(request, TypeAction.CHANGEMENT_ROLE,
+                         f"Rôle de {utilisateur.email} : {dict(RoleUtilisateur.choices).get(ancien_role)} → "
+                         f"{utilisateur.get_role_display()}", utilisateur, {'role': ancien_role}, {'role': nouveau_role})
+        else:
+            AuditLog.log(request, TypeAction.MODIFICATION_USER, f"Utilisateur {utilisateur.email} modifié", utilisateur)
         messages.success(request, f"Utilisateur {utilisateur.email} modifié.")
         
         # Prévenir l'utilisateur par email si son rôle a changé
@@ -202,6 +221,10 @@ def supprimer_utilisateur(request, user_id):
         messages.error(request, "Vous ne pouvez pas supprimer votre propre compte.")
         return redirect('admin_entreprise:utilisateurs')
     if request.method == 'POST':
+        if _dernier_admin(user):
+            messages.error(request, "Impossible : c'est le dernier administrateur actif de l'entreprise.")
+            return redirect('admin_entreprise:utilisateurs')
+        AuditLog.log(request, TypeAction.SUPPRESSION_USER, f"Utilisateur {user.email} supprimé", user, {'role': user.role}, None)
         user.delete()
         messages.success(request, f"L'utilisateur {user.email} a été supprimé.")
         return redirect('admin_entreprise:utilisateurs')
@@ -217,9 +240,14 @@ def desactiver_utilisateur(request, user_id):
     if utilisateur == request.user:
         messages.error(request, "Vous ne pouvez pas désactiver votre propre compte.")
         return redirect('admin_entreprise:utilisateurs')
+    if _dernier_admin(utilisateur):
+        messages.error(request, "Impossible : c'est le dernier administrateur actif de l'entreprise.")
+        return redirect('admin_entreprise:utilisateurs')
     utilisateur.is_active = not utilisateur.is_active
     utilisateur.est_actif = utilisateur.is_active
     utilisateur.save()
+    AuditLog.log(request, TypeAction.ACTIVATION_USER if utilisateur.is_active else TypeAction.DESACTIVATION_USER,
+                 f"Utilisateur {utilisateur.email} {'activé' if utilisateur.is_active else 'désactivé'}", utilisateur)
     messages.success(request, f"Utilisateur {'activé' if utilisateur.is_active else 'désactivé'}.")
     return redirect('admin_entreprise:utilisateurs')
 
@@ -261,12 +289,16 @@ def parametres(request):
             for _, champ in options:
                 setattr(params, champ, request.POST.get(champ) == 'on')
             params.save()
+            AuditLog.log(request, TypeAction.PARAMETRES, "Préférences de notification modifiées", params)
             messages.success(request, "Préférences de notification enregistrées.")
         elif section == 'apparence':
             code = request.POST.get('theme')
             if code in {c for c, *_ in THEMES}:
+                avant = params.theme
                 params.theme = code
                 params.save()
+                AuditLog.log(request, TypeAction.PARAMETRES, f"Thème de l'entreprise : {avant} → {code}", params,
+                             {'theme': avant}, {'theme': code})
                 messages.success(request, "Thème enregistré : il s'applique à tous les utilisateurs de l'entreprise.")
             else:
                 messages.error(request, "Thème inconnu.")
@@ -281,6 +313,7 @@ def parametres(request):
             else:
                 params.seuil_alerte_defaut, params.jours_alerte_expiration = seuil, jours
                 params.save()
+                AuditLog.log(request, TypeAction.PARAMETRES, f"Seuils par défaut : alerte {seuil}, expiration {jours} jours", params)
                 messages.success(request, "Seuils par défaut enregistrés.")
         return redirect('admin_entreprise:parametres')
     return render(request, 'admin_entreprise/parametres.html', {
@@ -329,6 +362,8 @@ def entrepot_delete(request, pk):
     if request.method == 'POST':
         a_historique = (entrepot.mouvements_entrants.exists() or entrepot.mouvements_sortants.exists()
                         or entrepot.stocks.filter(quantite__gt=0).exists())
+        AuditLog.log(request, TypeAction.AUTRE, f"Entrepôt « {entrepot.nom} » "
+                     f"{'désactivé (historique conservé)' if a_historique else 'supprimé'}", entrepot)
         if a_historique:
             entrepot.est_actif = False
             entrepot.save(update_fields=['est_actif', 'updated_at'])
@@ -389,6 +424,7 @@ def ia_lancer(request):
         return redirect('admin_entreprise:ia_dashboard')
     
     analyser_entreprise_immediate.delay(str(entreprise.id))
+    AuditLog.log(request, TypeAction.IA_ANALYSE, "Analyse IA déclenchée pour tous les produits", entreprise)
     messages.success(request, "Analyse IA déclenchée. Les résultats seront disponibles sous peu.")
     return redirect('admin_entreprise:ia_dashboard')
 

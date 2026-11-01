@@ -90,7 +90,7 @@
             <a href="{% url 'responsable_achat:boncommande_detail' bc.pk %}" class="btn b-gh b-sm"><i class="fas fa-eye"></i></a>
             {% if bc.statut == 'brouillon' %}
             <a href="{% url 'responsable_achat:boncommande_edit' bc.pk %}" class="btn b-gh b-sm"><i class="fas fa-pen"></i></a>
-            <form method="post" action="{% url 'responsable_achat:boncommande_envoyer' bc.pk %}" style="display:inline;">
+            <form data-confirm="Le bon de commande passe au statut « Envoyé » et ne pourra plus être modifié." data-confirm-title="Envoyer ce bon de commande ?" data-confirm-label="Envoyer" data-confirm-tone="info" method="post" action="{% url 'responsable_achat:boncommande_envoyer' bc.pk %}" style="display:inline;">
               {% csrf_token %}<button type="submit" class="btn b-or b-sm"><i class="fas fa-paper-plane"></i></button>
             </form>
             {% elif bc.statut == 'envoye' or bc.statut == 'recu_partiel' %}

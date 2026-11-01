@@ -22,7 +22,7 @@
     </p>
   </div>
   <div style="display:flex;gap:8px;">
-    <form method="post" action="{% url 'admin_entreprise:ia_lancer' %}">
+    <form data-confirm="L'analyse porte sur tous les produits actifs de l'entreprise et peut prendre quelques minutes." data-confirm-title="Lancer l'analyse IA ?" data-confirm-label="Lancer" data-confirm-tone="info" method="post" action="{% url 'admin_entreprise:ia_lancer' %}">
       {% csrf_token %}
       <button type="submit" class="btn btn-success">
         <i class="fas fa-play"></i> Lancer l'analyse
@@ -135,7 +135,7 @@
     <div class="empty-icon"><i class="fas fa-brain"></i></div>
     <h3>Aucune prédiction disponible</h3>
     <p>Lancez une analyse IA pour générer vos premières prédictions.</p>
-    <form method="post" action="{% url 'admin_entreprise:ia_lancer' %}" style="margin-top:14px;">
+    <form data-confirm="L'analyse porte sur tous les produits actifs de l'entreprise et peut prendre quelques minutes." data-confirm-title="Lancer l'analyse IA ?" data-confirm-label="Lancer" data-confirm-tone="info" method="post" action="{% url 'admin_entreprise:ia_lancer' %}" style="margin-top:14px;">
       {% csrf_token %}
       <button type="submit" class="btn btn-success">
         <i class="fas fa-play"></i> Lancer l'analyse maintenant
