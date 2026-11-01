@@ -294,6 +294,7 @@
       <div style="display:flex;gap:16px;">
         <a href="{% url 'pages:politique' %}" style="font-size:12.5px;color:rgba(255,255,255,.35);text-decoration:none;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.35)';">Politique de confidentialité</a>
         <a href="{% url 'pages:contact' %}"   style="font-size:12.5px;color:rgba(255,255,255,.35);text-decoration:none;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.35)';">Mentions légales</a>
+        <a href="#" data-cookies-open style="font-size:12.5px;color:rgba(255,255,255,.35);text-decoration:none;" onmouseover="this.style.color='#fb923c';" onmouseout="this.style.color='rgba(255,255,255,.35)';">Gérer mes cookies</a>
       </div>
     </div>
   </div>
@@ -350,5 +351,6 @@ setTimeout(() => {
 }, 4000);
 </script>
 {% block extra_js %}{% endblock %}
+{% include 'partials/cookies.html' %}
 </body>
 </html>

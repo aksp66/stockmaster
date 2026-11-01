@@ -1005,3 +1005,50 @@ img, video, canvas, svg { max-width: 100%; }
   #content [style*="display:flex"]:not([style*="flex-direction:column"]):not([style*="flex-wrap"]),
   .pc [style*="display:flex"]:not([style*="flex-direction:column"]):not([style*="flex-wrap"]) { flex-wrap: wrap; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONSENTEMENT AUX COOKIES (bannière + fenêtre de choix)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ck-banner { position: fixed; z-index: 1200; left: 16px; right: 16px; bottom: 16px; max-width: 980px; margin: 0 auto;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: #fff;
+  border: 1.5px solid var(--or-border); border-radius: 16px; box-shadow: 0 12px 40px rgba(17, 24, 39, 0.18);
+  transform: translateY(24px); opacity: 0; transition: transform 0.25s ease, opacity 0.25s ease; }
+.ck-banner[hidden], .ck-modal[hidden] { display: none; }
+.ck-banner.ck-visible { transform: none; opacity: 1; }
+.ck-icon { width: 42px; height: 42px; border-radius: 12px; background: var(--or-dim); color: var(--or);
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.ck-body { flex: 1 1 320px; min-width: 0; }
+.ck-title { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; color: var(--text-p); margin-bottom: 3px; }
+.ck-text { font-size: 12.5px; line-height: 1.6; color: var(--text-m); }
+.ck-text a { color: var(--or); font-weight: 600; text-decoration: none; }
+.ck-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ck-btn { font-family: var(--font-display); font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 10px;
+  cursor: pointer; border: 1.5px solid transparent; transition: all 0.15s; }
+.ck-btn-line { background: #fff; color: var(--text-s); border-color: var(--border); }
+.ck-btn-line:hover { border-color: var(--or-border); color: var(--or); background: var(--or-dim); }
+.ck-btn-or { background: var(--or); color: #fff; box-shadow: 0 2px 10px rgba(var(--or-rgb), 0.3); }
+.ck-btn-or:hover { background: var(--or-d); }
+.ck-modal { position: fixed; inset: 0; z-index: 1300; background: rgba(17, 24, 39, 0.5); display: flex;
+  align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(2px); }
+.ck-panel { width: 100%; max-width: 520px; background: #fff; border-radius: 18px; padding: 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3); max-height: calc(100vh - 32px); overflow-y: auto; }
+.ck-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.ck-panel-head h2 { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text-p); }
+.ck-x { background: none; border: none; cursor: pointer; color: var(--text-m); font-size: 16px; padding: 4px 8px; }
+.ck-cat { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 14px 0;
+  border-top: 1px solid var(--border); }
+.ck-cat-name { font-weight: 700; font-size: 13.5px; color: var(--text-p); margin-bottom: 3px; }
+.ck-cat-desc { font-size: 12px; line-height: 1.6; color: var(--text-m); }
+.ck-cat-desc code { font-family: var(--font-mono); font-size: 11px; background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
+.ck-switch { position: relative; width: 44px; height: 25px; flex-shrink: 0; margin-top: 2px; }
+.ck-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+.ck-switch span { position: absolute; inset: 0; background: #d1d5db; border-radius: 25px; transition: background 0.2s; }
+.ck-switch span::after { content: ""; position: absolute; width: 19px; height: 19px; left: 3px; top: 3px; background: #fff;
+  border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); }
+.ck-switch input:checked + span { background: var(--or); }
+.ck-switch input:checked + span::after { transform: translateX(19px); }
+.ck-switch input:focus-visible + span { outline: 2px solid var(--or); outline-offset: 2px; }
+.ck-locked { opacity: 0.6; } .ck-locked input { cursor: not-allowed; }
+.ck-panel-foot { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--border); }
+body.ck-open { overflow: hidden; }
+@media (max-width: 560px) { .ck-actions { width: 100%; } .ck-actions .ck-btn { flex: 1 1 auto; } }

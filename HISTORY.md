@@ -188,3 +188,11 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - **Responsive** : audit automatisé (62 pages sans paramètre de tous les espaces, rendues dans Edge en écran étroit et large, détection de tout élément qui dépasse sans être dans une zone défilante). 29 pages débordaient ; règles communes ajoutées : tableaux défilant horizontalement dans leur carte, grilles à colonnes fixes qui se replient, en-têtes et barres de boutons qui passent à la ligne, fenêtres modales et notifications adaptées au mobile. Résultat : 62 pages sur 62 sans débordement, à 1440 px comme en écran étroit.
 - Colonne SKU et prix des tableaux sans retour à la ligne.
 - **Tests** : 164.
+
+### Refonte, étape 4 — cookies, FAQ, confidentialité
+
+- **Bannière de consentement aux cookies** sur toutes les pages publiques : Tout refuser / Personnaliser / Tout accepter (même poids visuel pour refuser et accepter), fenêtre de choix par catégorie, choix mémorisé 180 jours dans le cookie `sm_consent`, lien « Gérer mes cookies » dans le pied de page et dans la politique. Seuls les cookies nécessaires (session, CSRF, choix) sont déposés aujourd'hui ; la catégorie « mesure d'audience et supervision » est désactivée par défaut et exposée aux scripts futurs par `window.StockMasterConsent.has('mesure')` — tout outil de supervision ajouté plus tard devra la tester. Fichiers : `static/js/cookies.js`, `templates/partials/cookies.html`.
+- **Politique de confidentialité** : la section cookies décrit le cookie de choix et le bandeau.
+- **FAQ** réécrite à partir de `apps/pages/faq_data.py` (15 questions en 5 catégories, filtre « Tout voir »). Les anciennes réponses contenaient des affirmations fausses ou invérifiables : prévisions « à 30, 60 et 90 jours » (la tâche IA prévoit 30 jours), « nombre illimité d'entrepôts », « réponse sous 2h ouvrées ». Les nouvelles décrivent ce que l'application fait (14 jours de données minimum pour une prévision, valorisation CUMP / FIFO, six rôles, thèmes, PWA hors ligne, etc.).
+- Reste à rédiger : mentions légales et conditions générales d'utilisation (contenu juridique à fournir), et à confirmer ou retirer « Support 7j/7 » et « Opérationnel en moins de 15 minutes » sur l'accueil.
+- **Tests** : 168.

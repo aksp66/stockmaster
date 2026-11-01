@@ -1,0 +1,48 @@
+{% load static %}
+{# Bannière et fenêtre de consentement aux cookies (voir static/js/cookies.js) #}
+<div id="ck-banner" class="ck-banner" role="dialog" aria-labelledby="ck-titre" aria-describedby="ck-texte" hidden>
+  <div class="ck-icon"><i class="fas fa-cookie-bite"></i></div>
+  <div class="ck-body">
+    <div id="ck-titre" class="ck-title">Vos cookies, votre choix</div>
+    <p id="ck-texte" class="ck-text">
+      StockMaster n'utilise que des cookies nécessaires à son fonctionnement (connexion, sécurité). Vous pouvez
+      autoriser ou refuser les cookies de mesure et de supervision, aujourd'hui inactifs, qui pourraient être
+      ajoutés pour améliorer le service.
+      <a href="{% url 'pages:politique' %}#s8">En savoir plus</a>
+    </p>
+  </div>
+  <div class="ck-actions">
+    <button type="button" id="ck-refuse" class="ck-btn ck-btn-line">Tout refuser</button>
+    <button type="button" id="ck-custom" class="ck-btn ck-btn-line">Personnaliser</button>
+    <button type="button" id="ck-accept" class="ck-btn ck-btn-or">Tout accepter</button>
+  </div>
+</div>
+
+<div id="ck-modal" class="ck-modal" role="dialog" aria-modal="true" aria-labelledby="ck-modal-titre" hidden>
+  <div class="ck-panel">
+    <div class="ck-panel-head">
+      <h2 id="ck-modal-titre">Gérer mes cookies</h2>
+      <button type="button" id="ck-close" class="ck-x" aria-label="Fermer"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="ck-cat">
+      <div>
+        <div class="ck-cat-name">Cookies nécessaires</div>
+        <div class="ck-cat-desc">Session de connexion (<code>sessionid</code>), protection contre les attaques CSRF
+          (<code>csrftoken</code>) et mémorisation de ce choix (<code>sm_consent</code>). Indispensables, toujours actifs.</div>
+      </div>
+      <label class="ck-switch ck-locked" title="Toujours actifs"><input type="checkbox" checked disabled><span></span></label>
+    </div>
+    <div class="ck-cat">
+      <div>
+        <div class="ck-cat-name">Mesure d'audience et supervision</div>
+        <div class="ck-cat-desc">Statistiques de fréquentation et suivi technique du service. Aucun outil de ce type
+          n'est actif aujourd'hui ; si l'un d'eux est ajouté, il respectera ce choix.</div>
+      </div>
+      <label class="ck-switch"><input type="checkbox" id="ck-mesure"><span></span></label>
+    </div>
+    <div class="ck-panel-foot">
+      <button type="button" id="ck-save" class="ck-btn ck-btn-or">Enregistrer mon choix</button>
+    </div>
+  </div>
+</div>
+<script src="{% static 'js/cookies.js' %}" defer></script>

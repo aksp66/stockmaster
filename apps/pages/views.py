@@ -103,5 +103,9 @@ def soumettre_avis(request):
 class FAQView(TemplateView):
     template_name = 'pages/faq.html'
 
+    def get_context_data(self, **kwargs):
+        from .faq_data import CATEGORIES, faqs
+        return super().get_context_data(faq_categories=CATEGORIES, faqs=faqs(), **kwargs)
+
 class PolitiqueView(TemplateView):
     template_name = 'pages/politique.html'

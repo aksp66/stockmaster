@@ -25,7 +25,7 @@ Un commit par étape ; push à la fin. Cases cochées au fur et à mesure.
 ### 3. Pages : alignement et cohérence — fait
 Passer en revue chaque page des 7 espaces + pages publiques : en-têtes, grilles, tableaux, formulaires alignés en flexbox/grid, responsive mobile.
 
-### 4. Pages publiques et conformité
+### 4. Pages publiques et conformité — fait (FAQ et politique existaient ; mentions légales et CGU restent à rédiger avec le service juridique)
 Bannière de consentement aux cookies (accepter / refuser / personnaliser, mémorisé), page FAQ, politique de confidentialité, mentions légales, conditions d'utilisation.
 
 ### 5. Actions du super admin et validations

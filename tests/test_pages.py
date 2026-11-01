@@ -97,3 +97,30 @@ class BalisesAffichageTests(EntrepriseTestCase):
         html = self.client.get(reverse('gestionnaire:produits')).content.decode()
         self.assertIn('class="cat cat-', html)
         self.assertIn('st st-faible', html)  # 10 en stock pour un seuil de 5
+
+
+class PagesPubliquesTests(EntrepriseTestCase):
+
+    def test_banniere_de_cookies_sur_les_pages_publiques(self):
+        for nom in ('pages:accueil', 'pages:faq', 'pages:politique', 'pages:contact', 'pages:entreprises'):
+            html = self.client.get(reverse(nom)).content.decode()
+            self.assertIn('id="ck-banner"', html, nom)
+            self.assertIn('js/cookies.js', html, nom)
+            self.assertIn('data-cookies-open', html, nom)  # lien « Gérer mes cookies » du pied de page
+
+    def test_politique_decrit_le_cookie_de_consentement(self):
+        html = self.client.get(reverse('pages:politique')).content.decode()
+        self.assertIn('sm_consent', html)
+        self.assertIn('id="s8"', html)
+
+    def test_faq_alimentee_par_les_donnees_et_sans_promesse_inventee(self):
+        from apps.pages.faq_data import QUESTIONS
+        response = self.client.get(reverse('pages:faq'))
+        html = response.content.decode()
+        self.assertEqual(html.count('class="faq-item"'), len(QUESTIONS))
+        self.assertEqual(len(response.context['faq_categories']), 5)
+        for faux in ('30, 60 et 90', '2h ouvrées', 'illimité'):
+            self.assertNotIn(faux, html)
+
+    def test_theme_orange_pour_les_visiteurs(self):
+        self.assertNotIn('data-theme="ocean"', self.client.get(reverse('pages:accueil')).content.decode())
