@@ -158,3 +158,9 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - **Création de mouvements par l'API** (`/mouvements/` et `/mouvements/rapide/`) réservée à l'admin entreprise, au gestionnaire et au magasinier ; comptable, auditeur et responsable achat gardent la consultation (403 en écriture). Nouvelle permission `LectureOuSaisieMouvements`.
 - **API des alertes** : le marquage comme lue (`PATCH /alertes/<id>/`) et le détail répondaient 404, car le queryset était découpé (`[:100]`) avant la recherche de l'élément ; même défaut sur le détail d'un mouvement (`[:200]`). Les listes restent limitées par la pagination. La création, le remplacement et la suppression d'alertes ne sont plus exposés : n'importe quel utilisateur pouvait créer une alerte, y compris sur le produit d'une autre entreprise.
 - **Tests** : 152.
+
+## 01/11/2026 (suite) — Refonte : étape 0, API produits
+
+- Plan de la refonte dans `PLAN_REFONTE.md` (design commun, thèmes par entreprise, conformité, audit, tests par rôle).
+- **API produits** : écriture réservée à l'admin entreprise et au gestionnaire (le magasinier pouvait modifier et supprimer) ; suppression remplacée par l'archivage (le produit garde son historique) ; l'entreprise est renseignée à la création (qui échouait) ; référence ou code-barres en double refusés proprement (erreur 500 auparavant) ; catégorie et fournisseur limités à l'entreprise.
+- **Tests** : 157.

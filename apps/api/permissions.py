@@ -26,10 +26,10 @@ class LectureOuSaisieMouvements(BasePermission):
         return getattr(request.user, "role", "") in roles
 
 class ReadOnlyOrGestionnaire(BasePermission):
-    """Lecture : tous les rôles authentifiés ; écriture : gestionnaire et admin."""
+    """Lecture : tous les rôles authentifiés ; écriture : gestionnaire et admin entreprise uniquement."""
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
         if request.method in SAFE_METHODS:
             return getattr(request.user, "role", "") in ROLES_LECTURE
-        return getattr(request.user, "role", "") in ROLES_ECRITURE
+        return getattr(request.user, "role", "") in ("admin_ent", "gestionnaire")

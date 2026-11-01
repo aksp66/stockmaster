@@ -111,7 +111,6 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 
 ### P3 — Améliorations
 - [ ] Étendre les tests : API REST (JWT, scan, mouvements hors ligne), exports CSV/PDF, valorisation CUMP/FIFO du comptable, tâches IA.
-- [ ] API produits (`/api/v1/produits/`) : le magasinier peut modifier et supprimer des produits (permission `ReadOnlyOrGestionnaire`, qui inclut le magasinier malgré son nom), la suppression est définitive et la création échoue (entreprise non renseignée). Réserver l'écriture à l'admin entreprise et au gestionnaire, désactiver la suppression, renseigner l'entreprise.
 - [ ] Mesurer la précision réelle de l'IA en comparant les prédictions conservées (90 jours) aux ventes constatées, au lieu de l'estimation actuelle fondée sur la variabilité de l'historique.
 - [ ] Performance : `_calculer_suggestions` exécute plusieurs requêtes par produit (appelée sur le tableau de bord achats) ; à optimiser ou mettre en cache si le catalogue dépasse quelques centaines de produits.
 - [ ] Interface de modération des avis dans l'espace super admin (aujourd'hui : admin Django).

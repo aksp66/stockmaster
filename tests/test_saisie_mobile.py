@@ -216,3 +216,42 @@ class AlertesApiTests(EntrepriseTestCase):
         self.assertEqual(self.client.delete(self.url, **self.auth).status_code, 405)
         self.assertEqual(Alerte.objects.count(), 1)
         self.assertEqual(self.client.get('/api/v1/alertes/compteur/', **self.auth).json(), {'non_lues': 1})
+
+
+class ProduitsApiTests(EntrepriseTestCase):
+
+    def _req(self, methode, role, url='/api/v1/produits/', donnees=None):
+        auth = {'HTTP_AUTHORIZATION': f"Bearer {RefreshToken.for_user(self.users[role]).access_token}"}
+        if methode == 'get':
+            return self.client.get(url, **auth)
+        return getattr(self.client, methode)(url, json.dumps(donnees or {}), content_type='application/json', **auth)
+
+    def test_creation_par_le_gestionnaire(self):
+        from apps.stock.models import Produit
+        rep = self._req('post', 'gestionnaire', donnees={'nom': 'Sucre', 'sku': 'SUC-1', 'prix_unitaire': '300',
+                                                         'unite_mesure': 'kg'})
+        self.assertEqual(rep.status_code, 201, rep.content)
+        self.assertEqual(Produit.objects.get(sku='SUC-1').entreprise, self.ent)  # plantait : entreprise absente
+
+    def test_sku_en_double_refuse_sans_erreur_serveur(self):
+        rep = self._req('post', 'gestionnaire', donnees={'nom': 'Autre', 'sku': self.produit.sku, 'prix_unitaire': '1'})
+        self.assertEqual(rep.status_code, 400)
+
+    def test_ecriture_refusee_aux_autres_roles(self):
+        url = f'/api/v1/produits/{self.produit.pk}/'
+        for role in ('magasinier', 'comptable', 'auditeur', 'responsable_achat'):
+            self.assertEqual(self._req('patch', role, url, {'nom': 'X'}).status_code, 403, role)
+            self.assertEqual(self._req('delete', role, url).status_code, 403, role)
+            self.assertEqual(self._req('get', role, url).status_code, 200, role)
+
+    def test_suppression_archive_le_produit(self):
+        from apps.stock.models import Produit
+        rep = self._req('delete', 'admin_ent', f'/api/v1/produits/{self.produit.pk}/')
+        self.assertEqual(rep.status_code, 204)
+        self.assertFalse(Produit.objects.get(pk=self.produit.pk).est_actif)  # conservé avec son historique
+
+    def test_categorie_d_une_autre_entreprise_refusee(self):
+        from apps.stock.models import Categorie
+        cat = Categorie.objects.create(nom='Étrangère', entreprise=creer_entreprise('B'))
+        rep = self._req('patch', 'gestionnaire', f'/api/v1/produits/{self.produit.pk}/', {'categorie': str(cat.pk)})
+        self.assertEqual(rep.status_code, 400)

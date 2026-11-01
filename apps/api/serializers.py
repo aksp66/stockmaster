@@ -56,6 +56,30 @@ class ProduitDetailSerializer(ProduitListSerializer):
             "description", "prix_unitaire", "prix_vente", "code_barres",
             "fournisseur_principal", "created_at", "updated_at",
         ]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Catégorie et fournisseur limités à l'entreprise de l'utilisateur
+        request = self.context.get("request")
+        entreprise = getattr(getattr(request, "user", None), "entreprise", None)
+        if entreprise is not None:
+            from apps.stock.models import Categorie, Fournisseur
+            self.fields["categorie"].queryset = Categorie.objects.filter(entreprise=entreprise)
+            self.fields["fournisseur_principal"].queryset = Fournisseur.objects.filter(entreprise=entreprise)
+
+    def validate(self, data):
+        """SKU et code-barres uniques par entreprise (sinon erreur 500 à l'enregistrement)."""
+        request = self.context.get("request")
+        entreprise = getattr(getattr(request, "user", None), "entreprise", None)
+        autres = Produit.objects.filter(entreprise=entreprise)
+        if self.instance:
+            autres = autres.exclude(pk=self.instance.pk)
+        if data.get("sku") and autres.filter(sku=data["sku"]).exists():
+            raise serializers.ValidationError({"sku": "Cette référence existe déjà."})
+        if data.get("code_barres") and autres.filter(code_barres=data["code_barres"]).exists():
+            raise serializers.ValidationError({"code_barres": "Ce code-barres existe déjà."})
+        return data
 
 class ProduitScanSerializer(serializers.ModelSerializer):
     class Meta:

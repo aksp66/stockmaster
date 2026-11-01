@@ -109,6 +109,14 @@ class DashboardMobileView(APIView):
 
 class ProduitViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, ReadOnlyOrGestionnaire]
+
+    def perform_create(self, serializer):
+        serializer.save(entreprise=self.request.user.entreprise)
+
+    def perform_destroy(self, instance):
+        """Archivage au lieu de suppression : le produit garde son historique de mouvements."""
+        instance.est_actif = False
+        instance.save(update_fields=["est_actif", "updated_at"])
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["nom", "sku", "code_barres"]
     ordering_fields = ["nom", "prix_unitaire"]
