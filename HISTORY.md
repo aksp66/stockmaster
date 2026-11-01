@@ -164,3 +164,13 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - Plan de la refonte dans `PLAN_REFONTE.md` (design commun, thèmes par entreprise, conformité, audit, tests par rôle).
 - **API produits** : écriture réservée à l'admin entreprise et au gestionnaire (le magasinier pouvait modifier et supprimer) ; suppression remplacée par l'archivage (le produit garde son historique) ; l'entreprise est renseignée à la création (qui échouait) ; référence ou code-barres en double refusés proprement (erreur 500 auparavant) ; catégorie et fournisseur limités à l'entreprise.
 - **Tests** : 157.
+
+### Refonte, étape 1 — système de design commun
+
+- Nouvelle feuille `static/css/stockmaster.css` (jetons de couleur, polices, composants, gabarit, animations, utilitaires flexbox / grid, statuts de stock et catégories, sélecteur de thème). Elle reprend le CSS du gabarit gestionnaire, le plus complet, et remplace les copies que contenaient les 8 gabarits de base : environ 1 550 lignes de CSS dupliqué en moins.
+- **Une seule identité visuelle pour tous les rôles** : blanc et orange, barre latérale sombre, mêmes cartes, boutons, tableaux et formulaires. Le super admin, auparavant en thème sombre, passe au thème clair ; ses jetons sont des alias des jetons communs. Les autres espaces ne se distinguent plus que par leur navigation et le badge du rôle.
+- **Polices** : Poppins pour les titres et boutons, Tahoma pour le texte (repli Segoe UI / Verdana), Fira Code pour les chiffres. Plus de Plus Jakarta Sans.
+- **Thèmes** : toutes les couleurs de marque passent par des variables (`--or`, `--or-rgb`…). Cinq thèmes alternatifs sont déjà définis (`data-theme` = ocean, foret, violet, rubis, ardoise) ; leur sélection par entreprise vient à l'étape 2.
+- **Palette des produits** : mêmes couleurs pour les statuts de stock (`st-ok`, `st-faible`, `st-critique`, `st-rupture`) et huit couleurs de catégories (`cat-0`…`cat-7`).
+- Mouvement réduit respecté (`prefers-reduced-motion`), styles d'impression, cache hors ligne de la PWA mis à jour (v1.2.0).
+- Vérifié par captures d'écran de chaque espace (Edge) ; 157 tests.

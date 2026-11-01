@@ -190,14 +190,14 @@
       <div>
         <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Prénom <span style="color:#dc2626;">*</span></label>
         <input type="text" name="prenom" value="{{ user.first_name }}" required
-               style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;background:#f9fafb;"
+               style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;background:#f9fafb;"
                onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
                onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
       </div>
       <div>
         <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Nom <span style="color:#dc2626;">*</span></label>
         <input type="text" name="nom" value="{{ user.last_name }}" required
-               style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;background:#f9fafb;"
+               style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;background:#f9fafb;"
                onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
                onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
       </div>
@@ -206,7 +206,7 @@
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Poste / Fonction <span style="color:#dc2626;">*</span></label>
       <input type="text" name="poste" value="{{ form_data.poste|default:'' }}" required placeholder="Ex: Responsable logistique"
-             style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;"
+             style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;"
              onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
              onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
     </div>
@@ -228,7 +228,7 @@
       <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Votre avis <span style="color:#dc2626;">*</span></label>
       <textarea name="commentaire" required rows="4" minlength="50" maxlength="500"
                 placeholder="Décrivez votre expérience avec StockMaster (50 caractères minimum)…"
-                style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;resize:vertical;min-height:110px;"
+                style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;resize:vertical;min-height:110px;"
                 onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
                 onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';"
                 oninput="document.getElementById('char-count').textContent=this.value.length">{{ form_data.commentaire|default:'' }}</textarea>

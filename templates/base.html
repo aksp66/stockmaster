@@ -7,101 +7,63 @@
   <meta name="description" content="StockMaster – Solution de gestion de stock intelligente avec prédictions IA, scan code-barres et tableaux de bord temps réel.">
   <title>StockMaster – {% block title %}Gestion de stock intelligente{% endblock %}</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="{% static 'css/inscription.css' %}">
 
+  <link rel="stylesheet" href="{% static 'css/stockmaster.css' %}" />
   <style>
-    :root {
-      --or:     #f97316;
-      --or-d:   #ea580c;
-      --or-dim: #fff7ed;
-      --gray-light: #f9fafb;
-    }
-    * { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .mono { font-family: 'Fira Code', monospace; }
-
-    /* ── Layout sticky footer ── */
+    .mono { font-family: var(--font-mono); }
     body { display:flex; flex-direction:column; min-height:100vh; background:#ffffff; color:#1f2937; }
     main { flex:1; }
-
-    /* ── Dégradé orange ── */
     .or-grad { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
-
-    /* ── Hover carte ── */
     .card-hover { transition: transform .2s ease, box-shadow .2s ease; }
     .card-hover:hover { transform:translateY(-4px); box-shadow:0 20px 40px -12px rgba(0,0,0,.1); }
-
-    /* ── Navigation ── */
-    #navbar {
-      position:sticky; top:0; z-index:50;
+    #navbar { position:sticky; top:0; z-index:50;
       background:rgba(255,255,255,.92);
       backdrop-filter:blur(12px);
       border-bottom:1px solid #f3f4f6;
       box-shadow:0 1px 8px rgba(0,0,0,.05);
-      transition:box-shadow .2s;
-    }
-    .nav-link {
-      font-size:14px; font-weight:500; color:#6b7280;
+      transition:box-shadow .2s; }
+    .nav-link { font-size:14px; font-weight:500; color:#6b7280;
       text-decoration:none; transition:color .15s;
-      padding:4px 2px; border-bottom:2px solid transparent;
-    }
+      padding:4px 2px; border-bottom:2px solid transparent; }
     .nav-link:hover { color:var(--or); border-color:var(--or); }
     .nav-link.active { color:var(--or); border-color:var(--or); font-weight:600; }
-
-    /* ── Boutons principaux ── */
-    .btn-or {
-      display:inline-flex; align-items:center; gap:8px;
+    .btn-or { display:inline-flex; align-items:center; gap:8px;
       background:var(--or); color:white;
       padding:10px 22px; border-radius:10px;
       font-size:14px; font-weight:600;
       text-decoration:none; border:none; cursor:pointer;
-      box-shadow:0 2px 12px rgba(249,115,22,.35);
-      transition:background .15s, transform .1s, box-shadow .15s;
-    }
-    .btn-or:hover { background:var(--or-d); box-shadow:0 4px 18px rgba(249,115,22,.45); transform:translateY(-1px); }
+      box-shadow:0 2px 12px rgba(var(--or-rgb),.35);
+      transition:background .15s, transform .1s, box-shadow .15s; }
+    .btn-or:hover { background:var(--or-d); box-shadow:0 4px 18px rgba(var(--or-rgb),.45); transform:translateY(-1px); }
     .btn-or:active { transform:translateY(0); }
-    .btn-ghost {
-      display:inline-flex; align-items:center; gap:8px;
+    .btn-ghost { display:inline-flex; align-items:center; gap:8px;
       background:white; color:#374151;
       padding:10px 22px; border-radius:10px;
       font-size:14px; font-weight:600;
       text-decoration:none; border:1.5px solid #e5e7eb; cursor:pointer;
-      transition:background .15s, border-color .15s;
-    }
+      transition:background .15s, border-color .15s; }
     .btn-ghost:hover { background:#fff7ed; border-color:#fed7aa; color:var(--or); }
-
-    /* ── FAQ accordéon ── */
     .faq-item { border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
-    .faq-trigger { cursor:pointer; width:100%; background:none; border:none; text-align:left; padding:18px 20px; font-family:'Plus Jakarta Sans',sans-serif; }
+    .faq-trigger { cursor:pointer; width:100%; background:none; border:none; text-align:left; padding:18px 20px; font-family: var(--font-body); }
     .faq-body { display:none; padding:0 20px 18px; }
     .faq-item.open .faq-body { display:block; }
     .faq-item.open .faq-chevron { transform:rotate(180deg); }
     .faq-chevron { transition:transform .25s; }
-
-    /* ── Toast messages ── */
     .msg-success { background:#ecfdf5; border-left:4px solid #059669; color:#065f46; }
-    .msg-error   { background:#fef2f2; border-left:4px solid #dc2626; color:#991b1b; }
+    .msg-error { background:#fef2f2; border-left:4px solid #dc2626; color:#991b1b; }
     .msg-warning { background:#fffbeb; border-left:4px solid #d97706; color:#92400e; }
-    .msg-info    { background:#eff6ff; border-left:4px solid #2563eb; color:#1e40af; }
-
-    /* ── WhatsApp flottant ── */
-    .wa-float {
-      position:fixed; bottom:26px; right:26px;
+    .msg-info { background:#eff6ff; border-left:4px solid #2563eb; color:#1e40af; }
+    .wa-float { position:fixed; bottom:26px; right:26px;
       width:56px; height:56px; border-radius:50%;
       background:#25d366; display:flex; align-items:center; justify-content:center;
       box-shadow:0 4px 16px rgba(0,0,0,.18);
       transition:transform .2s, background .15s;
-      z-index:999; text-decoration:none;
-    }
+      z-index:999; text-decoration:none; }
     .wa-float:hover { transform:scale(1.08); background:#20b859; }
     .wa-float svg { width:28px; height:28px; fill:white; }
-
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width:5px; }
-    ::-webkit-scrollbar-thumb { background:#fed7aa; border-radius:3px; }
-
-    /* ── Animations ── */
     @keyframes fadeUp { from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);} }
     .fade-up { animation:fadeUp .5s ease forwards; }
     .delay-1 { animation-delay:.1s; opacity:0; }
@@ -287,9 +249,9 @@
           Solution de gestion de stock intelligente avec IA prédictive, scan code-barres et tableaux de bord en temps réel.
         </p>
         <div class="flex gap-3 mt-5">
-          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(249,115,22,.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-twitter text-sm"></i></a>
-          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(249,115,22,.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-linkedin text-sm"></i></a>
-          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(249,115,22,.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-github text-sm"></i></a>
+          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(var(--or-rgb),.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-twitter text-sm"></i></a>
+          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(var(--or-rgb),.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-linkedin text-sm"></i></a>
+          <a href="#" style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .15s;" onmouseover="this.style.background='rgba(var(--or-rgb),.25)';this.style.color='#fb923c';" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.color='rgba(255,255,255,.6)';"><i class="fab fa-github text-sm"></i></a>
         </div>
       </div>
 

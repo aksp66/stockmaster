@@ -9,10 +9,10 @@ Un commit par étape ; push à la fin. Cases cochées au fur et à mesure.
 
 ## Étapes
 
-### 0. API produits (reliquat)
+### 0. API produits (reliquat) — fait
 Écriture réservée à l'admin entreprise et au gestionnaire, suppression désactivée (archivage), entreprise renseignée à la création.
 
-### 1. Système de design commun
+### 1. Système de design commun — fait
 - `static/css/stockmaster.css` : jetons (couleurs, ombres, rayons, espacements, typographie), composants (cartes, boutons, formulaires, tableaux, badges, onglets, modales, alertes), grilles flexbox/grid, animations (CSS pur, inspirées d'Animate.css / AOS, sans dépendance externe pour rester utilisables hors ligne dans la PWA).
 - Polices Poppins + Tahoma, variante `prefers-reduced-motion` respectée.
 - Un seul fichier de base partagé par tous les rôles ; chaque rôle ne garde que sa navigation. Couleurs identiques pour tous les rôles (le rôle se distingue par son badge, pas par sa couleur).

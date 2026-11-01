@@ -21,12 +21,12 @@
   <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px;">
     {% for cat in faq_categories %}
     <button onclick="filtrerFAQ('{{ cat.slug }}')" data-cat="{{ cat.slug }}"
-            style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:white;color:#6b7280;transition:all .15s;font-family:'Plus Jakarta Sans',sans-serif;"
+            style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:white;color:#6b7280;transition:all .15s;font-family:var(--font-body);"
             class="faq-cat-btn">
       <i class="{{ cat.icon }}" style="margin-right:5px;"></i>{{ cat.nom }}
     </button>
     {% empty %}
-    <button onclick="filtrerFAQ('all')" style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid #f97316;background:#fff7ed;color:#ea580c;font-family:'Plus Jakarta Sans',sans-serif;">Tout voir</button>
+    <button onclick="filtrerFAQ('all')" style="padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid #f97316;background:#fff7ed;color:#ea580c;font-family:var(--font-body);">Tout voir</button>
     {% endfor %}
   </div>
 
@@ -35,7 +35,7 @@
 
     {% for q in faqs %}
     <div class="faq-item" data-cat="{{ q.categorie }}">
-      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:var(--font-body);">
         <div style="display:flex;align-items:center;gap:12px;">
           {% if q.icone %}<div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="{{ q.icone }}" style="color:#f97316;font-size:13px;"></i></div>{% endif %}
           <span style="font-size:15px;font-weight:700;color:#111827;">{{ q.question }}</span>
@@ -51,7 +51,7 @@
     {% empty %}
     {# ── FAQ statique de secours ── #}
     <div class="faq-item">
-      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:var(--font-body);">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-brain" style="color:#f97316;font-size:13px;"></i></div>
           <span style="font-size:15px;font-weight:700;color:#111827;">Comment fonctionne la prédiction IA ?</span>
@@ -62,7 +62,7 @@
     </div>
 
     <div class="faq-item">
-      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:var(--font-body);">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-file-csv" style="color:#f97316;font-size:13px;"></i></div>
           <span style="font-size:15px;font-weight:700;color:#111827;">Est-il possible d'importer des produits en masse ?</span>
@@ -73,7 +73,7 @@
     </div>
 
     <div class="faq-item">
-      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:var(--font-body);">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-users" style="color:#f97316;font-size:13px;"></i></div>
           <span style="font-size:15px;font-weight:700;color:#111827;">Quels rôles sont disponibles dans la plateforme ?</span>
@@ -84,7 +84,7 @@
     </div>
 
     <div class="faq-item">
-      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:var(--font-body);">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-mobile-alt" style="color:#f97316;font-size:13px;"></i></div>
           <span style="font-size:15px;font-weight:700;color:#111827;">Y a-t-il une application mobile ?</span>
@@ -95,7 +95,7 @@
     </div>
 
     <div class="faq-item">
-      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:var(--font-body);">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-calculator" style="color:#f97316;font-size:13px;"></i></div>
           <span style="font-size:15px;font-weight:700;color:#111827;">Quelles méthodes de valorisation sont supportées ?</span>
@@ -106,7 +106,7 @@
     </div>
 
     <div class="faq-item">
-      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:var(--font-body);">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-shield-halved" style="color:#f97316;font-size:13px;"></i></div>
           <span style="font-size:15px;font-weight:700;color:#111827;">Nos données sont-elles sécurisées ?</span>
@@ -117,7 +117,7 @@
     </div>
 
     <div class="faq-item">
-      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      <button class="faq-trigger" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 22px;background:none;border:none;text-align:left;cursor:pointer;font-family:var(--font-body);">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:32px;height:32px;background:#fff7ed;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-warehouse" style="color:#f97316;font-size:13px;"></i></div>
           <span style="font-size:15px;font-weight:700;color:#111827;">Peut-on gérer plusieurs entrepôts ?</span>

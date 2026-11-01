@@ -43,7 +43,7 @@
             <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Prénom <span style="color:#dc2626;">*</span></label>
             <input type="text" name="prenom" value="{{ form_data.prenom|default:'' }}"
                    required placeholder="Jean"
-                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
+                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
                    onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
                    onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
           </div>
@@ -51,7 +51,7 @@
             <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Nom <span style="color:#dc2626;">*</span></label>
             <input type="text" name="nom" value="{{ form_data.nom|default:'' }}"
                    required placeholder="Dupont"
-                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
+                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
                    onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
                    onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
           </div>
@@ -61,7 +61,7 @@
           <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Email professionnel <span style="color:#dc2626;">*</span></label>
           <input type="email" name="email" value="{{ form_data.email|default:'' }}"
                  required placeholder="jean@entreprise.com"
-                 style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
+                 style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
                  onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
                  onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
         </div>
@@ -71,14 +71,14 @@
             <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Entreprise</label>
             <input type="text" name="entreprise" value="{{ form_data.entreprise|default:'' }}"
                    placeholder="Nom de votre société"
-                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
+                   style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;transition:border-color .15s,box-shadow .15s;"
                    onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
                    onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
           </div>
           <div>
             <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Sujet</label>
             <select name="sujet"
-                    style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;transition:border-color .15s;background:white;"
+                    style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;transition:border-color .15s;background:white;"
                     onfocus="this.style.borderColor='#f97316';" onblur="this.style.borderColor='#e5e7eb';">
               <option value="">— Sélectionner —</option>
               <option value="demo" {% if form_data.sujet == 'demo' %}selected{% endif %}>Demande de démo</option>
@@ -94,7 +94,7 @@
           <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Message <span style="color:#dc2626;">*</span></label>
           <textarea name="message" required rows="5"
                     placeholder="Décrivez votre besoin ou votre question…"
-                    style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:#374151;outline:none;resize:vertical;min-height:120px;transition:border-color .15s,box-shadow .15s;"
+                    style="width:100%;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:var(--font-body);color:#374151;outline:none;resize:vertical;min-height:120px;transition:border-color .15s,box-shadow .15s;"
                     onfocus="this.style.borderColor='#f97316';this.style.boxShadow='0 0 0 3px rgba(249,115,22,.1)';"
                     onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">{{ form_data.message|default:'' }}</textarea>
         </div>
