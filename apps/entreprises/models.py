@@ -79,6 +79,13 @@ class ParametresEntreprise(models.Model):
     theme = models.CharField(
         max_length=20, choices=[(code, nom) for code, nom, *_ in THEMES], default=THEME_PAR_DEFAUT,
         verbose_name="Thème de couleurs")
+    # Sécurité des sessions (web) : valables pour tous les utilisateurs de l'entreprise
+    session_inactivite_minutes = models.PositiveSmallIntegerField(
+        default=120, verbose_name="Déconnexion après inactivité (minutes)",
+        help_text="Un utilisateur sans activité pendant ce délai est déconnecté.")
+    session_fermeture_navigateur = models.BooleanField(
+        default=True, verbose_name="Déconnexion à la fermeture du navigateur",
+        help_text="Sinon, la session survit à la fermeture du navigateur jusqu'à l'inactivité.")
     modifie_le = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -98,9 +105,33 @@ def cle_theme(entreprise_id):
     return f"stockmaster:theme:{entreprise_id}"
 
 
+SESSION_MIN, SESSION_MAX = 15, 1440  # minutes : 15 min à 24 h
+
+
+def cle_session(entreprise_id):
+    return f"stockmaster:session:{entreprise_id}"
+
+
+def reglages_session(entreprise_id):
+    """(minutes d'inactivité, fermeture du navigateur) de l'entreprise ; valeurs par défaut sans entreprise."""
+    from django.conf import settings
+    defaut = (max(settings.SESSION_COOKIE_AGE // 60, SESSION_MIN), True)
+    if not entreprise_id:
+        return defaut
+    cle = cle_session(entreprise_id)
+    valeurs = cache.get(cle)
+    if valeurs is None:
+        ligne = (ParametresEntreprise.objects.filter(entreprise_id=entreprise_id)
+                 .values_list('session_inactivite_minutes', 'session_fermeture_navigateur').first())
+        valeurs = (min(max(ligne[0], SESSION_MIN), SESSION_MAX), ligne[1]) if ligne else defaut
+        cache.set(cle, valeurs, 300)
+    return valeurs
+
+
 @receiver(post_save, sender=ParametresEntreprise)
 def invalider_cache_theme(sender, instance, **kwargs):
     cache.delete(cle_theme(instance.entreprise_id))
+    cache.delete(cle_session(instance.entreprise_id))
 
 
 def cle_entreprise_active(entreprise_id):

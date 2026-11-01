@@ -233,3 +233,72 @@ class ControlesDiversTests(EntrepriseTestCase):
             self.assertEqual(adresse_ip(requete), '10.0.0.1')  # hors proxy : l'en-tête du client est ignoré
         with override_settings(SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO', 'https')):
             self.assertEqual(adresse_ip(requete), '9.9.9.9')   # derrière notre proxy : dernière entrée ajoutée par lui
+
+
+class SessionsParEntrepriseTests(EntrepriseTestCase):
+
+    def _enregistrer(self, minutes, fermeture=True):
+        self.connecter('admin_ent')
+        donnees = {'section': 'sessions', 'inactivite_minutes': str(minutes)}
+        if fermeture:
+            donnees['fermeture_navigateur'] = 'on'
+        return self.client.post(reverse('admin_entreprise:parametres'), donnees)
+
+    def test_reglage_enregistre_et_journalise(self):
+        from apps.core.models import AuditLog
+        from apps.entreprises.models import ParametresEntreprise
+        self._enregistrer(45, fermeture=False)
+        p = ParametresEntreprise.pour(self.ent)
+        self.assertEqual((p.session_inactivite_minutes, p.session_fermeture_navigateur), (45, False))
+        self.assertTrue(AuditLog.objects.filter(type_action='parametres', description__startswith='Sessions').exists())
+        html = self.client.get(reverse('admin_entreprise:parametres')).content.decode()
+        self.assertIn('value="45"', html)
+
+    def test_valeurs_hors_limites_refusees(self):
+        from apps.entreprises.models import ParametresEntreprise
+        for valeur in ('5', '5000', 'abc', ''):
+            self._enregistrer(valeur)
+        self.assertEqual(ParametresEntreprise.pour(self.ent).session_inactivite_minutes, 120)
+
+    def test_deconnexion_apres_inactivite_selon_l_entreprise(self):
+        import time
+        self._enregistrer(30)
+        self.connecter('gestionnaire')
+        self.assertEqual(self.client.get(reverse('gestionnaire:dashboard')).status_code, 200)
+        session = self.client.session
+        session['_derniere_activite'] = time.time() - 29 * 60
+        session.save()
+        self.assertEqual(self.client.get(reverse('gestionnaire:dashboard')).status_code, 200)  # 29 min : encore valide
+        session = self.client.session
+        session['_derniere_activite'] = time.time() - 31 * 60
+        session.save()
+        reponse = self.client.get(reverse('gestionnaire:dashboard'))
+        self.assertEqual(reponse.status_code, 302)
+        self.assertIn('connexion', reponse['Location'])
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_autre_entreprise_non_affectee(self):
+        import time
+        self._enregistrer(15)
+        autre = creer_entreprise('B')
+        self.client.force_login(creer_utilisateur('gestionnaire', autre))
+        session = self.client.session
+        session['_derniere_activite'] = time.time() - 60 * 60  # 1 h : dépasse 15 min mais l'entreprise B garde 2 h
+        session.save()
+        self.assertEqual(self.client.get(reverse('gestionnaire:dashboard')).status_code, 200)
+
+    def test_option_fermeture_du_navigateur(self):
+        self._enregistrer(60, fermeture=False)
+        self.connecter('gestionnaire')
+        self.client.get(reverse('gestionnaire:dashboard'))
+        self.assertGreater(self.client.session.get_expiry_age(), 3600)  # cookie persistant
+        self._enregistrer(60, fermeture=True)
+        self.connecter('gestionnaire')
+        self.client.get(reverse('gestionnaire:dashboard'))
+        self.assertTrue(self.client.session.get_expire_at_browser_close())
+
+    def test_seul_l_admin_modifie_les_sessions(self):
+        from apps.entreprises.models import ParametresEntreprise
+        self.connecter('gestionnaire')
+        self.client.post(reverse('admin_entreprise:parametres'), {'section': 'sessions', 'inactivite_minutes': '30'})
+        self.assertEqual(ParametresEntreprise.pour(self.ent).session_inactivite_minutes, 120)

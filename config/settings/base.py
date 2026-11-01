@@ -99,6 +99,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'apps.accounts.middleware.EntrepriseActiveMiddleware',  # après les sessions, l'authentification et les messages
+    'apps.accounts.middleware.InactiviteSessionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 

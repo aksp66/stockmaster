@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from apps.accounts.models import Utilisateur, RoleUtilisateur
 from apps.core.models import AuditLog, TypeAction
-from apps.entreprises.models import THEMES, Entreprise, ParametresEntreprise
+from apps.entreprises.models import SESSION_MAX, SESSION_MIN, THEMES, Entreprise, ParametresEntreprise
 from decimal import Decimal, InvalidOperation
 from django.db.models import OuterRef, Subquery
 from django.utils import timezone
@@ -312,6 +312,23 @@ def parametres(request):
                 messages.success(request, "Thème enregistré : il s'applique à tous les utilisateurs de l'entreprise.")
             else:
                 messages.error(request, "Thème inconnu.")
+        elif section == 'sessions':
+            try:
+                minutes = int(request.POST.get('inactivite_minutes', ''))
+            except ValueError:
+                minutes = 0
+            if not SESSION_MIN <= minutes <= SESSION_MAX:
+                messages.error(request, f"Le délai d'inactivité doit être compris entre {SESSION_MIN} minutes et "
+                                        f"{SESSION_MAX // 60} heures ({SESSION_MAX} minutes).")
+            else:
+                avant = (params.session_inactivite_minutes, params.session_fermeture_navigateur)
+                params.session_inactivite_minutes = minutes
+                params.session_fermeture_navigateur = request.POST.get('fermeture_navigateur') == 'on'
+                params.save()
+                AuditLog.log(request, TypeAction.PARAMETRES,
+                             f"Sessions : inactivité {avant[0]} → {minutes} min, fermeture du navigateur "
+                             f"{'oui' if params.session_fermeture_navigateur else 'non'}", params)
+                messages.success(request, "Réglages de session enregistrés. Ils s'appliquent à tous vos utilisateurs.")
         elif section == 'seuils':
             try:
                 seuil = Decimal(request.POST.get('seuil_defaut', ''))
@@ -330,6 +347,9 @@ def parametres(request):
         'notif_options': [(label, champ, getattr(params, champ)) for label, champ in options],
         'themes': [{'code': c, 'nom': n, 'sidebar': sb, 'principal': pr, 'clair': cl} for c, n, sb, pr, cl in THEMES],
         'theme_actuel': params.theme,
+        'session_minutes': params.session_inactivite_minutes,
+        'session_fermeture': params.session_fermeture_navigateur,
+        'session_min': SESSION_MIN, 'session_max': SESSION_MAX,
         'seuil_defaut': params.seuil_alerte_defaut,
         'jours_expiration': params.jours_alerte_expiration,
     })

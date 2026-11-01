@@ -75,6 +75,38 @@
     </div>
   </div>
 
+  <!-- Sécurité des sessions -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title"><i class="fas fa-user-lock" style="color:var(--orange);margin-right:6px;"></i>Sécurité des sessions</div>
+        <div class="card-subtitle">Quand vos utilisateurs sont-ils déconnectés automatiquement ?</div>
+      </div>
+    </div>
+    <div style="padding:20px 22px;">
+      <form method="post" action="{% url 'admin_entreprise:parametres' %}">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="sessions">
+        <div class="form-group">
+          <label class="form-label">Déconnexion après inactivité (minutes)</label>
+          <input type="number" name="inactivite_minutes" value="{{ session_minutes|unlocalize }}" min="{{ session_min|unlocalize }}" max="{{ session_max|unlocalize }}" class="form-input" required>
+          <div class="form-hint">Entre {{ session_min }} minutes et 24 heures ({{ session_max }} minutes). Un délai court protège mieux les postes partagés.</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);">
+          <div>
+            <div style="font-size:13.5px;font-weight:500;">Déconnexion à la fermeture du navigateur</div>
+            <div class="form-hint">Fermer un simple onglet ne déconnecte pas ; fermer tout le navigateur, oui.</div>
+          </div>
+          <label class="ck-switch" style="margin-top:0;"><input type="checkbox" name="fermeture_navigateur" {% if session_fermeture %}checked{% endif %}><span></span></label>
+        </div>
+        <div class="form-hint" style="margin-top:6px;">S'applique à la prochaine requête de chaque utilisateur. L'application mobile utilise une durée de connexion distincte, fixée par la plateforme.</div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Seuils d'alerte -->
   <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
     <div class="card-header">

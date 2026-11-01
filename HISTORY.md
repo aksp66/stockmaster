@@ -261,3 +261,10 @@ Avec `test_securite_generique.py` (matrice des accès, isolation entre entrepris
 - **Pied de page** : le doublon « Mentions légales » (l ancien lien pointait vers Contact) est supprimé.
 - **Togo uniquement** : plus aucune référence à la France ni au RGPD (adresses, badge « Conforme RGPD », autorité CNIL, hébergement « Allemagne / France », valeur par défaut « France » du fournisseur, données de démonstration). La politique de confidentialité cite la loi togolaise n° 2019-014 du 29 octobre 2019 et l Instance de Protection des Données à Caractère Personnel : **à faire vérifier par un juriste**. L adresse de contact de protection des données vient de `LEGAL_DPO_EMAIL`. Un bloc de style affiché en clair sur la page de confidentialité est aussi corrigé.
 - **Tests** : 239.
+
+### Sessions réglables par entreprise
+
+- Nouvelle carte **Paramètres → Sécurité des sessions** (admin entreprise) : délai de déconnexion après inactivité (15 minutes à 24 heures, 120 par défaut) et option « déconnexion à la fermeture du navigateur ». Le réglage s'applique à tous les utilisateurs de l'entreprise, dès leur prochaine requête, sans toucher aux autres entreprises ; il est journalisé. Le super admin garde les valeurs par défaut (`SESSION_INACTIVITE_MINUTES`).
+- L'inactivité est contrôlée côté serveur (middleware `InactiviteSessionMiddleware`, horodatage dans la session) ; migration `entreprises.0004`.
+- La connexion de l'application mobile reste réglée globalement (`JWT_REFRESH_JOURS`) : le renouvellement des jetons recrée une durée par défaut, ce qui rendrait un réglage par entreprise incohérent sans surcharge du renouvellement.
+- **Tests** : 245.
