@@ -167,3 +167,28 @@ class UtilisateursTests(EntrepriseTestCase):
         self.assertEqual(reponse.status_code, 302)
         cible.refresh_from_db()
         self.assertEqual(cible.role, 'comptable')
+
+
+class AnalyseIaTests(EntrepriseTestCase):
+    """Le lancement de l'analyse IA ne doit jamais produire d'erreur 500, que le broker réponde ou non."""
+
+    def test_broker_injoignable(self):
+        from unittest import mock
+        from apps.core.models import AuditLog
+        self.connecter('admin_ent')
+        with mock.patch('apps.admin_entreprise.views.current_app.control.ping', side_effect=ConnectionRefusedError):
+            reponse = self.client.post(reverse('admin_entreprise:ia_lancer'), follow=True)
+        self.assertEqual(reponse.status_code, 200)
+        self.assertContains(reponse, "pas disponible")
+        self.assertFalse(AuditLog.objects.filter(type_action='ia_analyse').exists())  # rien n'a été lancé
+
+    def test_broker_disponible(self):
+        from unittest import mock
+        from apps.core.models import AuditLog
+        self.connecter('admin_ent')
+        with mock.patch('apps.admin_entreprise.views.current_app.control.ping', return_value=[{}]), \
+                mock.patch('apps.admin_entreprise.views.analyser_entreprise_immediate.delay') as lancer:
+            reponse = self.client.post(reverse('admin_entreprise:ia_lancer'), follow=True)
+        lancer.assert_called_once_with(str(self.ent.pk))
+        self.assertContains(reponse, "Analyse IA déclenchée")
+        self.assertTrue(AuditLog.objects.filter(type_action='ia_analyse').exists())

@@ -1,3 +1,4 @@
+import logging
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -84,6 +85,9 @@ def gestion_utilisateurs(request):
         'utilisateurs': utilisateurs,
         'roles_disponibles': roles_disponibles,
     })
+
+logger = logging.getLogger(__name__)
+
 
 def _dernier_admin(utilisateur):
     """True si c'est le seul admin actif de son entreprise : le supprimer, le désactiver ou le rétrograder
@@ -423,13 +427,13 @@ def ia_lancer(request):
     if request.method != 'POST':
         return redirect('admin_entreprise:ia_dashboard')
     try:
-        # Vérifier que Celery peut se connecter au broker
+        # Vérifier que Celery peut se connecter au broker (Redis arrêté : erreur de connexion, pas seulement CeleryError)
         current_app.control.ping(timeout=1.0)
-    except CeleryError:
+        analyser_entreprise_immediate.delay(str(entreprise.id))
+    except Exception:  # noqa: BLE001 - broker injoignable : message à l'utilisateur plutôt qu'une erreur 500
+        logger.exception("Analyse IA impossible : broker Celery injoignable")
         messages.error(request, "Le service d'analyse IA n'est pas disponible. Contactez l'administrateur.")
         return redirect('admin_entreprise:ia_dashboard')
-    
-    analyser_entreprise_immediate.delay(str(entreprise.id))
     AuditLog.log(request, TypeAction.IA_ANALYSE, "Analyse IA déclenchée pour tous les produits", entreprise)
     messages.success(request, "Analyse IA déclenchée. Les résultats seront disponibles sous peu.")
     return redirect('admin_entreprise:ia_dashboard')
