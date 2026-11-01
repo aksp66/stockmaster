@@ -11,6 +11,10 @@ d'ouverture valorisé au prix du produit, pour que les quantités rejouées éga
 
 Les valeurs de début, de fin et de chaque flux d'une période se réconcilient donc par construction :
 fin = début + entrées + retours clients + ajustements(+) − sorties − pertes − retours fournisseurs − ajustements(−).
+
+Chiffre d'affaires : chaque vente au prix de vente enregistré sur le mouvement (prix pratiqué), à défaut
+au prix de vente actuel du produit ; un retour client en est déduit de la même façon. Une vente sans
+aucun prix connu n'entre ni dans le chiffre d'affaires ni dans le coût des ventes servant à la marge.
 """
 import hashlib
 from collections import defaultdict
@@ -62,9 +66,10 @@ def _a_un_effet(type_m, source_id, destination_id):
 def rejouer(produit, mouvements, stock_reel, debut=None, fin=None):
     """
     Rejoue les mouvements d'un produit (tuples triés par date :
-    (type, quantite, prix_snapshot, source_id, destination_id, date)).
+    (type, quantite, prix_snapshot, source_id, destination_id, date, prix_vente_snapshot)).
     Retourne un dictionnaire : qte/valeur au début et à la fin de la période, valeur de chaque flux,
-    quantités et chiffre d'affaires des ventes, CUMP final.
+    quantités et chiffre d'affaires des ventes (nets des retours clients), coût des ventes ayant un prix
+    de vente (cout_ventes_pv, pour la marge), CUMP final.
     """
     prix_defaut = produit.prix_unitaire or ZERO
     effectifs = [m for m in mouvements if _a_un_effet(m[0], m[3], m[4])]
@@ -73,12 +78,13 @@ def rejouer(produit, mouvements, stock_reel, debut=None, fin=None):
 
     qte, valeur = ouverture, max(ouverture, ZERO) * prix_defaut
     res = {cle: ZERO for cle in FLUX}
-    res.update(qte_ventes=ZERO, qte_retours_clients=ZERO, ca=ZERO, qte_debut=None, valeur_debut=None)
+    res.update(qte_ventes=ZERO, qte_retours_clients=ZERO, ca=ZERO, cout_ventes_pv=ZERO, qte_sans_prix_vente=ZERO,
+               qte_debut=None, valeur_debut=None)
 
     def cump():
         return valeur / qte if qte > 0 else prix_defaut
 
-    for type_m, quantite, prix_snapshot, source_id, destination_id, date_m in effectifs:
+    for type_m, quantite, prix_snapshot, source_id, destination_id, date_m, prix_vente in effectifs:
         jour = date_m.date()
         if fin is not None and jour > fin:
             break
@@ -97,14 +103,15 @@ def rejouer(produit, mouvements, stock_reel, debut=None, fin=None):
                 valeur = ZERO  # plus de stock : plus de valeur résiduelle
         if debut is None or jour >= debut:
             res[flux] += montant
-            if flux == 'sorties':
-                res['qte_ventes'] += quantite
-                if produit.prix_vente:
-                    res['ca'] += quantite * produit.prix_vente
-            elif flux == 'retours_clients':
-                res['qte_retours_clients'] += quantite
-                if produit.prix_vente:
-                    res['ca'] -= quantite * produit.prix_vente  # un retour client annule une vente
+            if flux in ('sorties', 'retours_clients'):
+                sens = 1 if flux == 'sorties' else -1  # un retour client annule une vente
+                res['qte_ventes' if flux == 'sorties' else 'qte_retours_clients'] += quantite
+                prix = prix_vente or produit.prix_vente
+                if prix:
+                    res['ca'] += sens * quantite * prix
+                    res['cout_ventes_pv'] += sens * montant
+                else:
+                    res['qte_sans_prix_vente'] += sens * quantite
 
     if res['qte_debut'] is None:  # aucun mouvement dans la période
         res['qte_debut'], res['valeur_debut'] = qte, valeur
@@ -115,7 +122,7 @@ def rejouer(produit, mouvements, stock_reel, debut=None, fin=None):
 CACHE_DUREE = 24 * 3600
 # À incrémenter à chaque changement de la règle de calcul ou du contenu du résultat : sans cela,
 # des résultats calculés par l'ancienne version du code resteraient servis depuis le cache.
-VERSION_CALCUL = 2
+VERSION_CALCUL = 3
 
 
 def _version(ids):
@@ -152,7 +159,8 @@ def _valoriser(produits, debut, fin):
     for pid, *mouvement in (Mouvement.objects.filter(produit_id__in=ids)
                             .order_by('date_mouvement', 'created_at')
                             .values_list('produit_id', 'type_mouvement', 'quantite', 'prix_unitaire_snapshot',
-                                         'entrepot_source_id', 'entrepot_destination_id', 'date_mouvement')):
+                                         'entrepot_source_id', 'entrepot_destination_id', 'date_mouvement',
+                                         'prix_vente_snapshot')):
         lignes[pid].append(tuple(mouvement))
     stocks = dict(Stock.objects.filter(produit_id__in=ids).values('produit')
                   .annotate(total=Sum('quantite')).values_list('produit', 'total'))

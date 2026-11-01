@@ -33,7 +33,7 @@
   <div class="card">
     <div class="card-h"><div class="card-t"><i class="fas fa-chart-line" style="color:var(--or);margin-right:7px;"></i>Marges par produit</div></div>
     <table class="tbl">
-      <thead><tr><th>Produit</th><th title="Coût moyen au moment de chaque vente (CUMP permanent) ; CUMP actuel si le produit n'a jamais été vendu">Coût unitaire réel</th><th>PU vente</th><th>Marge unitaire</th><th>Marge %</th><th title="Ventes moins retours clients">Qté vendue nette</th><th>Marge totale</th></tr></thead>
+      <thead><tr><th>Produit</th><th title="Coût moyen au moment de chaque vente (CUMP permanent) ; CUMP actuel si le produit n'a jamais été vendu">Coût unitaire réel</th><th title="Prix moyen pratiqué sur les ventes (prix enregistré sur chaque vente) ; prix actuel si le produit n'a jamais été vendu">PU vente moyen</th><th>Marge unitaire</th><th>Marge %</th><th title="Ventes moins retours clients">Qté vendue nette</th><th>Marge totale</th></tr></thead>
       <tbody>
         {% for p in marges %}
         <tr>

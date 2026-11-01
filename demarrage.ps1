@@ -52,7 +52,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $Racine = $PSScriptRoot
 Set-Location -LiteralPath $Racine
-$Python = Join-Path $Racine 'env\Scripts\python.exe'
+$Python = Join-Path $Racine '.venv\Scripts\python.exe'
 $Fenetres = New-Object System.Collections.ArrayList
 
 # ── Affichage ─────────────────────────────────────────────────────────────────
@@ -149,8 +149,8 @@ try {
     Etape '1/9' 'Environnement Python'
     if (-not (Test-Path $Python)) {
         Info "Aucun environnement virtuel dans env\ : création…"
-        if (Get-Command py -ErrorAction SilentlyContinue) { & py -3 -m venv env }
-        elseif (Get-Command python -ErrorAction SilentlyContinue) { & python -m venv env }
+        if (Get-Command py -ErrorAction SilentlyContinue) { & py -3 -m venv .venv }
+        elseif (Get-Command python -ErrorAction SilentlyContinue) { & python -m venv .venv }
         else { Echec "Python est introuvable. Installez Python 3.13 (python.org) puis relancez." }
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path $Python)) { Echec "Création de l'environnement virtuel impossible." }
         $Installer = $true
@@ -302,7 +302,7 @@ try {
     if ($Mode -eq 'prod') {
         # Caddy (127.0.0.1) est déclaré proxy de confiance : sinon waitress supprime X-Forwarded-Proto,
         # Django croit chaque requête en HTTP et SECURE_SSL_REDIRECT redirige en boucle.
-        & (Join-Path $Racine 'env\Scripts\waitress-serve.exe') --listen="127.0.0.1:$Port" --threads=8 `
+        & (Join-Path $Racine '.venv\Scripts\waitress-serve.exe') --listen="127.0.0.1:$Port" --threads=8 `
             --trusted-proxy=127.0.0.1 '--trusted-proxy-headers=x-forwarded-for x-forwarded-proto' `
             config.wsgi:application
     } else {

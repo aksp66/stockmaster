@@ -1,4 +1,4 @@
-{% extends 'gestionnaire/base_gestionnaire.html' %}
+{% extends 'gestionnaire/base_gestionnaire.html' %} {% load l10n %}
 <!---->
 {% block title %}Nouveau mouvement{% endblock %}
 <!---->
@@ -378,6 +378,27 @@
             </div>
           </div>
         </div>
+
+        {# Prix de vente pratiqué pour les ventes et les retours clients #}
+        <div id="prix-vente-wrap" style="margin-top: 14px; display: none">
+          <div class="fi" style="margin-bottom: 0">
+            <label class="fl">Prix de vente unitaire (FCFA)</label>
+            <input
+              type="number"
+              name="prix_vente_unitaire"
+              id="prix-vente-input"
+              class="fin"
+              step="0.01"
+              min="0"
+              value="{{ produit_preselect.prix_vente|default_if_none:''|unlocalize }}"
+              placeholder="Prix de vente du produit"
+            />
+            <div class="fh">
+              Prix réellement pratiqué, utilisé pour le chiffre d'affaires et les
+              marges. Laissé vide : prix de vente actuel du produit.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -511,6 +532,8 @@
         : "none";
       document.getElementById("prix-wrap").style.display =
         radio.value === "entree" ? "block" : "none";
+      document.getElementById("prix-vente-wrap").style.display =
+        radio.value === "sortie" || radio.value === "retour" ? "block" : "none";
       document.getElementById("ajustement-wrap").style.display =
         radio.value === "ajustement" ? "block" : "none";
       document.getElementById("retour-wrap").style.display =
@@ -563,6 +586,7 @@
     document.getElementById("ps-nom").textContent = p.nom;
     document.getElementById("ps-sku").textContent = p.sku;
     document.getElementById("ps-stock").textContent = p.stock_total;
+    document.getElementById("prix-vente-input").value = p.prix_vente ?? "";
     document.getElementById("produit-selected").style.display = "block";
     res.style.display = "none";
     inp.value = "";

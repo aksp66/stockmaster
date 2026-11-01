@@ -1,13 +1,15 @@
 """
 Supprime les prédictions remplacées : la tâche IA en crée une nouvelle chaque nuit pour chaque produit,
 seule la plus récente est utilisée (suggestions d'achat, écrans IA, fiche produit).
+Planifiée chaque semaine par Celery Beat (apps.ia.tasks.nettoyer_predictions), avec un historique conservé.
 
-    python manage.py nettoyer_predictions --apercu     # compte sans rien supprimer
-    python manage.py nettoyer_predictions              # supprime
+    python manage.py nettoyer_predictions --apercu            # compte sans rien supprimer
+    python manage.py nettoyer_predictions                     # supprime
+    python manage.py nettoyer_predictions --garder-jours 90   # conserve celles des 90 derniers jours
 """
 from django.core.management.base import BaseCommand
-from django.db.models import OuterRef, Subquery
 
+from apps.ia.nettoyage import predictions_remplacees
 from apps.stock.models import PredictionStock
 
 
@@ -16,13 +18,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--apercu', action='store_true', help="Affiche ce qui serait supprimé, sans supprimer.")
+        parser.add_argument('--garder-jours', type=int, default=0,
+                            help="Conserve aussi les prédictions créées pendant ces derniers jours.")
 
     def handle(self, *args, **options):
-        plus_recente = (PredictionStock.objects.filter(produit=OuterRef('produit'))
-                        .order_by('-created_at', '-date_cible').values('pk')[:1])
-        anciennes = PredictionStock.objects.exclude(pk__in=PredictionStock.objects.filter(pk=Subquery(plus_recente))
-                                                    .values('pk'))
-        nb, gardees = anciennes.count(), PredictionStock.objects.count() - anciennes.count()
+        anciennes = predictions_remplacees(options['garder_jours'])
+        nb = anciennes.count()
+        gardees = PredictionStock.objects.count() - nb
         if options['apercu']:
             self.stdout.write(f"{nb} prédiction(s) remplacée(s) seraient supprimées ; {gardees} conservée(s).")
             return

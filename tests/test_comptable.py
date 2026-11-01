@@ -204,3 +204,84 @@ class AnciennesPredictionsTests(EntrepriseTestCase):
         call_command('nettoyer_predictions', stdout=StringIO())
         self.assertEqual(list(PredictionStock.objects.all()), [recente])
 
+
+    def test_tache_hebdomadaire_conserve_l_historique_recent(self):
+        from apps.ia.tasks import nettoyer_predictions
+        from apps.stock.models import PredictionStock
+        anciennes = [PredictionStock.objects.create(produit=self.produit, quantite_prevue=60, modele_utilise='prophet',
+                                                    date_cible=timezone.localdate() + timedelta(days=i))
+                     for i in range(3)]
+        PredictionStock.objects.filter(pk=anciennes[0].pk).update(created_at=timezone.now() - timedelta(days=120))
+        PredictionStock.objects.filter(pk=anciennes[1].pk).update(created_at=timezone.now() - timedelta(days=10))
+        self.assertEqual(nettoyer_predictions(), {'supprimees': 1})  # seule celle de plus de 90 jours
+        self.assertEqual(set(PredictionStock.objects.values_list('pk', flat=True)), {anciennes[1].pk, anciennes[2].pk})
+
+
+class PrixDeVentePratiqueTests(EntrepriseTestCase):
+    """Le chiffre d'affaires utilise le prix enregistré sur chaque vente, pas le prix de vente actuel."""
+
+    def setUp(self):
+        self.produit.prix_vente = Decimal('1500')
+        self.produit.save()
+
+    def _mvt(self, type_m, quantite, vers_destination, **champs):
+        m = Mouvement.objects.create(type_mouvement=type_m, produit=self.produit, quantite=quantite,
+                                     prix_unitaire_snapshot=Decimal('1000'),
+                                     entrepot_destination=self.entrepot if vers_destination else None,
+                                     entrepot_source=None if vers_destination else self.entrepot, **champs)
+        _appliquer_mouvement(m)
+        return m
+
+    def test_prix_enregistre_sur_les_ventes_et_retours_clients(self):
+        vente = self._mvt(TypeMouvement.SORTIE, 2, False)
+        retour_client = self._mvt(TypeMouvement.RETOUR, 1, True)
+        retour_fournisseur = self._mvt(TypeMouvement.RETOUR, 1, False)
+        perte = self._mvt(TypeMouvement.PERTE, 1, False)
+        self.assertEqual((vente.prix_vente_snapshot, retour_client.prix_vente_snapshot), (1500, 1500))
+        self.assertEqual((retour_fournisseur.prix_vente_snapshot, perte.prix_vente_snapshot), (None, None))
+
+    def test_changement_de_prix_sans_effet_sur_les_ventes_passees(self):
+        self._mvt(TypeMouvement.SORTIE, 2, False)                     # 2 × 1 500
+        self.produit.prix_vente = Decimal('2000')
+        self.produit.save()
+        self._mvt(TypeMouvement.SORTIE, 1, False)                     # 1 × 2 000
+        self._mvt(TypeMouvement.RETOUR, 1, True)                      # retour à 2 000
+        self.assertEqual(valoriser_produits([self.produit])[self.produit.pk]['ca'], Decimal(3000))
+        self.connecter('comptable')
+        self.assertEqual(self.client.get(reverse('comptable:rapports')).context['ca'], Decimal(3000))
+        ligne = self.client.get(reverse('comptable:marges')).context['marges'][0]
+        # 2 vendus nets pour 3 000 : prix moyen pratiqué 1 500, coût 1 000
+        self.assertEqual((ligne['prix_vente'], ligne['prix_vente_actuel'], ligne['marge_totale']),
+                         (Decimal(1500), Decimal(2000), Decimal(1000)))
+
+    def test_vente_sans_prix_enregistre_au_prix_actuel(self):
+        # Mouvements créés avant l'enregistrement du prix (snapshot vide) : prix de vente actuel
+        m = self._mvt(TypeMouvement.SORTIE, 2, False)
+        Mouvement.objects.filter(pk=m.pk).update(prix_vente_snapshot=None)
+        self.assertEqual(valoriser_produits([self.produit])[self.produit.pk]['ca'], Decimal(3000))
+
+    def test_prix_saisi_dans_le_formulaire(self):
+        self.connecter('gestionnaire')
+        self.client.post(reverse('gestionnaire:mouvement_form'), {
+            'produit': self.produit.pk, 'type_mouvement': 'sortie', 'quantite': 2, 'entrepot': self.entrepot.pk,
+            'prix_vente_unitaire': '1200',
+        })
+        self.client.post(reverse('gestionnaire:mouvement_form'), {
+            'produit': self.produit.pk, 'type_mouvement': 'sortie', 'quantite': 1, 'entrepot': self.entrepot.pk,
+            'prix_vente_unitaire': '',
+        })
+        self.assertEqual(sorted(Mouvement.objects.values_list('prix_vente_snapshot', flat=True)), [1200, 1500])
+        html = self.client.get(reverse('gestionnaire:mouvement_form'), {'produit': self.produit.pk}).content.decode()
+        self.assertIn('value="1500.00"', html)
+
+    def test_migration_renseigne_les_ventes_existantes(self):
+        import importlib
+        from django.apps import apps as django_apps
+        migration = importlib.import_module('apps.stock.migrations.0008_mouvement_prix_vente_snapshot')
+        vente = self._mvt(TypeMouvement.SORTIE, 2, False)
+        perte = self._mvt(TypeMouvement.PERTE, 1, False)
+        Mouvement.objects.update(prix_vente_snapshot=None)
+        migration.renseigner_prix_existants(django_apps, None)
+        vente.refresh_from_db()
+        perte.refresh_from_db()
+        self.assertEqual((vente.prix_vente_snapshot, perte.prix_vente_snapshot), (1500, None))

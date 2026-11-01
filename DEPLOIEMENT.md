@@ -55,7 +55,7 @@ Puis créer le super administrateur :
 
 ```bat
 set DJANGO_SETTINGS_MODULE=config.settings.prod
-env\Scripts\python.exe manage.py runscript create_superadmin
+.venv\Scripts\python.exe manage.py runscript create_superadmin
 ```
 
 ### Fonctionnement permanent (services Windows)
@@ -67,19 +67,19 @@ set APP=C:\apps\stockmaster
 set ENV=DJANGO_SETTINGS_MODULE=config.settings.prod
 
 :: Serveur WSGI
-nssm install StockMaster-Web "%APP%\env\Scripts\waitress-serve.exe" --listen=127.0.0.1:8000 --threads=8 --trusted-proxy=127.0.0.1 "--trusted-proxy-headers=x-forwarded-for x-forwarded-proto" config.wsgi:application
+nssm install StockMaster-Web "%APP%\.venv\Scripts\waitress-serve.exe" --listen=127.0.0.1:8000 --threads=8 --trusted-proxy=127.0.0.1 "--trusted-proxy-headers=x-forwarded-for x-forwarded-proto" config.wsgi:application
 nssm set StockMaster-Web AppDirectory "%APP%"
 nssm set StockMaster-Web AppEnvironmentExtra %ENV%
 nssm set StockMaster-Web AppStdout "%APP%\logs\web.log"
 nssm set StockMaster-Web AppStderr "%APP%\logs\web.log"
 
 :: Celery worker et beat
-nssm install StockMaster-Celery "%APP%\env\Scripts\python.exe" -m celery -A config worker --pool=solo --loglevel=info
+nssm install StockMaster-Celery "%APP%\.venv\Scripts\python.exe" -m celery -A config worker --pool=solo --loglevel=info
 nssm set StockMaster-Celery AppDirectory "%APP%"
 nssm set StockMaster-Celery AppEnvironmentExtra %ENV%
 nssm set StockMaster-Celery AppStderr "%APP%\logs\celery.log"
 
-nssm install StockMaster-Beat "%APP%\env\Scripts\python.exe" -m celery -A config beat --loglevel=info
+nssm install StockMaster-Beat "%APP%\.venv\Scripts\python.exe" -m celery -A config beat --loglevel=info
 nssm set StockMaster-Beat AppDirectory "%APP%"
 nssm set StockMaster-Beat AppEnvironmentExtra %ENV%
 nssm set StockMaster-Beat AppStderr "%APP%\logs\beat.log"
@@ -98,10 +98,10 @@ Les services démarrent avec Windows. Gestion : `nssm restart StockMaster-Web`, 
 
 ```bat
 git pull
-env\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -r requirements.txt
 set DJANGO_SETTINGS_MODULE=config.settings.prod
-env\Scripts\python.exe manage.py migrate --noinput
-env\Scripts\python.exe manage.py collectstatic --noinput
+.venv\Scripts\python.exe manage.py migrate --noinput
+.venv\Scripts\python.exe manage.py collectstatic --noinput
 for %S in (Web Celery Beat) do nssm restart StockMaster-%S
 ```
 
@@ -113,13 +113,13 @@ for %S in (Web Celery Beat) do nssm restart StockMaster-%S
 sudo apt install python3.13-venv postgresql redis-server caddy
 sudo useradd --system --home /srv/stockmaster stockmaster
 cd /srv/stockmaster
-python3.13 -m venv env && env/bin/pip install -r requirements.txt   # installe aussi gunicorn
+python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt   # installe aussi gunicorn
 # .env comme ci-dessus, puis :
 export DJANGO_SETTINGS_MODULE=config.settings.prod
-env/bin/python manage.py check --deploy
-env/bin/python manage.py migrate --noinput
-env/bin/python manage.py collectstatic --noinput
-env/bin/python manage.py runscript create_superadmin
+.venv/bin/python manage.py check --deploy
+.venv/bin/python manage.py migrate --noinput
+.venv/bin/python manage.py collectstatic --noinput
+.venv/bin/python manage.py runscript create_superadmin
 mkdir -p logs media && sudo chown -R stockmaster: /srv/stockmaster
 sudo chown caddy: logs    # Caddy y écrit son journal d'accès
 ```

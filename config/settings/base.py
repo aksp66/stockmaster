@@ -240,4 +240,7 @@ IA_CONFIG = {
     "CONFIANCE_SEUIL":       0.70,  # Score de confiance minimum
     "MODELE_DEFAUT":         "prophet",  # "prophet" | "random_forest"
     "SAUVEGARDE_MODELES":    BASE_DIR / "apps" / "ia" / "modeles_sauvegardes",
+    # Prédictions remplacées conservées ce nombre de jours (comparaison prévisions / ventes réelles),
+    # puis supprimées par le nettoyage hebdomadaire. 0 = ne garder que la plus récente de chaque produit.
+    "CONSERVATION_PREDICTIONS_JOURS": 90,
 }

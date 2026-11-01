@@ -27,6 +27,11 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=2, minute=0),   # Chaque nuit à 2h00
         "options":  {"expires": 3600},
     },
+    "nettoyer-predictions-hebdo": {
+        "task":     "apps.ia.tasks.nettoyer_predictions",
+        "schedule": crontab(hour=3, minute=30, day_of_week="0"),  # Dimanche 3h30, après les prédictions
+        "options":  {"expires": 7200},
+    },
 
     # ── Notifications (selon les Paramètres de chaque entreprise) ──────────
     "verifier-expirations": {

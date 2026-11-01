@@ -10,7 +10,7 @@ User=stockmaster
 Group=stockmaster
 WorkingDirectory=/srv/stockmaster
 Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
-ExecStart=/srv/stockmaster/env/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120
+ExecStart=/srv/stockmaster/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120
 Restart=on-failure
 
 [Install]

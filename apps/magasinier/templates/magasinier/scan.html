@@ -261,18 +261,27 @@
             {% for e in entrepots %}
             <option
               value="{{ e.id }}"
-              {%
-              if
-              e.id=""
-              ="entrepot_defaut_id"
-              %}selected{%
-              endif
-              %}
+              {% if e.id == entrepot_defaut_id %}selected{% endif %}
             >
               {{ e.nom }}
             </option>
             {% endfor %}
           </select>
+        </div>
+      </div>
+      <div class="fi" id="r-prix-vente-wrap" style="margin-bottom: 12px; display: none">
+        <label class="fl">Prix de vente unitaire (FCFA)</label>
+        <input
+          type="number"
+          id="r-prix-vente"
+          class="fin"
+          step="0.01"
+          min="0"
+          placeholder="Prix de vente du produit"
+        />
+        <div class="fh">
+          Prix réellement pratiqué (remise, prix négocié). Vide : prix de vente
+          du produit.
         </div>
       </div>
       <div class="fi" style="margin-bottom: 14px">
@@ -504,6 +513,7 @@
               : "var(--green)";
         document.getElementById("r-produit-id").value = data.id;
         document.getElementById("r-quantite").value = 1;
+        document.getElementById("r-prix-vente").value = data.prix_vente ?? "";
         document.getElementById("scan-result").style.display = "block";
         document.getElementById("r-quantite").focus();
         playBeep("ok");
@@ -543,6 +553,10 @@
           quantite: qte,
           entrepot_id: entrepot,
           motif,
+          prix_vente:
+            typeCourant === "sortie"
+              ? document.getElementById("r-prix-vente").value
+              : "",
         }),
       });
       const data = await resp.json();
@@ -566,7 +580,7 @@
         playBeep("ok");
         inp.value = "";
       } else {
-        alert(data.message || "Erreur lors de l'enregistrement.");
+        alert(data.error || data.message || "Erreur lors de l'enregistrement.");
         btn.innerHTML = '<i class="fas fa-check"></i> Valider le mouvement';
         btn.disabled = false;
       }
@@ -579,6 +593,8 @@
 
   function setType(t) {
     typeCourant = t;
+    document.getElementById("r-prix-vente-wrap").style.display =
+      t === "sortie" ? "block" : "none";
     const eDiv = document
       .getElementById("btn-entree")
       .querySelector(".type-btn");

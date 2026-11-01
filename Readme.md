@@ -306,16 +306,16 @@ Le script crée l'environnement Python, installe les dépendances, génère `.en
 Créer ensuite le super administrateur, puis (facultatif) charger les données de démonstration :
 
 ```bat
-env\Scripts\python.exe manage.py runscript create_superadmin
-env\Scripts\python.exe manage.py runscript seed
+.venv\Scripts\python.exe manage.py runscript create_superadmin
+.venv\Scripts\python.exe manage.py runscript seed
 ```
 
 <details>
 <summary>Démarrage manuel (sans le script, ou sous Linux / macOS)</summary>
 
 ```bash
-python -m venv env
-env\Scripts\activate            # Linux / macOS : source env/bin/activate
+python -m venv .venv
+.venv\Scripts\activate            # Linux / macOS : source .venv/bin/activate
 pip install -r requirements.txt
 copy .env.example .env          # puis renseigner SECRET_KEY, DB_PASSWORD…
 python manage.py migrate

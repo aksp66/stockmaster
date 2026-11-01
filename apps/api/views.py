@@ -5,8 +5,9 @@ from django.utils import timezone
 from datetime import timedelta, date
 from decimal import Decimal, InvalidOperation
 
-from rest_framework import viewsets, status, filters
+from rest_framework import mixins, viewsets, status, filters
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
@@ -23,8 +24,8 @@ from .serializers import (
     UserProfileSerializer,
     CategorieMinimalSerializer, EntrepotMinimalSerializer, FournisseurMinimalSerializer,
 )
-from .permissions import IsMagasinier, IsGestionnaire, ReadOnlyOrGestionnaire
-from apps.gestionnaire.views import _appliquer_mouvement, _verifier_seuil
+from .permissions import IsMagasinier, IsGestionnaire, LectureOuSaisieMouvements, ReadOnlyOrGestionnaire
+from apps.gestionnaire.views import _appliquer_mouvement, _prix_vente_json, _verifier_seuil
 
 User = get_user_model()
 
@@ -185,9 +186,22 @@ class ProduitViewSet(viewsets.ModelViewSet):
 # ═══════════════════════════════════════════════════════════════════════
 
 class MouvementViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, LectureOuSaisieMouvements]
     serializer_class = MouvementSerializer
     ordering = ["-date_mouvement"]
+    # Journal des mouvements : consultation et création uniquement. Modifier ou supprimer un mouvement
+    # laisserait le stock incohérent ; une erreur se corrige par un ajustement.
+    http_method_names = ["get", "post", "head", "options"]
+
+    def perform_create(self, serializer):
+        """Création et mise à jour du stock dans la même transaction (comme les formulaires web)."""
+        try:
+            with transaction.atomic():
+                mvt = serializer.save(utilisateur=self.request.user)
+                _appliquer_mouvement(mvt)
+        except ValidationError as e:
+            raise DRFValidationError({"detail": e.messages[0] if hasattr(e, "messages") else str(e)})
+        _verifier_seuil(mvt.produit, mvt.entrepot)
 
     def get_queryset(self):
         qs = Mouvement.objects.filter(produit__entreprise=self.request.user.entreprise).select_related(
@@ -202,7 +216,9 @@ class MouvementViewSet(viewsets.ModelViewSet):
         depuis = self.request.query_params.get("depuis")
         if depuis:
             qs = qs.filter(date_mouvement__date__gte=depuis)
-        return qs.order_by("-date_mouvement")[:200]
+        # Pas de découpage ici : get_object() filtre ce queryset (détail d'un mouvement).
+        # Les listes sont limitées par la pagination.
+        return qs.order_by("-date_mouvement")
 
     @action(detail=False, methods=["post"], url_path="rapide")
     def rapide(self, request):
@@ -210,7 +226,10 @@ class MouvementViewSet(viewsets.ModelViewSet):
         for field in required:
             if field not in request.data:
                 return Response({"detail": f"Champ requis : {field}"}, status=400)
-        produit = Produit.objects.filter(pk=request.data["produit_id"], entreprise=request.user.entreprise).first()
+        try:
+            produit = Produit.objects.filter(pk=request.data["produit_id"], entreprise=request.user.entreprise).first()
+        except (ValueError, ValidationError):
+            produit = None
         if not produit:
             return Response({"detail": "Produit invalide."}, status=400)
         type_mvt = request.data["type_mouvement"]
@@ -222,8 +241,16 @@ class MouvementViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Quantité invalide."}, status=400)
         if quantite <= 0:
             return Response({"detail": "La quantité doit être strictement positive."}, status=400)
-        entrepot_id = request.data.get("entrepot_id")
-        entrepot = Entrepot.objects.filter(pk=entrepot_id, entreprise=request.user.entreprise).first() if entrepot_id else None
+        try:
+            entrepot = Entrepot.objects.filter(pk=request.data.get("entrepot_id") or None,
+                                               entreprise=request.user.entreprise).first()
+        except (ValueError, ValidationError):
+            entrepot = None
+        if not entrepot:  # sans entrepôt, le mouvement n'aurait aucun effet sur le stock
+            return Response({"detail": "Entrepôt invalide."}, status=400)
+        prix_vente, erreur = _prix_vente_json(request.data)
+        if erreur:
+            return Response({"detail": erreur}, status=400)
 
         try:
             with transaction.atomic():
@@ -234,7 +261,8 @@ class MouvementViewSet(viewsets.ModelViewSet):
                     entrepot_source=entrepot if type_mvt in ("sortie", "perte") else None,
                     entrepot_destination=entrepot if type_mvt == "entree" else None,
                     utilisateur=request.user,
-                    note=request.data.get("commentaire", "Scan mobile")
+                    note=request.data.get("commentaire", "Scan mobile"),
+                    prix_vente_snapshot=prix_vente if type_mvt == "sortie" else None,
                 )
                 _appliquer_mouvement(mvt)
         except ValidationError as e:
@@ -253,7 +281,11 @@ class MouvementViewSet(viewsets.ModelViewSet):
 #  ALERTES
 # ═══════════════════════════════════════════════════════════════════════
 
-class AlerteViewSet(viewsets.ModelViewSet):
+class AlerteViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """
+    Alertes générées par l'application : consultation et marquage comme lue (PATCH) uniquement.
+    Création, remplacement et suppression ne sont pas exposés.
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = AlerteSerializer
 
@@ -265,7 +297,7 @@ class AlerteViewSet(viewsets.ModelViewSet):
         priorite = self.request.query_params.get("priorite")
         if priorite:
             qs = qs.filter(priorite=priorite)
-        return qs[:100]
+        return qs  # pas de découpage : voir MouvementViewSet.get_queryset
 
     def partial_update(self, request, *args, **kwargs):
         alerte = self.get_object()

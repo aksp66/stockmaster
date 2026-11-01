@@ -60,31 +60,35 @@ def _lignes_marges(produits):
     """
     Marge réalisée par produit, sur tout l'historique :
     - coût des ventes au coût moyen du moment de chaque vente (rejeu au CUMP permanent) ;
-    - quantités et chiffre d'affaires nets des retours clients (un retour annule une vente).
-    Produit jamais vendu : coût unitaire = CUMP actuel (marge théorique), quantités à zéro.
+    - chiffre d'affaires au prix de vente pratiqué lors de chaque vente (enregistré sur le mouvement) ;
+    - quantités et montants nets des retours clients (un retour annule une vente).
+    Le prix de vente affiché est le prix moyen pratiqué. Produit jamais vendu : prix de vente actuel et
+    CUMP actuel (marge théorique), quantités à zéro.
     """
     produits = list(produits)
     valeurs = valoriser_produits(produits)
     lignes = []
     for p in produits:
         v = valeurs[p.pk]
-        prix_vente = p.prix_vente or Decimal('0')
         qte_nette = v['qte_ventes'] - v['qte_retours_clients']
-        cout_ventes = v['sorties'] - v['retours_clients']
-        cout_unitaire = cout_ventes / qte_nette if qte_nette > 0 else v['cump']
+        cout_ventes = v['cout_ventes_pv']
+        vendu = qte_nette > 0
+        cout_unitaire = cout_ventes / qte_nette if vendu else v['cump']
+        prix_vente = v['ca'] / qte_nette if vendu else (p.prix_vente or Decimal('0'))
         marge_u = prix_vente - cout_unitaire
         lignes.append({
             'nom': p.nom,
             'sku': p.sku,
             'prix_achat_cump': cout_unitaire,
             'prix_vente': prix_vente,
+            'prix_vente_actuel': p.prix_vente or Decimal('0'),
             'marge_unitaire': marge_u,
             'marge_pct': (marge_u / prix_vente * 100) if prix_vente else Decimal('0'),
             'qte_vendue': qte_nette,
             'qte_retournee': v['qte_retours_clients'],
-            'chiffre_affaires': v['ca'] if qte_nette > 0 else Decimal('0'),
-            'cout_ventes': cout_ventes if qte_nette > 0 else Decimal('0'),
-            'marge_totale': (v['ca'] - cout_ventes) if qte_nette > 0 else Decimal('0'),
+            'chiffre_affaires': v['ca'] if vendu else Decimal('0'),
+            'cout_ventes': cout_ventes if vendu else Decimal('0'),
+            'marge_totale': (v['ca'] - cout_ventes) if vendu else Decimal('0'),
         })
     return lignes
 
@@ -424,7 +428,7 @@ def marges(request):
         ]
         return _csv(
             f'marges_{date.today()}.csv',
-            ['Produit', 'SKU', 'Coût unitaire réel (FCFA)', 'PU vente (FCFA)',
+            ['Produit', 'SKU', 'Coût unitaire réel (FCFA)', 'PU vente moyen pratiqué (FCFA)',
              'Marge U. (FCFA)', 'Marge %', 'Qté vendue nette', 'dont retours clients', 'Marge totale (FCFA)'],
             rows,
         )
@@ -559,9 +563,8 @@ def rapports(request):
             total['fin'] += v['valeur_fin']
             for cle in FLUX:
                 total[cle] += v[cle]
-            if p.prix_vente:
-                total['ca'] += v['ca']  # net des retours clients
-                total['cout_ventes_pv'] += v['sorties'] - v['retours_clients']
+            total['ca'] += v['ca']  # au prix pratiqué, net des retours clients
+            total['cout_ventes_pv'] += v['cout_ventes_pv']
         total['entrees_total'] = sum(total[c] for c, sens in FLUX.items() if sens > 0)
         total['sorties_total'] = sum(total[c] for c, sens in FLUX.items() if sens < 0)
         total['marge_pct'] = ((total['ca'] - total['cout_ventes_pv']) / total['ca'] * 100) if total['ca'] else None
@@ -575,7 +578,7 @@ def rapports(request):
         for nom, liste in sorted(groupes.items(), key=lambda g: (g[0] == 'Sans catégorie', g[0].lower()))
     ]
     totaux = cumuler(produits)
-    sans_pv = sum(1 for p in produits if not p.prix_vente and valeurs[p.pk]['qte_ventes'])
+    sans_pv = sum(1 for p in produits if valeurs[p.pk]['qte_sans_prix_vente'] > 0)
     marge_brute = totaux['ca'] - totaux['cout_ventes_pv']
 
     if request.GET.get('export') in ('pdf', 'csv'):
@@ -659,7 +662,7 @@ def exports(request):
         ]
         return _csv(
             f'marges_{date.today()}.csv',
-            ['Produit', 'SKU', 'Coût unitaire réel (FCFA)', 'PU vente (FCFA)',
+            ['Produit', 'SKU', 'Coût unitaire réel (FCFA)', 'PU vente moyen pratiqué (FCFA)',
              'Marge U. (FCFA)', 'Marge %', 'Qté vendue nette', 'Marge totale (FCFA)'],
             rows,
         )

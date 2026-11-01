@@ -277,6 +277,19 @@ def _calculer_confiance_et_precision(series: list, modele, X_train, y_train, hor
     return confiance, round(mape_estime, 1)
 
 @shared_task
+def nettoyer_predictions():
+    """
+    Supprime les prédictions remplacées par une plus récente, au-delà de la durée de conservation
+    (IA_CONFIG["CONSERVATION_PREDICTIONS_JOURS"]). Planifiée chaque semaine (config/celery.py).
+    """
+    from django.conf import settings
+    from apps.ia.nettoyage import predictions_remplacees
+    nb, _ = predictions_remplacees(settings.IA_CONFIG["CONSERVATION_PREDICTIONS_JOURS"]).delete()
+    logger.info(f"Nettoyage des prédictions : {nb} supprimée(s)")
+    return {"supprimees": nb}
+
+
+@shared_task
 def analyser_entreprise_immediate(entreprise_id):
     from apps.stock.models import Produit
     from apps.entreprises.models import Entreprise

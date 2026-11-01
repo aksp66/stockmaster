@@ -8,7 +8,7 @@ User=stockmaster
 Group=stockmaster
 WorkingDirectory=/srv/stockmaster
 Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
-ExecStart=/srv/stockmaster/env/bin/celery -A config beat --loglevel=info --schedule /srv/stockmaster/celerybeat-schedule
+ExecStart=/srv/stockmaster/.venv/bin/celery -A config beat --loglevel=info --schedule /srv/stockmaster/celerybeat-schedule
 Restart=on-failure
 
 [Install]

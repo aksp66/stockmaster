@@ -14,6 +14,17 @@ class IsGestionnaire(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and getattr(request.user, "role", "") in ["admin_ent", "gestionnaire"]
 
+class LectureOuSaisieMouvements(BasePermission):
+    """
+    Mouvements de stock : consultation pour tous les rôles de l'entreprise, création réservée
+    à l'admin entreprise, au gestionnaire et au magasinier (ni comptable, ni auditeur, ni achats).
+    """
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        roles = ROLES_LECTURE if request.method in SAFE_METHODS else ROLES_ECRITURE
+        return getattr(request.user, "role", "") in roles
+
 class ReadOnlyOrGestionnaire(BasePermission):
     """Lecture : tous les rôles authentifiés ; écriture : gestionnaire et admin."""
     def has_permission(self, request, view):

@@ -136,3 +136,25 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - **Cache versionné** : le robot de parcours a révélé qu'après la modification du calcul, le cache servait encore des résultats de l'ancienne version (erreur 500 sur la page Marges). La clé de cache inclut désormais une version du calcul, à incrémenter à chaque changement de règle.
 - **Tests** : 125.
 
+
+## 01/11/2026 — Prix de vente pratiqué, nettoyage des prédictions
+
+- `8677ec7` poussé sur GitHub (anciennes prédictions, marges au coût réel, cache versionné).
+- **Prix de vente pratiqué** : nouveau champ `Mouvement.prix_vente_snapshot`, renseigné à chaque vente et chaque retour client (par défaut le prix de vente du produit à ce moment, saisissable dans le formulaire de mouvement, pré-rempli). Le chiffre d'affaires du rapport et des marges l'utilise ; un changement de prix de vente ne modifie plus les ventes passées. La page Marges affiche le prix moyen pratiqué. Migration `stock.0008` : les 62 826 ventes et retours clients existants de la base de dev reçoivent le prix actuel de leur produit, le chiffre d'affaires est donc identique (1 160 251 477 FCFA sur la démo, rapport et marges égaux).
+- **Bug corrigé au passage** : le prix d'achat par défaut d'un mouvement n'était jamais enregistré, le test « nouvel objet » (`not self.pk`) étant toujours faux avec une clé primaire UUID générée avant l'enregistrement. Remplacé par `_state.adding`.
+- **Nettoyage des prédictions** : tâche Celery `apps.ia.tasks.nettoyer_predictions`, chaque dimanche à 3h30. Elle supprime les prédictions remplacées par une plus récente, en conservant 90 jours d'historique (`IA_CONFIG["CONSERVATION_PREDICTIONS_JOURS"]`) pour pouvoir comparer plus tard prévisions et ventes réelles. Commande : nouvelle option `--garder-jours`.
+- **Environnement virtuel** : `.venv\` remplace `env\` dans le script de démarrage, la documentation et les services Linux ; dépendances installées dans `.venv`.
+- **Tests** : 131.
+
+### Suite — Prix de vente au scan et dans l'API mobile
+
+- **Prix de vente pratiqué** saisissable partout où une sortie est enregistrée : page de scan et mouvement rapide du magasinier (champ affiché pour une sortie, pré-rempli avec le prix du produit), API mobile (`prix_vente` sur `/mouvements/rapide/`, `prix_vente_snapshot` sur `/mouvements/`). Les produits exposent leur prix de vente pour le pré-remplissage. Prix invalide (négatif, texte, NaN, infini) refusé ; vide : prix du produit.
+- **Page de scan réparée** : depuis l'origine, la page envoyait `produit_id` et `type` alors que la vue attendait `code` et `action` ; tout enregistrement répondait « Action non reconnue ». La vue accepte les deux formes et renvoie ce que la page affiche (nouveau stock, entrepôt, heure, message d'erreur). Le motif saisi est enregistré. L'entrepôt par défaut des préférences est de nouveau présélectionné (balise `{% if %}` cassée par un formateur).
+- **API `/api/v1/mouvements/`** (utilisée par la file hors ligne de la PWA) : la création n'appliquait pas le mouvement au stock, acceptait les produits et entrepôts d'une autre entreprise, et tout mouvement pouvait être modifié ou supprimé sans corriger le stock. Désormais : création et mise à jour du stock dans la même transaction, utilisateur enregistré, seuils vérifiés, entrepôts contrôlés selon le type, produits et entrepôts limités à l'entreprise ; modification et suppression refusées (405). `/mouvements/rapide/` exige un entrepôt valide et ne plante plus sur un identifiant mal formé.
+- **Tests** : 147.
+
+### Suite — Rôles de l'API mobile
+
+- **Création de mouvements par l'API** (`/mouvements/` et `/mouvements/rapide/`) réservée à l'admin entreprise, au gestionnaire et au magasinier ; comptable, auditeur et responsable achat gardent la consultation (403 en écriture). Nouvelle permission `LectureOuSaisieMouvements`.
+- **API des alertes** : le marquage comme lue (`PATCH /alertes/<id>/`) et le détail répondaient 404, car le queryset était découpé (`[:100]`) avant la recherche de l'élément ; même défaut sur le détail d'un mouvement (`[:200]`). Les listes restent limitées par la pagination. La création, le remplacement et la suppression d'alertes ne sont plus exposés : n'importe quel utilisateur pouvait créer une alerte, y compris sur le produit d'une autre entreprise.
+- **Tests** : 152.

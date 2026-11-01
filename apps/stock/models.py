@@ -438,6 +438,12 @@ class Mouvement(TimestampMixin):
         null=True, blank=True,
         verbose_name=_("Prix unitaire au moment du mouvement")
     )
+    # Prix de vente pratiqué (ventes et retours clients), pour le chiffre d'affaires
+    prix_vente_snapshot = models.DecimalField(
+        max_digits=14, decimal_places=2,
+        null=True, blank=True,
+        verbose_name=_("Prix de vente au moment du mouvement")
+    )
     date_mouvement = models.DateTimeField(
         default=timezone.now,
         verbose_name=_("Date du mouvement")
@@ -472,13 +478,21 @@ class Mouvement(TimestampMixin):
         """Emplacement correspondant à `entrepot`."""
         return self.emplacement_destination if self.entrepot_destination_id else self.emplacement_source
 
+    @property
+    def est_vente_ou_retour_client(self):
+        return (self.type_mouvement == TypeMouvement.SORTIE
+                or (self.type_mouvement == TypeMouvement.RETOUR and bool(self.entrepot_destination_id)))
+
     def save(self, *args, **kwargs):
         """
-        Snapshot du prix au moment de la création (pour l'historique comptable).
-        Ne se recalcule pas si le mouvement est modifié ultérieurement.
+        Snapshots des prix au moment de la création (pour l'historique comptable) : prix d'achat,
+        et prix de vente pour une vente ou un retour client.
+        Ne se recalculent pas si le mouvement est modifié ultérieurement.
         """
-        if not self.pk and self.prix_unitaire_snapshot is None:
+        if self._state.adding and self.prix_unitaire_snapshot is None:
             self.prix_unitaire_snapshot = self.produit.prix_unitaire
+        if self._state.adding and self.prix_vente_snapshot is None and self.est_vente_ou_retour_client:
+            self.prix_vente_snapshot = self.produit.prix_vente
         super().save(*args, **kwargs)
 
 

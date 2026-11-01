@@ -1,4 +1,5 @@
 {% extends 'magasinier/base_magasinier.html' %}
+{% load l10n %}
 {% block title %}Mouvement rapide{% endblock %}
 
 {% block content %}
@@ -76,6 +77,15 @@
   </div>
 </div>
 
+{# Prix de vente pratiqué (sorties) #}
+<div class="card" id="prix-vente-card" style="padding:16px;margin-bottom:12px;display:none;">
+  <div class="card-t" style="margin-bottom:12px;"><i class="fas fa-money-bill" style="color:var(--or);margin-right:6px;"></i>Prix de vente unitaire (FCFA)</div>
+  <input type="number" name="prix_vente" id="prix-vente-inp" class="fin mono" step="0.01" min="0"
+         value="{{ produit_preselect.prix_vente|default_if_none:''|unlocalize }}"
+         placeholder="Prix de vente du produit" style="height:46px;font-size:15px;">
+  <div class="fh" style="margin-top:6px;">Prix réellement pratiqué (remise, prix négocié). Vide : prix de vente du produit.</div>
+</div>
+
 {# Entrepôt + motif #}
 <div class="card" style="padding:16px;margin-bottom:20px;">
   <div class="card-t" style="margin-bottom:12px;"><i class="fas fa-warehouse" style="color:var(--or);margin-right:6px;"></i>Détails</div>
@@ -112,6 +122,7 @@ function setType(t) {
   const ce = document.getElementById('card-entree');
   const cs = document.getElementById('card-sortie');
   document.querySelectorAll('[name="type_mouvement"]').forEach(r => r.checked = r.value === t);
+  document.getElementById('prix-vente-card').style.display = t === 'sortie' ? 'block' : 'none';
   if (t === 'entree') {
     ce.style.cssText = 'padding:18px 14px;border:2px solid var(--green);border-radius:14px;text-align:center;background:var(--green-dim);transition:all .15s;';
     ce.querySelector('i').style.color = 'var(--green)'; ce.querySelector('div').style.color = 'var(--green)';
@@ -158,6 +169,7 @@ function selectProduit(p) {
   document.getElementById('ps-nom').textContent = p.nom;
   document.getElementById('ps-sku').textContent = p.sku;
   document.getElementById('ps-stock').textContent = p.stock_total;
+  document.getElementById('prix-vente-inp').value = p.prix_vente ?? '';
   document.getElementById('prod-selected').style.display = 'block';
   document.getElementById('prod-results').style.display = 'none';
   document.getElementById('prod-search').value = '';

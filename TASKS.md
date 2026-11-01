@@ -78,6 +78,18 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 - [x] Cache de valorisation versionné (`VERSION_CALCUL`) : un changement de code ne sert plus d'anciens résultats
 - [x] 125 tests
 
+### Novembre 2026 — prix de vente pratiqué, nettoyage des prédictions
+- [x] Prix de vente enregistré sur chaque vente et chaque retour client (`Mouvement.prix_vente_snapshot`), saisissable dans le formulaire de mouvement ; chiffre d'affaires et marges au prix pratiqué ; ventes existantes renseignées au prix actuel (chiffres inchangés)
+- [x] Prix d'achat par défaut des mouvements : il n'était jamais enregistré (test `not self.pk` toujours faux avec une clé UUID)
+- [x] Nettoyage hebdomadaire des prédictions remplacées (Celery Beat, dimanche 3h30), 90 jours d'historique conservés (`IA_CONFIG["CONSERVATION_PREDICTIONS_JOURS"]`) ; option `--garder-jours` de la commande
+- [x] Environnement virtuel : `.venv\` (script de démarrage, documentation, services Linux)
+- [x] Prix de vente saisissable aussi au scan, au mouvement rapide du magasinier et dans l'API mobile (`prix_vente`, `prix_vente_snapshot`), pré-rempli avec le prix du produit
+- [x] Page de scan : l'enregistrement échouait toujours (« Action non reconnue », champs envoyés différents de ceux attendus) ; entrepôt par défaut à nouveau présélectionné
+- [x] API `/api/v1/mouvements/` (file hors ligne de la PWA) : la création met à jour le stock, refuse les produits / entrepôts d'une autre entreprise et les entrepôts incohérents ; modification et suppression désactivées
+- [x] API : création de mouvements réservée à l'admin entreprise, au gestionnaire et au magasinier (consultation pour tous les rôles)
+- [x] API alertes : marquage comme lue réparé (404), création / suppression d'alertes retirées (une alerte pouvait être créée sur le produit d'une autre entreprise) ; détail d'un mouvement réparé
+- [x] 152 tests
+
 ---
 
 ## À faire
@@ -99,11 +111,11 @@ Priorités : **P1** bloquant ou risque pour les données · **P2** fonctionnalit
 
 ### P3 — Améliorations
 - [ ] Étendre les tests : API REST (JWT, scan, mouvements hors ligne), exports CSV/PDF, valorisation CUMP/FIFO du comptable, tâches IA.
-- [ ] Chiffre d'affaires (marges, rapport) : calculé avec le prix de vente **actuel** du produit, car le prix de vente n'est pas enregistré sur chaque sortie. Ajouter un `prix_vente_snapshot` au mouvement si les prix de vente évoluent.
-- [ ] Prédictions : la tâche IA en ajoute une par produit chaque nuit ; planifier `nettoyer_predictions` (par exemple chaque semaine) si l'historique n'est pas utile.
+- [ ] API produits (`/api/v1/produits/`) : le magasinier peut modifier et supprimer des produits (permission `ReadOnlyOrGestionnaire`, qui inclut le magasinier malgré son nom), la suppression est définitive et la création échoue (entreprise non renseignée). Réserver l'écriture à l'admin entreprise et au gestionnaire, désactiver la suppression, renseigner l'entreprise.
+- [ ] Mesurer la précision réelle de l'IA en comparant les prédictions conservées (90 jours) aux ventes constatées, au lieu de l'estimation actuelle fondée sur la variabilité de l'historique.
 - [ ] Performance : `_calculer_suggestions` exécute plusieurs requêtes par produit (appelée sur le tableau de bord achats) ; à optimiser ou mettre en cache si le catalogue dépasse quelques centaines de produits.
 - [ ] Interface de modération des avis dans l'espace super admin (aujourd'hui : admin Django).
-- [ ] Ménage : dossier `.venv/` en double de `env/` (non versionné), `GUIDE_*.txt` à relire et éventuellement convertir en Markdown.
+- [ ] Ménage : supprimer l'ancien environnement `env/` (remplacé par `.venv/`), `GUIDE_*.txt` à relire et éventuellement convertir en Markdown.
 - [ ] Journalisation (`LOGGING`) en production vers `logs/`.
 - [ ] Tableau de bord auditeur : icône par type d'action dans le fil d'activité (toujours l'icône par défaut).
 - [ ] Préférences de scan du magasinier (sons, vibration…) : la section est masquée tant qu'aucune n'est implémentée.

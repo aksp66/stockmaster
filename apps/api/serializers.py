@@ -53,14 +53,14 @@ class ProduitListSerializer(serializers.ModelSerializer):
 class ProduitDetailSerializer(ProduitListSerializer):
     class Meta(ProduitListSerializer.Meta):
         fields = ProduitListSerializer.Meta.fields + [
-            "description", "prix_unitaire", "code_barres",
+            "description", "prix_unitaire", "prix_vente", "code_barres",
             "fournisseur_principal", "created_at", "updated_at",
         ]
 
 class ProduitScanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Produit
-        fields = ["id", "sku", "nom", "code_barres", "quantite_totale", "seuil_alerte", "prix_unitaire"]
+        fields = ["id", "sku", "nom", "code_barres", "quantite_totale", "seuil_alerte", "prix_unitaire", "prix_vente"]
 
 class MouvementSerializer(serializers.ModelSerializer):
     produit_nom = serializers.CharField(source="produit.nom", read_only=True)
@@ -68,6 +68,9 @@ class MouvementSerializer(serializers.ModelSerializer):
     utilisateur_nom = serializers.SerializerMethodField()
     entrepot_source_nom = serializers.CharField(source="entrepot_source.nom", read_only=True, default="")
     entrepot_destination_nom = serializers.CharField(source="entrepot_destination.nom", read_only=True, default="")
+    # Prix de vente pratiqué (vente ou retour client) ; absent : prix de vente du produit
+    prix_vente_snapshot = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=0,
+                                                   required=False, allow_null=True)
 
     class Meta:
         model = Mouvement
@@ -76,9 +79,20 @@ class MouvementSerializer(serializers.ModelSerializer):
             "entrepot_source", "entrepot_source_nom",
             "entrepot_destination", "entrepot_destination_nom",
             "reference", "note", "lot_numero", "date_expiration",
-            "date_mouvement", "utilisateur_nom",
+            "date_mouvement", "utilisateur_nom", "prix_vente_snapshot",
         ]
         read_only_fields = ["id", "date_mouvement", "utilisateur_nom"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Produits et entrepôts limités à l'entreprise de l'utilisateur
+        request = self.context.get("request")
+        entreprise = getattr(getattr(request, "user", None), "entreprise", None)
+        if entreprise is not None:
+            from apps.stock.models import Entrepot, Produit
+            self.fields["produit"].queryset = Produit.objects.filter(entreprise=entreprise)
+            for champ in ("entrepot_source", "entrepot_destination"):
+                self.fields[champ].queryset = Entrepot.objects.filter(entreprise=entreprise)
 
     def get_utilisateur_nom(self, obj):
         if obj.utilisateur:
@@ -90,6 +104,24 @@ class MouvementSerializer(serializers.ModelSerializer):
         quantite = data.get("quantite")
         if quantite <= 0:
             raise serializers.ValidationError({"quantite": "La quantité doit être positive."})
+        # Entrepôts attendus selon le type (sans eux, le mouvement n'aurait aucun effet sur le stock).
+        # Ajustement / retour : destination = surplus / retour client, source = manque / retour fournisseur.
+        source, destination = data.get("entrepot_source"), data.get("entrepot_destination")
+        attendus = {
+            "entree": destination and not source,
+            "sortie": source and not destination,
+            "perte": source and not destination,
+            "transfert": source and destination and source != destination,
+            "ajustement": bool(source) != bool(destination),
+            "retour": bool(source) != bool(destination),
+        }
+        if not attendus.get(type_mvt):
+            raise serializers.ValidationError(
+                "Entrepôts incohérents avec le type de mouvement : entrée → destination ; sortie / perte → source ; "
+                "transfert → source et destination différentes ; ajustement / retour → l'un des deux."
+            )
+        if not (type_mvt == "sortie" or (type_mvt == "retour" and destination)):
+            data["prix_vente_snapshot"] = None  # prix de vente : ventes et retours clients uniquement
         if type_mvt in ["sortie", "perte"]:
             ent_src = data.get("entrepot_source")
             if ent_src:

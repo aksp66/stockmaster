@@ -1077,6 +1077,7 @@ def produit_search_ajax(request):
         'unite': p.unite_mesure,
         'stock_total': float(p.quantite_totale()),
         'prix': float(p.prix_unitaire),
+        'prix_vente': float(p.prix_vente) if p.prix_vente is not None else None,
     } for p in produits]
     return JsonResponse(data, safe=False)
 
@@ -1190,6 +1191,9 @@ def mouvement_form(request):
                     note=data.get('motif', ''),
                     date_mouvement=_date_saisie(data.get('date_mouvement')),
                     prix_unitaire_snapshot=_prix_saisi(data.get('prix_unitaire_achat')) if type_m == 'entree' else None,
+                    # Vente ou retour client : prix pratiqué (à défaut, le modèle reprend le prix de vente du produit)
+                    prix_vente_snapshot=(_prix_saisi(data.get('prix_vente_unitaire'))
+                                         if type_m == 'sortie' or (type_m == 'retour' and ent_dst) else None),
                 )
                 _appliquer_mouvement(mouv)
         except ValidationError as e:
@@ -1220,12 +1224,26 @@ def _date_saisie(valeur):
 
 
 def _prix_saisi(valeur):
-    """Prix d'achat saisi (Decimal >= 0) ou None : le modèle reprend alors le prix du produit."""
-    try:
-        prix = Decimal(valeur)
-    except (TypeError, ArithmeticError, ValueError):
+    """Prix saisi (Decimal >= 0) ou None : le modèle reprend alors le prix du produit."""
+    if valeur is None or isinstance(valeur, bool):
         return None
-    return prix if prix >= 0 else None
+    try:
+        prix = Decimal(str(valeur).strip())
+    except (ArithmeticError, ValueError):
+        return None
+    return prix if prix.is_finite() and 0 <= prix < 10 ** 12 else None
+
+
+def _prix_vente_json(data):
+    """
+    Prix de vente optionnel d'une requête JSON : (prix ou None, erreur ou None).
+    Absent ou vide : None, le modèle reprend le prix de vente du produit.
+    """
+    brut = data.get('prix_vente')
+    if brut in (None, ''):
+        return None, None
+    prix = _prix_saisi(brut)
+    return (prix, None) if prix is not None else (None, "Prix de vente invalide.")
 
 
 @login_required

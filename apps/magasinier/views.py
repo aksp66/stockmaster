@@ -20,7 +20,7 @@ from apps.stock.models import (
     Produit, Stock, Mouvement, TypeMouvement, Entrepot, Emplacement, Categorie,
     InventaireSession, LigneInventaire, Alerte, ScanLog
 )
-from apps.gestionnaire.views import _appliquer_mouvement, _verifier_seuil
+from apps.gestionnaire.views import _appliquer_mouvement, _prix_saisi, _prix_vente_json, _verifier_seuil
 
 def _entreprise(request):
     return request.user.entreprise
@@ -88,6 +88,7 @@ def scan_view(request):
     } for m in mouvements]
     return render(request, 'magasinier/scan.html', {
         'entrepots': entrepots, 'historique_session': historique,
+        'entrepot_defaut_id': _prefs(request)['entrepot_defaut_id'],
     })
 
 
@@ -110,22 +111,30 @@ def api_scan(request):
                 'sku': produit.sku,
                 'stock_total': float(produit.quantite_totale()),
                 'seuil_alerte': float(produit.seuil_alerte),
+                'prix_vente': float(produit.prix_vente) if produit.prix_vente is not None else None,
             })
         return JsonResponse({'found': False, 'message': f'Produit introuvable pour le code "{code}"'})
 
     elif request.method == 'POST':
-        # Enregistrement du mouvement (votre code existant)
+        # Page de scan : produit_id (produit déjà identifié par le GET) + type.
+        # Également accepté : code (code-barres ou SKU) + action.
         try:
             data = json.loads(request.body)
             quantite = float(data.get('quantite', 1))
         except (ValueError, TypeError, AttributeError):
             return JsonResponse({'success': False, 'error': 'Requête invalide'}, status=400)
-        code = str(data.get('code', '')).strip()
-        action = data.get('action', '')  # 'entree' ou 'sortie'
+        ent = _entreprise(request)
+        code = str(data.get('code') or '').strip()
+        action = data.get('type') or data.get('action', '')  # 'entree' ou 'sortie'
         entrepot_id = data.get('entrepot_id')
-        produit = Produit.objects.filter(
-            Q(code_barres=code) | Q(sku=code), entreprise=_entreprise(request)
-        ).first()
+        if data.get('produit_id'):
+            try:
+                produit = Produit.objects.filter(pk=data['produit_id'], entreprise=ent).first()
+            except (ValueError, ValidationError):
+                produit = None
+            code = code or (produit.code_barres or produit.sku if produit else str(data['produit_id']))
+        else:
+            produit = Produit.objects.filter(Q(code_barres=code) | Q(sku=code), entreprise=ent).first()
 
         # Log du scan
         ScanLog.objects.create(
@@ -144,14 +153,18 @@ def api_scan(request):
             return JsonResponse({'success': False, 'error': 'Entrepôt non spécifié'})
 
         try:
-            entrepot = Entrepot.objects.get(pk=entrepot_id, entreprise=_entreprise(request))
-        except Entrepot.DoesNotExist:
+            entrepot = Entrepot.objects.get(pk=entrepot_id, entreprise=ent)
+        except (Entrepot.DoesNotExist, ValueError, ValidationError):
             return JsonResponse({'success': False, 'error': 'Entrepôt invalide'})
 
         if action not in ('entree', 'sortie'):
             return JsonResponse({'success': False, 'error': 'Action non reconnue'})
         if quantite <= 0:
             return JsonResponse({'success': False, 'error': 'Quantité invalide'})
+        prix_vente, erreur = _prix_vente_json(data)
+        if erreur:
+            return JsonResponse({'success': False, 'error': erreur})
+        note = str(data.get('motif') or '').strip() or f"Scan rapide par {request.user.get_full_name()}"
 
         # Créer le mouvement et l'appliquer dans la même transaction : si le
         # stock est insuffisant, _appliquer_mouvement lève ValidationError et
@@ -166,7 +179,7 @@ def api_scan(request):
                         entrepot_destination=entrepot,
                         utilisateur=request.user,
                         reference=f"SCAN-{timezone.now().timestamp()}",
-                        note=f"Scan rapide par {request.user.get_full_name()}"
+                        note=note,
                     )
                 else:
                     mouv = Mouvement.objects.create(
@@ -176,7 +189,8 @@ def api_scan(request):
                         entrepot_source=entrepot,
                         utilisateur=request.user,
                         reference=f"SCAN-{timezone.now().timestamp()}",
-                        note=f"Scan rapide par {request.user.get_full_name()}"
+                        note=note,
+                        prix_vente_snapshot=prix_vente,  # None : prix de vente du produit
                     )
                 _appliquer_mouvement(mouv)
         except ValidationError as e:
@@ -185,6 +199,9 @@ def api_scan(request):
 
         return JsonResponse({
             'success': True,
+            'nouveau_stock': float(produit.quantite_totale()),
+            'entrepot_nom': entrepot.nom,
+            'heure': timezone.localtime(mouv.date_mouvement).strftime('%H:%M'),
             'produit': {
                 'nom': produit.nom,
                 'sku': produit.sku,
@@ -315,7 +332,8 @@ def mouvement_rapide(request):
                         quantite=quantite,
                         entrepot_source=entrepot,
                         utilisateur=request.user,
-                        note=request.POST.get('motif', '').strip() or "Mouvement rapide magasinier"
+                        note=request.POST.get('motif', '').strip() or "Mouvement rapide magasinier",
+                        prix_vente_snapshot=_prix_saisi(request.POST.get('prix_vente')),
                     )
                 _appliquer_mouvement(mouv)
         except ValidationError as e:
@@ -530,5 +548,6 @@ def produit_search_ajax(request):
         'nom': p.nom,
         'sku': p.sku,
         'stock_total': float(p.quantite_totale()),
+        'prix_vente': float(p.prix_vente) if p.prix_vente is not None else None,
     } for p in produits]
     return JsonResponse(data, safe=False)

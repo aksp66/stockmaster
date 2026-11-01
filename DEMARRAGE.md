@@ -50,7 +50,7 @@ Get-Help .\demarrage.ps1 -Detailed     # aide intégrée
 Chaque étape affiche `OK` (vert), `..` (information), `!!` (avertissement, le script continue) ou `ERREUR` (rouge, le script s'arrête et ferme ce qu'il a ouvert).
 
 ### 1/9 — Environnement Python
-- Si `env\Scripts\python.exe` n'existe pas, crée l'environnement virtuel `env\` avec `py -3` (ou `python`), puis installe les dépendances.
+- Si `.venv\Scripts\python.exe` n'existe pas, crée l'environnement virtuel `.venv\` avec `py -3` (ou `python`), puis installe les dépendances.
 - Sinon, vérifie en une commande que les modules essentiels s'importent (`django`, `rest_framework`, `celery`, `decouple`, `waitress`). S'il en manque un, lance `pip install -r requirements.txt`.
 - `-Installer` force l'installation dans tous les cas.
 
@@ -108,10 +108,10 @@ Ignoré avec `-SansCelery` ou si Redis est absent.
 ```powershell
 # Créer le super administrateur (identifiants SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD du .env,
 # sinon un mot de passe aléatoire est affiché une seule fois)
-env\Scripts\python.exe manage.py runscript create_superadmin
+.venv\Scripts\python.exe manage.py runscript create_superadmin
 
 # Facultatif : jeu de données de démonstration (une entreprise de distribution, 100 produits)
-env\Scripts\python.exe manage.py runscript seed
+.venv\Scripts\python.exe manage.py runscript seed
 ```
 
 ## Dépannage rapide
