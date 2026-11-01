@@ -1,4 +1,5 @@
 {% extends 'gestionnaire/base_gestionnaire.html' %}
+{% load stock_ui %}
 {% block title %}{{ produit.nom }}{% endblock %}
 {% block page_title %}{{ produit.nom }}{% endblock %}
 {% block page_sub %}Détail produit · {{ user.entreprise.nom }}{% endblock %}
@@ -56,13 +57,7 @@
     <div style="flex:1;min-width:0;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
         <h2 style="font-size:22px;font-weight:800;color:var(--text-p);letter-spacing:-.4px;margin:0;">{{ produit.nom }}</h2>
-        {% if produit.quantite_totale == 0 %}
-          <span class="badge bg-re">Rupture</span>
-        {% elif produit.quantite_totale <= produit.seuil_alerte %}
-          <span class="badge bg-or">Alerte</span>
-        {% else %}
-          <span class="badge bg-gr">Stock OK</span>
-        {% endif %}
+        {% st_badge produit %}
         {% if produit.est_actif %}
           <span class="badge bg-gy">Actif</span>
         {% else %}
@@ -327,7 +322,7 @@
         {# Fallback statique #}
         <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
           <span style="color:var(--text-m);"><i class="fas fa-tag" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Catégorie</span>
-          <span style="font-weight:600;">{{ produit.categorie.nom|default:"—" }}</span>
+          {% cat_badge produit.categorie %}
         </div>
         <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
           <span style="color:var(--text-m);"><i class="fas fa-ruler" style="color:var(--or);width:14px;font-size:11px;margin-right:6px;"></i>Unité</span>

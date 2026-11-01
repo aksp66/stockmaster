@@ -22,7 +22,7 @@ Un commit par étape ; push à la fin. Cases cochées au fur et à mesure.
 - Champ `theme` sur `ParametresEntreprise` (migration), 6 thèmes prédéfinis (Orange par défaut, Océan, Forêt, Violet, Rubis, Ardoise).
 - Choix dans Paramètres de l'admin entreprise avec aperçu en direct ; le thème est appliqué à toute l'application via `data-theme` (jetons CSS redéfinis), tous rôles confondus.
 
-### 3. Pages : alignement et cohérence
+### 3. Pages : alignement et cohérence — fait
 Passer en revue chaque page des 7 espaces + pages publiques : en-têtes, grilles, tableaux, formulaires alignés en flexbox/grid, responsive mobile.
 
 ### 4. Pages publiques et conformité

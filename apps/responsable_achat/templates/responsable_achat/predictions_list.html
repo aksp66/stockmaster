@@ -1,4 +1,5 @@
 {% extends 'responsable_achat/base_achat.html' %}
+{% load stock_ui %}
 {% block title %}Prédictions IA{% endblock %}
 {% block page_title %}Prédictions de stock{% endblock %}
 {% block page_sub %}Intelligence · {{ user.entreprise.nom }}{% endblock %}
@@ -111,10 +112,10 @@
         <td>
           <div style="font-weight:700;font-size:13px;color:var(--text-p);">{{ p.produit.nom }}</div>
           <div class="mono" style="font-size:11px;color:var(--or);">{{ p.produit.sku }}</div>
-          {% if p.produit.categorie %}<div style="margin-top:3px;"><span class="badge bg-gy" style="font-size:10px;">{{ p.produit.categorie.nom }}</span></div>{% endif %}
+          {% if p.produit.categorie %}<div style="margin-top:3px;">{% cat_badge p.produit.categorie True %}</div>{% endif %}
         </td>
         <td>
-          <span class="mono" style="font-size:16px;font-weight:800;color:{% if p.produit.quantite_totale == 0 %}var(--red){% elif p.produit.quantite_totale <= p.produit.seuil_alerte %}var(--or){% else %}var(--green){% endif %};">
+          <span class="mono" style="font-size:16px;font-weight:800;color:{% st_color p.produit %};">
             {{ p.produit.quantite_totale }}
           </span>
         </td>

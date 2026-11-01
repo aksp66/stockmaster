@@ -71,3 +71,29 @@ class AffichageDesPagesTests(EntrepriseTestCase):
                 self.assertIn(self.client.get(url).status_code, (200, 302))
         url = reverse('superadmin:detail_entreprise', args=[self.ent.pk])
         self.assertEqual(self.client.get(url).status_code, 200)
+
+
+class BalisesAffichageTests(EntrepriseTestCase):
+    """Statuts de stock et couleurs de catégories communs à tous les espaces."""
+
+    def test_statuts_de_stock(self):
+        from apps.stock.templatetags.stock_ui import code_statut
+        p = self.produit  # seuil 5
+        for stock, attendu in [(0, 'rupture'), (5, 'critique'), (9, 'faible'), (10, 'faible'), (11, 'ok')]:
+            from apps.stock.models import Stock
+            Stock.objects.filter(produit=p).update(quantite=stock)
+            self.assertEqual(code_statut(p), attendu, stock)
+
+    def test_couleur_de_categorie_stable(self):
+        from apps.stock.templatetags.stock_ui import cat_index
+        self.assertEqual(cat_index('Boissons'), cat_index(' boissons '))
+        self.assertTrue(all(0 <= cat_index(n) < 8 for n in ('A', 'B', 'Épicerie', '')))
+
+    def test_liste_des_produits_affiche_les_pastilles(self):
+        from apps.stock.models import Categorie
+        self.produit.categorie = Categorie.objects.create(nom='Épicerie', entreprise=self.ent)
+        self.produit.save()
+        self.connecter('gestionnaire')
+        html = self.client.get(reverse('gestionnaire:produits')).content.decode()
+        self.assertIn('class="cat cat-', html)
+        self.assertIn('st st-faible', html)  # 10 en stock pour un seuil de 5

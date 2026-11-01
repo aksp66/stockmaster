@@ -181,3 +181,10 @@ Journal des grandes étapes du projet, de la plus ancienne à la plus récente. 
 - Nouvelle carte « Apparence » dans les Paramètres de l'admin entreprise : choix du thème avec aperçu immédiat sur la page, enregistré seulement au clic. Réservé à l'admin entreprise ; un thème inconnu est refusé.
 - Le thème s'applique à tous les rôles de l'entreprise (attribut `data-theme` sur chaque gabarit, via le processeur de contexte `apps.entreprises.context_processors.theme`, mis en cache et invalidé à l'enregistrement). Les autres entreprises et le super admin gardent l'orange.
 - Tests : 161.
+
+### Refonte, étape 3 — cohérence et alignement des pages
+
+- **Une seule règle et une seule palette pour les produits** : nouvelles balises `apps/stock/templatetags/stock_ui.py` (`st_badge`, `st_color`, `st_dim`, `cat_badge`). Statuts de stock rupture / alerte / faible (jusqu'à 2 × le seuil) / OK, mêmes couleurs dans les espaces gestionnaire, magasinier et achats et dans l'API ; chaque catégorie garde toujours la même couleur parmi huit. Remplace des conditions recopiées dans chaque gabarit, qui donnaient trois couleurs différentes selon la page.
+- **Responsive** : audit automatisé (62 pages sans paramètre de tous les espaces, rendues dans Edge en écran étroit et large, détection de tout élément qui dépasse sans être dans une zone défilante). 29 pages débordaient ; règles communes ajoutées : tableaux défilant horizontalement dans leur carte, grilles à colonnes fixes qui se replient, en-têtes et barres de boutons qui passent à la ligne, fenêtres modales et notifications adaptées au mobile. Résultat : 62 pages sur 62 sans débordement, à 1440 px comme en écran étroit.
+- Colonne SKU et prix des tableaux sans retour à la ligne.
+- **Tests** : 164.

@@ -975,3 +975,33 @@ textarea.fin {
   #main { margin: 0 !important; padding: 0 !important; }
   .card { box-shadow: none !important; break-inside: avoid; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE : aucune page ne doit déborder horizontalement
+   ═══════════════════════════════════════════════════════════════════════════ */
+#main, #content, main { min-width: 0; }
+img, video, canvas, svg { max-width: 100%; }
+/* Une carte qui contient un tableau défile horizontalement au lieu de déborder */
+.card:has(.tbl) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.card:has(.tbl) > .tbl { min-width: 560px; }
+.card-h, .card-header, .page-header { flex-wrap: wrap; gap: 8px 12px; }
+.pager { flex-wrap: wrap; }
+@media (max-width: 900px) {
+  /* Les grilles écrites en ligne (colonnes fixes) se replient selon la place disponible */
+  [style*="grid-template-columns"] { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)) !important; }
+  [style*="grid-template-columns"] > * { min-width: 0; }
+  #main, .pc, #content { padding-left: 14px; padding-right: 14px; }
+}
+@media (max-width: 560px) {
+  .modal { width: calc(100vw - 24px); max-width: none !important; }
+  .toast-w { left: 12px; right: 12px; }
+  .toast { min-width: 0; max-width: 100%; }
+}
+.card:has(.data-table), .card:has(table.tbl-admin) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.card:has(.data-table) .data-table { min-width: 560px; }
+@media (max-width: 640px) {
+  /* Barres d'outils et rangées de boutons : passent à la ligne au lieu de déborder */
+  #main [style*="display:flex"]:not([style*="flex-direction:column"]):not([style*="flex-wrap"]),
+  #content [style*="display:flex"]:not([style*="flex-direction:column"]):not([style*="flex-wrap"]),
+  .pc [style*="display:flex"]:not([style*="flex-direction:column"]):not([style*="flex-wrap"]) { flex-wrap: wrap; }
+}
